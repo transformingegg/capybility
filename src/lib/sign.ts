@@ -30,3 +30,34 @@ export async function generateMintSignature(
     return { success: false, error: error.message };
   }
 }
+
+// Create an interface for the data structure
+interface QuizData {
+  quiz: Array<{
+    question: string;
+    choices: string[];
+    correctAnswer: number;
+  }>;
+  quizName: string;
+  tags: string[];
+}
+
+// Use the interface instead of 'any'
+export async function signQuizCreation(quizData: QuizData): Promise<string> {
+  try {
+    const messageHash = ethers.solidityPackedKeccak256(
+      ["string", "string[]", "uint8[]"],
+      [
+        quizData.quizName,
+        quizData.quiz.map(q => q.question),
+        quizData.quiz.map(q => q.correctAnswer)
+      ]
+    );
+    const ethSignedMessageHash = ethers.getBytes(messageHash);
+    const signature = await signerWallet.signMessage(ethSignedMessageHash);
+    return signature;
+  } catch (error) {
+    console.error('Error signing quiz creation:', error);
+    throw error;
+  }
+}

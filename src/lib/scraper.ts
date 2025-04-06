@@ -27,8 +27,6 @@ export async function scrapeWebpage(url: string): Promise<string> {
 
       // Ensure the element has a tagName before proceeding
       if ("tagName" in elem && elem.tagName) {
-        const tagName = elem.tagName.toLowerCase()
-
         // Recursively process this element and its children
         const processElement = ($el: cheerio.Cheerio) => {
           // Get direct text content of this element (excluding children)

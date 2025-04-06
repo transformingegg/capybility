@@ -171,7 +171,7 @@ export default function ArchivedQuizzes() {
           </div>
         ) : (
           <div className={sectionStyles}>
-            <p className="text-gray-600 mb-4">You don't have any archived quizzes.</p>
+            <p className="text-gray-600 mb-4">You don&apos;t have any archived quizzes.</p>
           </div>
         )}
       </div>

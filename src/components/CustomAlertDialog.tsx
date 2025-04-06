@@ -24,6 +24,8 @@ export default function CustomAlertDialog({
 }: CustomAlertDialogProps) {
   if (!isOpen) return null;
 
+  const confirmButtonStyle = type === 'warning' ? redButtonStyles : buttonStyles;
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
@@ -35,7 +37,7 @@ export default function CustomAlertDialog({
               {cancelLabel || "Cancel"}
             </button>
           )}
-          <button onClick={onConfirm} className={buttonStyles}>
+          <button onClick={onConfirm} className={confirmButtonStyle}>
             {confirmLabel}
           </button>
         </div>

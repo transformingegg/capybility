@@ -1,6 +1,16 @@
 import { NextResponse } from "next/server";
 import { ethers } from "ethers";
 
+// Add these interfaces
+interface MetadataAttribute {
+  trait_type: string;
+  value: string;
+}
+
+interface NFTMetadata {
+  attributes: MetadataAttribute[];
+}
+
 const QUIZ_NFT_ADDRESS = "0x33B66e43f6f3CCd8C433c2F9D4159bdB3ce49d77" as `0x${string}`;
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
@@ -67,10 +77,13 @@ export async function GET(request: Request) {
         const metadataUrl = `${BASE_URL}/metadata/${tokenId}.json`;
         console.log(`Fetching metadata from: ${metadataUrl}`);
         const response = await fetch(metadataUrl);
-        const metadata = await response.json();
+        const metadata = await response.json() as NFTMetadata;
         console.log(`Metadata for token ${tokenId}:`, metadata);
         
-        const rarity = metadata.attributes.find((attr: any) => attr.trait_type === "Rarity")?.value;
+        const rarity = metadata.attributes.find(
+          (attr: MetadataAttribute) => attr.trait_type === "Rarity"
+        )?.value;
+        
         if (rarity) {
           rarityDistribution[rarity] = (rarityDistribution[rarity] || 0) + 1;
         }

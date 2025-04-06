@@ -4,7 +4,6 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import UrlForm from "../../components/UrlForm";
-import TextDisplay from "../../components/TextDisplay";
 import BuildQuiz from "../../components/BuildQuiz";
 import { useAccount } from "wagmi";
 import LoadingOverlay from "@/components/LoadingOverlay";
@@ -12,8 +11,6 @@ import PageLayout from "@/components/PageLayout";
 import { buttonStyles, sectionStyles } from "@/utils/styles";
 import { ethers } from 'ethers';
 import { useWriteContract } from 'wagmi';
-import { parseEther } from 'ethers';
-import { waitForTransaction, waitForTransactionReceipt } from 'wagmi/actions';
 import DrQuizBubble from '../../components/DrQuizBubble';
 import QuizShareSection from '../../components/QuizShareSection';
 
@@ -94,6 +91,13 @@ const MainContent = dynamic(
         question: string;
         choices: string[];
         correctAnswer: number;
+      }
+
+      // Add error type interface
+      interface ErrorResponse {
+        message: string;
+        code?: string;
+        details?: unknown;
       }
 
       const MainContentComponent = () => {
@@ -480,6 +484,25 @@ const MainContent = dynamic(
           setSourceUrl(""); // Clear URL when skipping
           setIsUrlSubmitted(true);
           setIsEditing(true);
+        };
+
+        // Update error handlers with proper types
+        const handleScrapeError = (error: ErrorResponse) => {
+          console.error("Error scraping content:", error);
+          setIsLoading(false);
+          alert(error.message || "Failed to scrape content");
+        };
+
+        const handleMintError = (error: ErrorResponse) => {
+          console.error("Error minting NFT:", error);
+          setIsLoading(false);
+          alert(error.message || "Failed to mint NFT");
+        };
+
+        const handleTransactionError = (error: ErrorResponse) => {
+          console.error("Transaction error:", error);
+          setIsLoading(false);
+          alert(error.message || "Transaction failed");
         };
 
         return (

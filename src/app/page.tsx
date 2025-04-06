@@ -1,21 +1,14 @@
 "use client";
-import dynamic from "next/dynamic";
-import Dashboard from "../components/Dashboard";
 import MainLayout from '@/components/MainLayout';
 import Link from 'next/link';
 import { buttonStyles } from "@/utils/styles";
-
-// Prevent hydration errors with dynamic import
-const DynamicDashboard = dynamic(() => Promise.resolve(Dashboard), {
-  ssr: false,
-});
 
 export default function Home() {
   return (
     <MainLayout>
       <div className="max-w-4xl mx-auto text-center">
         <h1 className="text-4xl font-bold text-gray-900 mb-8">
-          You've found CAPYBILITY!
+          You&apos;ve found CAPYBILITY!
         </h1>
         <p className="text-xl text-gray-600 mb-8">
           CAPYBILITY uses the simple effectiveness of 5 question multiple choice quizes to join project, users, educators and learners together to show their capabilities.  

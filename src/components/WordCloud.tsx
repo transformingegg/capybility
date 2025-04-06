@@ -8,6 +8,13 @@ interface Word {
   size: number;
 }
 
+interface D3CloudWord extends Word {
+  x: number;
+  y: number;
+  rotate: number;
+  font: string;
+}
+
 interface WordCloudProps {
   words: Word[];
   width?: number;
@@ -18,37 +25,35 @@ export default function WordCloud({ words, width = 600, height = 400 }: WordClou
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Return early if no container or words
     if (!containerRef.current || !words.length) return;
 
-    // Clear previous content
-    d3.select(containerRef.current).selectAll("*").remove();
+    // Store ref in a variable at the start of the effect
+    const container = containerRef.current;
+    const colors = ['#00c7df', '#ced661', '#e5e7eb'];
 
-    // Define your specific colors
-    const colors = ['#00c7df', '#ced661', '#e5e7eb']; // Blue, Yellow, Light Grey
+    d3.select(container).selectAll("*").remove();
 
-    // Normalize sizes to a reasonable range
     const maxSize = Math.max(...words.map(w => w.size));
     const minSize = Math.min(...words.map(w => w.size));
     const sizeScale = d3.scaleLinear()
       .domain([minSize || 1, maxSize || 10])
-      .range([16, 50]); // Reduced maximum font size, increased minimum
+      .range([16, 50]);
 
-    const cloudWords = words.map(d => ({ text: d.text, size: d.size }));
-
-    const layout = cloud()
-      .size([width * 0.95, height * 0.95]) // Increased available space
-      .padding(10) // Increased padding between words
-      .spiral("rectangular") // Changed to rectangular spiral for better spacing
+    const layout = cloud<Word>()
+      .size([width * 0.95, height * 0.95])
+      .padding(10)
+      .spiral("rectangular")
       .rotate(() => 0)
       .font("Inter")
-      .fontSize(d => sizeScale(d.size ?? 1))
-      .words(cloudWords)
-      .on("end", draw);
+      .fontSize(d => sizeScale(d.size))
+      .words(words)
+      .on("end", (words) => draw(words as D3CloudWord[], container));
 
     layout.start();
 
-    function draw(words: Array<{ text: string; size: number; x: number; y: number; rotate: number; font: string }>) {
-      const svg = d3.select(containerRef.current)
+    function draw(words: D3CloudWord[], container: HTMLDivElement) {
+      const svg = d3.select(container)
         .append("svg")
         .attr("width", width)
         .attr("height", height)
@@ -69,10 +74,9 @@ export default function WordCloud({ words, width = 600, height = 400 }: WordClou
         .style("font-weight", "600")
         .style("text-shadow", "1px 1px 2px rgba(0,0,0,0.05)")
         .attr("text-anchor", "middle")
-        .attr("transform", d => `translate(${d.x},${d.y})`) // Removed rotation
+        .attr("transform", d => `translate(${d.x},${d.y})`)
         .text(d => d.text);
 
-      // Add hover effect
       text
         .on("mouseover", function () {
           d3.select(this)
@@ -89,8 +93,11 @@ export default function WordCloud({ words, width = 600, height = 400 }: WordClou
         });
     }
 
+    // Use captured container variable in cleanup
     return () => {
-      d3.select(containerRef.current).selectAll("*").remove();
+      if (container) {
+        d3.select(container).selectAll("*").remove();
+      }
     };
   }, [words, width, height]);
 
@@ -99,7 +106,7 @@ export default function WordCloud({ words, width = 600, height = 400 }: WordClou
       ref={containerRef}
       className="w-full"
       style={{
-        background: '#ffffff', // Changed to white background
+        background: '#ffffff',
         borderRadius: '8px',
         overflow: 'hidden',
       }}

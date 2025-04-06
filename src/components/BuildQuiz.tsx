@@ -57,7 +57,12 @@ export default function BuildQuiz({ quizJson, onQuizUpdated }: BuildQuizProps) {
     }
   }, [quizJson]);
 
-  const handleChange = (index: number, field: keyof QuizQuestion, value: any) => {
+  // Update the handleChange function with proper typing
+  const handleChange = (
+    index: number, 
+    field: keyof QuizQuestion, 
+    value: string | string[] | number
+  ) => {
     const newQuiz = [...quiz];
     newQuiz[index] = { ...newQuiz[index], [field]: value };
     setQuiz(newQuiz);

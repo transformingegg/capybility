@@ -3,94 +3,107 @@ pragma solidity ^0.8.20;
 
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.9.3/contracts/token/ERC721/ERC721.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.9.3/contracts/access/AccessControl.sol";
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.9.3/contracts/security/ReentrancyGuard.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.9.3/contracts/utils/Counters.sol";
-import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.9.3/contracts/utils/Strings.sol";
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.9.3/contracts/token/ERC20/IERC20.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.9.3/contracts/utils/cryptography/ECDSA.sol";
 
-contract QuizNFT is ERC721, AccessControl {
+contract QuizCreatorNFT is ERC721, AccessControl, ReentrancyGuard {
     using Counters for Counters.Counter;
-    using Strings for uint256;
     using ECDSA for bytes32;
-
+    
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+    bytes32 public constant SIGNER_ROLE = keccak256("SIGNER_ROLE");
+    
+    IERC20 public immutable eduToken;
+    uint256 public mintPrice;
+    
     Counters.Counter private _tokenIdCounter;
-    mapping(uint256 => string) private _quizIds;
-    mapping(string => address[]) private _quizOwners;
-    mapping(address => uint256) private _nonces; // Nonce for each user to prevent replay attacks
     string private _baseTokenURI;
-    address public signer; // Address authorized to sign minting requests
+    
+    mapping(uint256 => string) private _quizIds;
+    mapping(string => address) private _quizCreators;
+    mapping(bytes => bool) private _usedSignatures;
+    mapping(address => uint256) private _nonces;
 
-    event Minted(address indexed to, uint256 indexed tokenId, string quizId);
+    event QuizCreated(address indexed creator, uint256 indexed tokenId, string quizId);
+    event MintPriceUpdated(uint256 newPrice);
     event BaseURIChanged(string newBaseURI);
-    event BurnAttempted(uint256 tokenId);
-    event SignerChanged(address indexed newSigner);
+    event SignerUpdated(address newSigner);
+    event FundsWithdrawn(address to, uint256 amount);
 
-    constructor(string memory baseURI, address _signer) ERC721("QuizNFT", "QNFT") {
+    constructor(
+        string memory baseURI,
+        address eduTokenAddress,
+        uint256 initialMintPrice,
+        address signer
+    ) ERC721("Quiz Creator NFT", "QCNFT") {
+        require(eduTokenAddress != address(0), "Invalid EDU token address");
+        require(signer != address(0), "Invalid signer address");
+        require(initialMintPrice > 0, "Invalid mint price");
+
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(ADMIN_ROLE, msg.sender);
+        _grantRole(SIGNER_ROLE, signer);
+        
         _baseTokenURI = baseURI;
-        _tokenIdCounter.increment(); // Start IDs at 1
-        signer = _signer;
-        emit SignerChanged(_signer);
+        eduToken = IERC20(eduTokenAddress);
+        mintPrice = initialMintPrice;
+        _tokenIdCounter.increment(); // Start from 1
     }
 
-    function mint(address to, string memory quizId, bytes memory signature) public returns (uint256) {
-        require(to != address(0), "Invalid recipient address");
-        require(msg.sender == to, "Cannot mint for another address");
+    function mint(
+        string memory quizId,
+        bytes memory signature
+    ) public nonReentrant returns (uint256) {
+        require(!_usedSignatures[signature], "Signature already used");
+        require(_quizCreators[quizId] == address(0), "Quiz already has a creator");
 
-        // Generate the message hash
-        uint256 nonce = _nonces[to];
-        bytes32 messageHash = keccak256(abi.encodePacked(to, quizId, nonce, address(this)));
+        bytes32 messageHash = keccak256(abi.encodePacked(
+            msg.sender,
+            quizId,
+            _nonces[msg.sender],
+            address(this)
+        ));
         bytes32 ethSignedMessageHash = messageHash.toEthSignedMessageHash();
-
-        // Verify the signature
+        
         address recoveredSigner = ethSignedMessageHash.recover(signature);
-        require(recoveredSigner == signer, "Invalid signature");
+        require(hasRole(SIGNER_ROLE, recoveredSigner), "Invalid signature");
 
-        // Increment nonce to prevent replay
-        _nonces[to]++;
+        require(eduToken.balanceOf(msg.sender) >= mintPrice, "Insufficient EDU balance");
+        require(eduToken.allowance(msg.sender, address(this)) >= mintPrice, "EDU transfer not approved");
+        require(eduToken.transferFrom(msg.sender, address(this), mintPrice), "EDU transfer failed");
 
-        // Mint the NFT
+        _usedSignatures[signature] = true;
+        _nonces[msg.sender]++;
+
         uint256 tokenId = _tokenIdCounter.current();
         _tokenIdCounter.increment();
-        _safeMint(to, tokenId);
+        _safeMint(msg.sender, tokenId);
         _quizIds[tokenId] = quizId;
+        _quizCreators[quizId] = msg.sender;
 
-        // Add owner to the quizId mapping (if not already recorded)
-        bool exists = false;
-        for (uint256 i = 0; i < _quizOwners[quizId].length; i++) {
-            if (_quizOwners[quizId][i] == to) {
-                exists = true;
-                break;
-            }
-        }
-        if (!exists) {
-            _quizOwners[quizId].push(to);
-        }
-
-        emit Minted(to, tokenId, quizId);
+        emit QuizCreated(msg.sender, tokenId, quizId);
         return tokenId;
     }
 
-    function getOwnersByQuizId(string memory quizId) public view returns (address[] memory) {
-        return _quizOwners[quizId];
+    function getQuizId(uint256 tokenId) public view returns (string memory) {
+        require(ownerOf(tokenId) != address(0), "Token does not exist");
+        return _quizIds[tokenId];
     }
 
-    function getQuizId(uint256 tokenId) public view returns (string memory) {
-        require(_exists(tokenId), "Token does not exist");
-        return _quizIds[tokenId];
+    function getQuizCreator(string memory quizId) public view returns (address) {
+        return _quizCreators[quizId];
     }
 
     function getNonce(address user) public view returns (uint256) {
         return _nonces[user];
     }
 
-    function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
-        require(_exists(tokenId), "Token does not exist");
-        string memory baseURI = _baseURI();
-        return bytes(baseURI).length > 0
-            ? string(abi.encodePacked(baseURI, tokenId.toString(), ".json"))
-            : "";
+    function updateMintPrice(uint256 newPrice) public onlyRole(ADMIN_ROLE) {
+        require(newPrice > 0, "Invalid mint price");
+        mintPrice = newPrice;
+        emit MintPriceUpdated(newPrice);
     }
 
     function setBaseURI(string memory newBaseURI) public onlyRole(ADMIN_ROLE) {
@@ -100,29 +113,37 @@ contract QuizNFT is ERC721, AccessControl {
 
     function setSigner(address newSigner) public onlyRole(ADMIN_ROLE) {
         require(newSigner != address(0), "Invalid signer address");
-        signer = newSigner;
-        emit SignerChanged(newSigner);
+        grantRole(SIGNER_ROLE, newSigner);
+        emit SignerUpdated(newSigner);
+    }
+
+    function withdrawFunds(address to, uint256 amount) public onlyRole(ADMIN_ROLE) nonReentrant {
+        require(to != address(0), "Invalid withdrawal address");
+        require(eduToken.balanceOf(address(this)) >= amount, "Insufficient contract balance");
+        require(eduToken.transfer(to, amount), "Transfer failed");
+        emit FundsWithdrawn(to, amount);
+    }
+
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 firstTokenId,
+        uint256 batchSize
+    ) internal virtual override {
+        require(from == address(0), "Token is soulbound");
+        super._beforeTokenTransfer(from, to, firstTokenId, batchSize);
     }
 
     function _baseURI() internal view virtual override returns (string memory) {
         return _baseTokenURI;
     }
 
-    function _beforeTokenTransfer(address from, address to, uint256 tokenId, uint256 batchSize) internal override {
-        require(from == address(0), "QuizNFT: Token is soulbound and cannot be transferred");
-        super._beforeTokenTransfer(from, to, tokenId, batchSize);
-    }
-
-    function _burn(uint256 tokenId) internal override {
-        emit BurnAttempted(tokenId);
-        revert("QuizNFT: Token is soulbound and cannot be burned");
-    }
-
-    function totalSupply() public view returns (uint256) {
-        return _tokenIdCounter.current() - 1;
-    }
-
-    function supportsInterface(bytes4 interfaceId) public view override(ERC721, AccessControl) returns (bool) {
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        override(ERC721, AccessControl)
+        returns (bool)
+    {
         return super.supportsInterface(interfaceId);
     }
 }

@@ -239,7 +239,7 @@ export default function Dashboard() {
           </>
         ) : (
           <div className={sectionStyles}>
-            <p className="text-gray-600 mb-4">You haven't created any quizzes yet.</p>
+            <p className="text-gray-600 mb-4">You haven&apos;t created any quizzes yet.</p>
             <Link
               href="/create"
               className={buttonStyles}

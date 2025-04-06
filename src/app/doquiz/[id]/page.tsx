@@ -70,6 +70,13 @@ function isHexString(value: string | null): value is `0x${string}` {
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// Add error interface
+interface MintError {
+  message: string;
+  code?: number;
+  data?: unknown;
+}
+
 export default function QuizPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const { isConnected, address } = useAccount();
@@ -79,12 +86,10 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [score, setScore] = useState<number | null>(null);
   const [signature, setSignature] = useState<`0x${string}` | null>(null);
-  const [nonce, setNonce] = useState<string | null>(null);
   const [tokenId, setTokenId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
   const [showMintSuccess, setShowMintSuccess] = useState(false);
-  const [mintedTokenId, setMintedTokenId] = useState<string | null>(null);
   const [quizStatus, setQuizStatus] = useState<QuizAttemptStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -139,6 +144,13 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
     };
     fetchQuiz();
   }, [resolvedParams.id]);
+
+  useEffect(() => {
+    if (error) {
+      alert(error);
+      setError(null);
+    }
+  }, [error]);
 
   const handleAnswerChange = (questionIndex: number, choiceIndex: number) => {
     if (isSubmitted) return;
@@ -197,7 +209,6 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
           const signData = await signResponse.json();
           if (signData.success) {
             setSignature(signData.signature as `0x${string}`);
-            setNonce(signData.nonce);
           } else {
             alert("Failed to generate mint signature: " + signData.error);
           }
@@ -329,7 +340,6 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
       }
 
       setTokenId(tokenId);
-      setMintedTokenId(tokenId);
       setShowMintSuccess(true);
     } catch (error) {
       console.error("Error minting NFT:", error);
@@ -337,6 +347,11 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleError = (error: MintError) => {
+    console.error("Error:", error);
+    setError(error.message || "An unknown error occurred");
   };
 
   if (!quiz) return (
