@@ -1,0 +1,15 @@
+{
+  "name": "Quiz Creator NFT",
+  "description": "This NFT represents ownership of a quiz created on Pruv.it",
+  "image": "http://localhost:3000/quizcreatormetadata/img/NFT.png",
+  "attributes": [
+    {
+      "trait_type": "Quiz ID",
+      "value": "d3ac7d8d-b450-48bd-b0a3-3e912374ea97"
+    },
+    {
+      "trait_type": "Creator",
+      "value": "0xC291452664C557f80E1e74304746C5749a363ac0"
+    }
+  ]
+}

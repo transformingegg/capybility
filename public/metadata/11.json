@@ -1,0 +1,11 @@
+{
+  "description": "CapyCred NFT - bestowed upon you by the great capy Dr. Q for completing a quiz.",
+  "image": "https://your-app.com/metadata/img/11",
+  "name": "CapyCred Quiz NFT",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "Uncommon"
+    }
+  ]
+}
