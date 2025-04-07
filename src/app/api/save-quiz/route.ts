@@ -3,8 +3,10 @@ import { Pool } from "pg";
 
 export async function POST(request: Request) {
   try {
-    const { quiz, walletAddress, quizName, tags, url } = await request.json();
-    console.log("Received tags for saving:", tags); // Add logging for debugging
+ 
+
+    const { quiz, walletAddress, quizName, tags, sourceUrl } = await request.json();
+    console.log("Received data:", { quiz, walletAddress, quizName, tags, sourceUrl });
 
     if (!quiz || !Array.isArray(quiz) || !walletAddress) {
       return NextResponse.json({ error: "Invalid quiz or wallet address format" }, { status: 400 });
@@ -23,21 +25,21 @@ export async function POST(request: Request) {
       JSON.stringify({ 
         quiz,
         quizName, 
-        tags // Ensure tags are included in the quiz_data JSON
+        tags
       }), 
       walletAddress,
       quizName || 'Untitled Quiz',
-      url || null
+      sourceUrl || null  // Changed from url to sourceUrl
     ]);
 
     await pool.end();
 
-    console.log("Saved quiz data:", result.rows[0].quiz_data); // Verify saved data
+    console.log("Saved quiz data:", result.rows[0]);
 
     return NextResponse.json({ 
       success: true, 
       quizId: result.rows[0].id,
-      savedData: result.rows[0].quiz_data // Return saved data for verification
+      savedData: result.rows[0].quiz_data
     });
   } catch (error) {
     console.error("Error saving quiz:", error);

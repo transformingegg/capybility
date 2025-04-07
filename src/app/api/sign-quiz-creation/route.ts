@@ -8,11 +8,11 @@ export async function POST(request: Request) {
   try {
     const { walletAddress, quizId } = await request.json();
     
-    console.log("Generating signature for:", {
+    /*console.log("Generating signature for:", {
       walletAddress,
       quizId,
       contractAddress: QUIZ_CREATOR_NFT_ADDRESS
-    });
+    });*/
 
     // Simplify provider initialization
     const provider = new ethers.JsonRpcProvider("https://rpc.open-campus-codex.gelato.digital");
@@ -27,20 +27,20 @@ export async function POST(request: Request) {
     
     try {
       const nonce = await contract.getNonce(walletAddress);
-      console.log("Current nonce:", nonce.toString());
+      //console.log("Current nonce:", nonce.toString());
 
       // Generate message hash matching the contract's implementation
       const messageHash = ethers.solidityPackedKeccak256(
         ["address", "string", "uint256"],
         [walletAddress, quizId, nonce]
       );
-      console.log("Generated message hash:", messageHash);
+      //console.log("Generated message hash:", messageHash);
 
       // Sign the hash with prefix
       const signer = new ethers.Wallet(process.env.SIGNER_PRIVATE_KEY!);
       const messageHashBytes = ethers.getBytes(messageHash);
       const signature = await signer.signMessage(messageHashBytes);
-      console.log("Generated signature:", signature);
+      //console.log("Generated signature:", signature);
 
       return NextResponse.json({ 
         success: true, 

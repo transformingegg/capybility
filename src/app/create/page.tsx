@@ -119,11 +119,15 @@ const MainContent = dynamic(
         };
       }
 
+      interface ExtendedError extends Error {
+        code?: string | number;
+        data?: unknown;
+      }
+
       const MainContentComponent = () => {
         const router = useRouter();
         const { isConnected, address } = useAccount();
         const [url, setUrl] = useState("");
-        const [sourceUrl, setSourceUrl] = useState<string>("");
         const [isUrlSubmitted, setIsUrlSubmitted] = useState(false);
         const [extractedText, setExtractedText] = useState("");
         const [isEditing, setIsEditing] = useState(false);
@@ -165,7 +169,6 @@ const MainContent = dynamic(
 
         const handleUrlSubmitted = (submittedUrl: string) => {
           setUrl(submittedUrl);
-          setSourceUrl(submittedUrl); // Store the URL for later use
           setIsUrlSubmitted(true);
         };
 
@@ -246,6 +249,7 @@ const MainContent = dynamic(
           // Prevent default button behavior if event exists
           if (e) {
             e.preventDefault();
+            e.stopPropagation(); // Add this to ensure the event doesn't bubble up
           }
           
           try {
@@ -271,7 +275,8 @@ const MainContent = dynamic(
                   quiz: editedQuiz, 
                   walletAddress: address,
                   quizName,
-                  tags: quizTags
+                  tags: quizTags,
+                  sourceUrl: url // Add this line to include the URL
                 }),
               });
           
@@ -345,13 +350,21 @@ const MainContent = dynamic(
                 senderAddress: address,
                 contractAddress: QUIZ_CREATOR_NFT_ADDRESS
               });
-              const tx = await mintNFT({
-                address: QUIZ_CREATOR_NFT_ADDRESS,  
-                abi: QuizCreatorNFTAbi,
-                functionName: "mint",
-                args: [saveData.quizId, signData.signature],
-                value: mintPrice
-              });
+              let tx; // Declare tx at a higher scope
+              try {
+                tx = await mintNFT({
+                  address: QUIZ_CREATOR_NFT_ADDRESS,  
+                  abi: QuizCreatorNFTAbi,
+                  functionName: "mint",
+                  args: [saveData.quizId, signData.signature],
+                  value: mintPrice
+                });
+              } catch (error) {
+                const txError = error as TransactionError;
+                console.error("Transaction error:", txError);
+                setSaveMessage(`Transaction failed: ${txError.transaction?.hash || txError.message}`);
+                return false;
+              }
           
               const provider = new ethers.JsonRpcProvider("https://rpc.open-campus-codex.gelato.digital");
               let receipt;
@@ -473,18 +486,20 @@ const MainContent = dynamic(
           
             } catch (error) {
               console.error("Error:", error);
-              setSaveMessage("Failed to save quiz or mint NFT: " + (error as Error).message);
-              return false; // Prevent state reset on error
+              const apiError = error as ApiError;
+              setSaveMessage("Failed to save quiz or mint NFT: " + (apiError.message || "Unknown error"));
+              return false;
             } finally {
               setIsLoading(false);
               setLoadingMessage("");
             }
           } catch (error) {
             console.error("Full error object:", error);
-            console.error("Error name:", (error as any).name);
-            console.error("Error code:", (error as any).code);
-            console.error("Error data:", (error as any).data);
-            setSaveMessage("Failed to save quiz or mint NFT: " + (error as Error).message);
+            const typedError = error as ExtendedError;
+            console.error("Error name:", typedError.name);
+            console.error("Error code:", typedError.code);
+            console.error("Error data:", typedError.data);
+            setSaveMessage("Failed to save quiz or mint NFT: " + typedError.message);
             return false; // Prevent state reset on error
           }
         };
@@ -500,28 +515,9 @@ const MainContent = dynamic(
         };
 
         const handleSkipUrl = () => {
-          setSourceUrl(""); // Clear URL when skipping
+          setUrl(""); // Clear URL when skipping
           setIsUrlSubmitted(true);
           setIsEditing(true);
-        };
-
-        // Update error handlers with proper types
-        const handleScrapeError = (error: ErrorResponse) => {
-          console.error("Error scraping content:", error);
-          setIsLoading(false);
-          alert(error.message || "Failed to scrape content");
-        };
-
-        const handleMintError = (error: ErrorResponse) => {
-          console.error("Error minting NFT:", error);
-          setIsLoading(false);
-          alert(error.message || "Failed to mint NFT");
-        };
-
-        const handleTransactionError = (error: ErrorResponse) => {
-          console.error("Transaction error:", error);
-          setIsLoading(false);
-          alert(error.message || "Transaction failed");
         };
 
         return (
@@ -594,6 +590,7 @@ const MainContent = dynamic(
                     <button
                       onClick={(e) => handleSaveQuiz(e)}
                       disabled={isLoading || isSaved}
+                      type="button" // Add this to explicitly make it a button, not a submit
                       className={buttonStyles + ((isLoading || isSaved || !mintPrice) ? " opacity-50 cursor-not-allowed" : "")}
                     >
                       {isLoading ? "SAVING..." : isSaved ? "QUIZ SAVED" : "SAVE QUIZ"}
