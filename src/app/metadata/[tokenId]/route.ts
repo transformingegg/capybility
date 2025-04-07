@@ -3,15 +3,10 @@ import fs from "fs";
 import path from "path";
 import { NextRequest } from "next/server";
 
-interface RouteParams {
-  params: {
-    tokenId: string;
-  }
-}
-
+// Update the params type to match Next.js expectations
 export async function GET(
-  request: NextRequest, 
-  { params }: RouteParams
+  request: NextRequest,
+  { params }: { params: { tokenId: string } }
 ) {
   const { tokenId } = params;
 
