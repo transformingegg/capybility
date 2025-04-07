@@ -3,17 +3,10 @@ import fs from "fs";
 import path from "path";
 import { type NextRequest } from "next/server";
 
-// Define the params interface
-interface RouteParams {
-  params: {
-    tokenId: string;
-  };
-}
-
 // Updated handler with proper typing
 export async function GET(
-  _request: NextRequest,  // Unused parameter with underscore
-  { params }: RouteParams // Destructure params directly
+  _request: NextRequest, // Unused parameter with underscore
+  { params }: { params: { tokenId: string } } // Inline type for params
 ) {
   const { tokenId } = params;
 
