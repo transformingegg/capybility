@@ -93,13 +93,6 @@ const MainContent = dynamic(
         correctAnswer: number;
       }
 
-      // Add error type interface
-      interface ErrorResponse {
-        message: string;
-        code?: string;
-        details?: unknown;
-      }
-
       // Add error interfaces
       interface ApiError {
         message: string;

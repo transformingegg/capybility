@@ -71,12 +71,13 @@ function isHexString(value: string | null): value is `0x${string}` {
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Add error interface
+/*
 interface MintError {
   message: string;
   code?: number;
   data?: unknown;
 }
-
+*/
 // Add error interface
 interface QuizError {
   message: string;
@@ -290,7 +291,7 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
         console.log("Transaction receipt:", receipt);
         console.log("Receipt logs:", receipt.logs);
 
-        event = receipt.logs.find((log: any) => {
+        event = receipt.logs.find((log: ethers.Log) => {
           try {
             const parsedLog = contract.interface.parseLog(log);
             console.log("Parsed log:", parsedLog);
@@ -359,12 +360,12 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
       setIsLoading(false);
     }
   };
-
+/*
   const handleError = (error: QuizError) => {
     console.error("Error:", error);
     alert(error.message || "An unknown error occurred");
   };
-
+*/
   if (!quiz) return (
     <PageLayout>
       <LoadingOverlay isVisible={isLoading} message={loadingMessage} />
