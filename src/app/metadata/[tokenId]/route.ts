@@ -1,14 +1,18 @@
 import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
-import { NextRequest } from "next/server";
+import { type NextRequest } from "next/server";
 
-// Update the params type to match Next.js expectations
+interface RouteParams {
+  tokenId: string;
+}
+
+// Updated handler with proper typing for Route Handlers in Next.js 13+
 export async function GET(
-  request: NextRequest,
-  { params }: { params: { tokenId: string } }
+  _request: NextRequest,  // Added underscore to indicate unused parameter
+  context: { params: RouteParams }
 ) {
-  const { tokenId } = params;
+  const { tokenId } = context.params;
 
   try {
     const metadataPath = path.join(process.cwd(), "public", "metadata", `${tokenId}.json`);
