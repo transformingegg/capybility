@@ -7,6 +7,23 @@ if (!SIGNER_PRIVATE_KEY) {
 }
 const signerWallet = new ethers.Wallet(SIGNER_PRIVATE_KEY);
 
+// Create an interface for the data structure
+interface QuizData {
+  quiz: Array<{
+    question: string;
+    choices: string[];
+    correctAnswer: number;
+  }>;
+  quizName: string;
+  tags: string[];
+}
+
+interface SigningError {
+  message: string;
+  code?: string;
+  reason?: string;
+}
+
 // Function to generate a signature for minting
 export async function generateMintSignature(
   toAddress: string,
@@ -25,21 +42,11 @@ export async function generateMintSignature(
     // Sign the message
     const signature = await signerWallet.signMessage(ethSignedMessageHash);
     return { success: true, signature };
-  } catch (error: any) {
-    console.error("Error generating signature:", error);
-    return { success: false, error: error.message };
+  } catch (error: unknown) {
+    const signingError = error as SigningError;
+    console.error("Error generating signature:", signingError);
+    return { success: false, error: signingError.message };
   }
-}
-
-// Create an interface for the data structure
-interface QuizData {
-  quiz: Array<{
-    question: string;
-    choices: string[];
-    correctAnswer: number;
-  }>;
-  quizName: string;
-  tags: string[];
 }
 
 // Use the interface instead of 'any'

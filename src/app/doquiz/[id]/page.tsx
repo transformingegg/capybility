@@ -77,6 +77,16 @@ interface MintError {
   data?: unknown;
 }
 
+// Add error interface
+interface QuizError {
+  message: string;
+  code?: string;
+  details?: {
+    reason?: string;
+    [key: string]: unknown;
+  };
+}
+
 export default function QuizPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const { isConnected, address } = useAccount();
@@ -216,9 +226,10 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
       } else {
         alert(data.error || "Submission failed.");
       }
-    } catch (error) {
-      console.error("Error submitting quiz:", error);
-      alert("Failed to submit quiz.");
+    } catch (error: unknown) {
+      const quizError = error as QuizError;
+      console.error("Error submitting quiz:", quizError);
+      alert(quizError.message || "Failed to submit quiz");
     } finally {
       setIsLoading(false);
     }
@@ -349,9 +360,9 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
     }
   };
 
-  const handleError = (error: MintError) => {
+  const handleError = (error: QuizError) => {
     console.error("Error:", error);
-    setError(error.message || "An unknown error occurred");
+    alert(error.message || "An unknown error occurred");
   };
 
   if (!quiz) return (

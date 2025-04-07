@@ -100,6 +100,25 @@ const MainContent = dynamic(
         details?: unknown;
       }
 
+      // Add error interfaces
+      interface ApiError {
+        message: string;
+        code?: string;
+        details?: {
+          reason?: string;
+          [key: string]: unknown;
+        };
+      }
+
+      interface TransactionError {
+        message: string;
+        code?: string;
+        transaction?: {
+          hash?: string;
+          [key: string]: unknown;
+        };
+      }
+
       const MainContentComponent = () => {
         const router = useRouter();
         const { isConnected, address } = useAccount();
