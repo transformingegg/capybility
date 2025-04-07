@@ -1,8 +1,18 @@
 import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+import { NextRequest } from "next/server";
 
-export async function GET(request: Request, { params }: { params: { tokenId: string } }) {
+interface RouteParams {
+  params: {
+    tokenId: string;
+  }
+}
+
+export async function GET(
+  request: NextRequest, 
+  { params }: RouteParams
+) {
   const { tokenId } = params;
 
   try {
