@@ -1,8 +1,5 @@
 import { NextResponse } from "next/server";
-import fs from 'fs';
-import path from 'path';
-
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+import { Pool } from "pg";
 
 export async function POST(request: Request) {
   try {
@@ -19,9 +16,9 @@ export async function POST(request: Request) {
 
     // Generate the metadata
     const metadata = {
-      name: "Quiz Creator NFT",
-      description: "This NFT represents ownership of a quiz created on Pruv.it",
-      image: `${BASE_URL}/quizcreatormetadata/img/NFT.png`,
+      name: "Capybility Quiz Creator NFT",
+      description: "This NFT represents ownership of a quiz created on Capybility",
+      image: `${process.env.NEXT_PUBLIC_APP_URL}/quizcreatormetadata/img/NFT.png`,
       attributes: [
         {
           trait_type: "Quiz ID",
@@ -34,27 +31,16 @@ export async function POST(request: Request) {
       ]
     };
 
-    // Define file path and ensure directory exists
-    const metadataDir = path.join(process.cwd(), "public", "quizcreatormetadata");
-    const metadataPath = path.join(metadataDir, `${tokenId}.json`);
+    const pool = new Pool({
+      connectionString: process.env.POSTGRES_URL,
+    });
 
-    console.log("Attempting to write metadata to:", metadataPath);
-    console.log("Directory exists check:", fs.existsSync(metadataDir));
+    await pool.query(
+      'INSERT INTO nft_metadata (token_id, metadata_type, json_data) VALUES ($1, $2, $3)',
+      [tokenId, 'quizcreator', metadata]
+    );
 
-    // Create directory if it doesn't exist
-    if (!fs.existsSync(metadataDir)) {
-      console.log("Creating metadata directory...");
-      fs.mkdirSync(metadataDir, { recursive: true });
-    }
-
-    // Save the metadata JSON file
-    try {
-      fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2));
-      console.log("Successfully wrote metadata file");
-    } catch (writeError) {
-      console.error("Error writing metadata file:", writeError);
-      throw writeError;
-    }
+    await pool.end();
 
     return NextResponse.json({ success: true });
   } catch (error) {

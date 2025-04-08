@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { generatePatternImage } from "@lib/generate-pattern";
-import fs from "fs";
-import path from "path";
+//import { generatePatternImage } from "@lib/generate-pattern";
+//import fs from "fs";
+//import path from "path";
+import { Pool } from "pg";
 
 // Function to randomly assign a rarity level
 function assignRarity(): string {
@@ -13,9 +14,6 @@ function assignRarity(): string {
   return "Common"; // 64% chance (default)
 }
 
-// Base URL for your app (replace with your actual URL)
-const BASE_URL = "https://your-app.com"; // Replace with your deployed URL
-
 export async function POST(request: Request) {
   // Simple authentication (replace with a more secure method in production)
   const authHeader = request.headers.get("authorization");
@@ -24,38 +22,33 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
 
-  const { tokenId, quizId, walletAddress, timestamp } = await request.json();
-
-  if (!tokenId || !quizId || !walletAddress || !timestamp) {
-    return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
-  }
-
   try {
-    // Assign rarity
-    const rarity = assignRarity();
+    const { tokenId, quizId, walletAddress, timestamp } = await request.json();
 
-    // Generate the metadata
+    if (!tokenId || !quizId || !walletAddress || !timestamp) {
+      return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
+    }
+
+    // Generate metadata
+    const rarity = assignRarity();
     const metadata = {
-      description: "CapyCred NFT - bestowed upon you by the great capy Dr. Q for completing a quiz.",
-      image: `${BASE_URL}/metadata/img/${tokenId}`,
-      name: "CapyCred Quiz NFT",
-      attributes: [
-        {
-          trait_type: "Rarity",
-          value: rarity,
-        },
-      ],
+      description: "Capybility Quiz Completion - bestowed upon you by the great capy Dr. Q for completing a quiz.",
+      image: `${process.env.NEXT_PUBLIC_APP_URL}/metadata/img/${tokenId}`,
+      name: "Capybility Quiz NFT",
+      attributes: [{ trait_type: "Rarity", value: rarity }]
     };
 
-    // Define file paths
-    const metadataPath = path.join(process.cwd(), "public", "metadata", `${tokenId}.json`);
-    const imagePath = path.join(process.cwd(), "public", "metadata", "img", `${tokenId}.png`);
+    // Save to database
+    const pool = new Pool({
+      connectionString: process.env.POSTGRES_URL,
+    });
 
-    // Save the metadata JSON file
-    fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2));
+    await pool.query(
+      'INSERT INTO nft_metadata (token_id, metadata_type, json_data) VALUES ($1, $2, $3)',
+      [tokenId, 'quiz', metadata]
+    );
 
-    // Generate and save the image
-    await generatePatternImage(quizId, walletAddress, timestamp, rarity, imagePath);
+    await pool.end();
 
     return NextResponse.json({ success: true });
   } catch (error) {

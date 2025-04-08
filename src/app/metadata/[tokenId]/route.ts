@@ -1,25 +1,38 @@
-import { NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
-import { type NextRequest } from "next/server";
+import { NextRequest, NextResponse } from 'next/server';
+import { Pool } from 'pg';
 
-// Updated handler with proper typing
+interface RouteParams {
+  params: Promise<{
+    tokenId: string;
+  }>
+}
+
 export async function GET(
-  _request: NextRequest, // Unused parameter with underscore
-  { params }: { params: { tokenId: string } } // Inline type for params
+  request: NextRequest,
+  { params }: RouteParams
 ) {
-  const { tokenId } = params;
+  // Await the params first
+  const { tokenId } = await params;
 
   try {
-    const metadataPath = path.join(process.cwd(), "public", "metadata", `${tokenId}.json`);
-    if (!fs.existsSync(metadataPath)) {
-      return NextResponse.json({ error: "Metadata not found" }, { status: 404 });
+    const pool = new Pool({
+      connectionString: process.env.POSTGRES_URL,
+    });
+
+    const result = await pool.query(
+      'SELECT json_data FROM nft_metadata WHERE token_id = $1 AND metadata_type = $2',
+      [tokenId, 'quiz']
+    );
+
+    await pool.end();
+
+    if (result.rows.length === 0) {
+      return NextResponse.json({ error: 'Metadata not found' }, { status: 404 });
     }
 
-    const metadata = JSON.parse(fs.readFileSync(metadataPath, "utf-8"));
-    return NextResponse.json(metadata);
+    return NextResponse.json(result.rows[0].json_data);
   } catch (error) {
-    console.error("Error serving metadata:", error);
-    return NextResponse.json({ error: "Failed to serve metadata" }, { status: 500 });
+    console.error('Error serving metadata:', error);
+    return NextResponse.json({ error: 'Failed to serve metadata' }, { status: 500 });
   }
 }

@@ -2,8 +2,8 @@
   "compilerOptions": {
     "target": "ES2017",
     "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
-    "skipLibCheck": true,
+    "allowJs": false, // Changed from true
+    "skipLibCheck": false, // Changed from true
     "strict": true,
     "noEmit": true,
     "esModuleInterop": true,
@@ -22,7 +22,19 @@
     "paths": {
       "@/*": ["./src/*"],
       "@lib/*": ["src/lib/*"]
-    }
+    },
+    // Added strict options for clarity (already included in "strict": true, but explicit for completeness)
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "noImplicitAny": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    // Additional strictness beyond "strict": true
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true
   },
   "include": ["next-env.d.ts", "src/**/*.ts", "src/**/*.tsx", ".next/types/**/*.ts", "generate-wallet.ts"],
   "exclude": ["node_modules"],
