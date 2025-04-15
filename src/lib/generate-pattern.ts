@@ -2,6 +2,7 @@ import { createCanvas, loadImage } from "canvas";
 import { ethers } from "ethers";
 import fs from "fs";
 import path from "path";
+import { put } from '@vercel/blob';
 
 // Function to generate a pattern based on input data
 function generatePattern(data: string, gridRows: number, gridCols: number): { filled: boolean; sizeFactor: number }[][] {
@@ -43,14 +44,14 @@ function getShapeColor(rarity: string): string {
   }
 }
 
-// Export the generatePatternImage function
+// Modified generatePatternImage function
 export async function generatePatternImage(
   quizId: string,
   walletAddress: string,
   timestamp: string,
   rarity: string,
-  outputPath: string
-): Promise<void> {
+  outputPath?: string // Make outputPath optional
+): Promise<{ buffer: Buffer, blobUrl?: string }> {
   // Update canvas size to 4500x4500
   const canvas = createCanvas(4500, 4500);
   const ctx = canvas.getContext("2d");
@@ -170,12 +171,51 @@ export async function generatePatternImage(
     const frontImage = await loadImage(frontImagePath);
     ctx.drawImage(frontImage, 0, 0, 4500, 4500);
 
-    // Save the final image
+    // Get the buffer from the canvas
     const buffer = canvas.toBuffer("image/png");
-    fs.writeFileSync(outputPath, buffer);
-    console.log(`Image generated and saved as ${outputPath} with rarity ${rarity}`);
+    
+    // If outputPath is provided, still save to filesystem (for backward compatibility)
+    if (outputPath) {
+      fs.writeFileSync(outputPath, buffer);
+      console.log(`Image generated and saved as ${outputPath} with rarity ${rarity}`);
+    }
+    
+    // Return the buffer and optionally the blob URL
+    return { buffer };
   } catch (error) {
     console.error("Error generating pattern image:", error);
     throw error;
   }
+}
+
+// New function to upload pattern image to Vercel Blob
+export async function uploadPatternToBlob(
+  quizId: string,
+  walletAddress: string,
+  timestamp: string,
+  rarity: string,
+  tokenId: string,
+  type: 'quiz' | 'quizcreator'
+): Promise<string> {
+  // Generate the pattern image buffer
+  const { buffer } = await generatePatternImage(
+    quizId,
+    walletAddress,
+    timestamp,
+    rarity
+  );
+  
+  // Determine the path in blob storage based on type
+  const blobPath = type === 'quiz' 
+    ? `metadata/img/${tokenId}.png`
+    : `quizcreatormetadata/img/${tokenId}.png`;
+  
+  // Upload to Vercel Blob
+  const { url } = await put(blobPath, buffer, {
+    contentType: 'image/png',
+    access: 'public',
+  });
+  
+  console.log(`Image uploaded to Vercel Blob at ${url}`);
+  return url;
 }
