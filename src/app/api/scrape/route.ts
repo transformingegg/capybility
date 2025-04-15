@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { scrapeWebpage } from "@lib/scraper";
 
+export const runtime = 'edge';
+
+
 const HYPERBOLIC_API_KEY = process.env.HYPERBOLIC_API_KEY;
 
 export async function POST(req: Request) {
