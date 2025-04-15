@@ -462,6 +462,7 @@ const MainContent = dynamic(
                       setQuizId(saveData.quizId);
                       setIsSaved(true);
                       setSaveMessage("Quiz saved and NFT minted successfully! 🎉");
+                      return true; // Add this line to indicate success
                   }
           
                   // Keep the quiz content visible
@@ -486,6 +487,8 @@ const MainContent = dynamic(
               setIsLoading(false);
               setLoadingMessage("");
             }
+            return true; // Add this line to indicate success
+
           } catch (error) {
             console.error("Full error object:", error);
             const typedError = error as ExtendedError;

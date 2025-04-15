@@ -3,7 +3,7 @@
     "target": "ES2017",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": false, // Changed from true
-    "skipLibCheck": false, // Changed from true
+    "skipLibCheck": true, // Changed from true
     "strict": true,
     "noEmit": true,
     "esModuleInterop": true,

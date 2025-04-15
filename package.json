@@ -39,6 +39,7 @@
     "@types/node": "^20.17.25",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/readable-stream": "^4.0.18",
     "eslint": "^9",
     "eslint-config-next": "15.1.7",
     "postcss": "^8",
