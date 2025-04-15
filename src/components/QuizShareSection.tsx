@@ -67,7 +67,7 @@ export default function QuizShareSection({ quizId }: QuizShareSectionProps) {
         </h3>
         <div className="relative w-[300px] h-[100px]">
           <Image
-            src="/img/button.png"
+            src="/img/Button.png"
             alt="Quiz button"
             fill
             style={{ objectFit: 'contain' }}
