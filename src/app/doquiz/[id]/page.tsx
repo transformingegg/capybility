@@ -265,15 +265,56 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
       });
 
       const provider = new ethers.JsonRpcProvider("https://rpc.open-campus-codex.gelato.digital");
-      let receipt = await provider.waitForTransaction(tx, 2, 120000);
       
-      if (!receipt) {
-        throw new Error("Transaction receipt not found. The transaction may have failed or timed out.");
+      // Initialize receipt as null
+      let receipt = null;
+      const maxAttempts = 10;  // Changed from let to const
+      let attemptDelay = 5000; // This remains as let since it's updated
+
+      // Poll for transaction receipt with exponential backoff
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          console.log(`Attempt ${attempt}: Fetching transaction receipt for tx ${tx}`);
+          
+          // Use getTransactionReceipt instead of waitForTransaction
+          receipt = await provider.getTransactionReceipt(tx);
+          
+          if (receipt) {
+            console.log("Receipt found:", receipt);
+            
+            if (receipt.status !== 1) {
+              console.error("Transaction failed. Receipt:", receipt);
+              throw new Error(
+                `Transaction failed on the blockchain. Please check your wallet or view the transaction on the explorer: https://explorer.open-campus-codex.gelato.digital/tx/${tx}`
+              );
+            }
+            
+            // If receipt is found and successful, break out of the loop
+            break;
+          }
+          
+          // If no receipt yet, wait with exponential backoff before trying again
+          console.warn(`Attempt ${attempt}: Receipt not found. Waiting for ${attemptDelay/1000} seconds...`);
+          await delay(attemptDelay);
+          
+          // Increase delay for next attempt (exponential backoff)
+          attemptDelay = Math.min(attemptDelay * 1.5, 30000); // Cap at 30 seconds
+        } catch (error) {
+          const typedError = error as Error;
+
+          if (typedError.message.includes("failed on the blockchain")) {
+            throw error; // Re-throw if it's our specific error
+          }
+          console.error(`Error fetching receipt on attempt ${attempt}:`, error);
+          await delay(attemptDelay);
+          attemptDelay = Math.min(attemptDelay * 1.5, 30000);
+        }
       }
 
-      if (receipt.status !== 1) {
-        console.error("Transaction failed. Receipt:", receipt);
-        throw new Error(`Transaction failed on the blockchain. Please check your wallet or view the transaction on the explorer: https://explorer.open-campus-codex.gelato.digital/tx/${tx}`);
+      // After the polling loop, check if receipt was found
+      if (!receipt) {
+        throw new Error("Transaction confirmation timed out after multiple attempts. The transaction may still succeed. Please check the explorer for confirmation: " + 
+          `https://explorer.open-campus-codex.gelato.digital/tx/${tx}`);
       }
 
       const contract = new ethers.Contract(QUIZ_NFT_ADDRESS, QUIZ_NFT_ABI, provider);
@@ -319,10 +360,47 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
         throw new Error("Failed to parse Transfer event from transaction receipt.");
       }
 
-      const tokenId = parsedLog.args.tokenId.toString();
+      //const tokenId = parsedLog.args.tokenId.toString();
 
-      await fetch("/api/submit-quiz", {
-        method: "PATCH",
+      // Initialize contract for event parsing
+      //const contract = new ethers.Contract(QUIZ_NFT_ADDRESS, QUIZ_NFT_ABI, provider);
+
+      // Look for the Transfer event in the receipt logs
+      let transferEvent = null;
+      let tokenId = null;
+
+      // Ensure receipt is not null before proceeding
+      if (!receipt) {
+        throw new Error(
+          `Receipt unexpectedly null when trying to parse logs. Transaction ID: ${tx}`
+        );
+      }
+
+      for (const log of receipt.logs) {
+        try {
+          const parsedLog = contract.interface.parseLog(log);
+          console.log("Parsed log:", parsedLog);
+          
+          if (parsedLog?.name === "Transfer") {
+            transferEvent = log;
+            tokenId = parsedLog.args.tokenId.toString();
+            console.log("Found Transfer event with tokenId:", tokenId);
+            break;
+          }
+        } catch (e) {
+          console.error("Error parsing log:", e);
+          // Continue to next log if parsing fails
+        }
+      }
+
+      if (!transferEvent || !tokenId) {
+        throw new Error(
+          `Failed to extract tokenId from transaction. The transaction succeeded but the tokenId couldn't be determined. View the transaction on the explorer: https://explorer.open-campus-codex.gelato.digital/tx/${tx}`
+        );
+      }
+
+      const recordMintResponse = await fetch("/api/record-mint", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           quizId: resolvedParams.id,
@@ -330,6 +408,14 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
           mintTimestamp,
         }),
       });
+
+      const recordMintData = await recordMintResponse.json();
+      if (!recordMintData.success) {
+        console.warn("Failed to record NFT mint:", recordMintData.error);
+        // Continue anyway since the NFT mint itself was successful
+      } else {
+        console.log("Successfully recorded NFT mint in database");
+      }
 
       const createMetadataResponse = await fetch("/api/create-metadata", {
         method: "POST",
