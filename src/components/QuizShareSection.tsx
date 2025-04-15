@@ -11,7 +11,7 @@ interface QuizShareSectionProps {
 export default function QuizShareSection({ quizId }: QuizShareSectionProps) {
   const [copySuccess, setCopySuccess] = useState<string>('');
   const quizUrl = `${process.env.NEXT_PUBLIC_APP_URL}/doquiz/${quizId}`;
-  const imageUrl = `${process.env.NEXT_PUBLIC_APP_URL}/img/button.png`;
+  const imageUrl = `${process.env.NEXT_PUBLIC_APP_URL}/img/Button.png`;
 
   const embedCode = `<a href="${quizUrl}" target="_blank" rel="noopener noreferrer">
   <img src="${imageUrl}" alt="Take this quiz" style="max-width: 300px;" />
