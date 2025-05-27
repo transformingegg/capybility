@@ -27,7 +27,8 @@ export async function GET(request: Request) {
          SELECT JSONB_ARRAY_LENGTH(quiz_data->'quiz') 
          FROM quizzes 
          WHERE id = $1
-       )`,
+       )
+       AND q.status = 'minted'`,
       [quizId, address]
     );
 

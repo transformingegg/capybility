@@ -17,8 +17,8 @@ export async function POST(request: Request) {
     });
 
     const insertQuery = `
-      INSERT INTO quizzes (quiz_data, wallet_address, quiz_name, source_url, created_at) 
-      VALUES ($1, $2, $3, $4, NOW())
+      INSERT INTO quizzes (quiz_data, wallet_address, quiz_name, source_url, created_at, status) 
+      VALUES ($1, $2, $3, $4, NOW(), $5)
       RETURNING *`;
 
     const result = await pool.query(insertQuery, [
@@ -29,7 +29,8 @@ export async function POST(request: Request) {
       }), 
       walletAddress,
       quizName || 'Untitled Quiz',
-      sourceUrl || null  // Changed from url to sourceUrl
+      sourceUrl || null,
+      'pending'
     ]);
 
     await pool.end();

@@ -23,6 +23,7 @@ interface Quiz {
   wallet_address: string;
   created_at: string;
   is_archived: boolean;
+  status?: string;
 }
 
 interface Completer {
@@ -89,7 +90,7 @@ export default function Dashboard() {
       });
 
       if (response.ok) {
-        const updatedQuizzes = quizzes.filter(quiz => quiz.id !== showArchiveAlert);
+        const updatedQuizzes = quizzes.filter(quiz => quiz.id !== showArchiveAlert && quiz.status === "minted");
         setQuizzes(updatedQuizzes);
       }
     } catch (error) {
@@ -159,7 +160,7 @@ export default function Dashboard() {
           <div className={sectionStyles}>
             <p>Loading your quizzes...</p>
           </div>
-        ) : quizzes.filter(quiz => !quiz.is_archived).length > 0 ? (
+        ) : quizzes.filter(quiz => !quiz.is_archived && quiz.status === "minted").length > 0 ? (
           <>
             <div className={`overflow-x-auto ${sectionStyles}`}>
               <table className="min-w-full">
@@ -171,7 +172,7 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 {quizzes
-                  .filter(quiz => !quiz.is_archived)
+                  .filter(quiz => !quiz.is_archived && quiz.status === "minted")
                   .map((quiz) => (
                     <tbody key={quiz.id}>
                       <tr className="border-b border-[#00c7df] last:border-0">

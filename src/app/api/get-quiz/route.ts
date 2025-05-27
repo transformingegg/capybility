@@ -14,7 +14,7 @@ export async function GET(request: Request) {
   });
 
   try {
-    const result = await pool.query("SELECT * FROM quizzes WHERE id = $1", [id]);
+    const result = await pool.query("SELECT * FROM quizzes WHERE id = $1 AND status = 'minted'", [id]);
     if (result.rows.length > 0) {
       return NextResponse.json({ success: true, quiz: result.rows[0] });
     } else {

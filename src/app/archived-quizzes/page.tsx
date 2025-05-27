@@ -21,6 +21,7 @@ interface Quiz {
   wallet_address: string;
   created_at: string;
   is_archived: boolean;
+  status?: string;
 }
 
 interface Completer {
@@ -108,7 +109,7 @@ export default function ArchivedQuizzes() {
           <div className={sectionStyles}>
             <p>Loading archived quizzes...</p>
           </div>
-        ) : quizzes.filter(quiz => quiz.is_archived).length > 0 ? (
+        ) : quizzes.filter(quiz => quiz.is_archived && quiz.status === "minted").length > 0 ? (
           <div className={`overflow-x-auto ${sectionStyles}`}>
             <table className="min-w-full">
               <thead>

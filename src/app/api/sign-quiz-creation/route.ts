@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { ethers } from "ethers";
 
 // First, fix your contract address
-const QUIZ_CREATOR_NFT_ADDRESS = "0xf7d547b46F331229D4FeA41d85c6561DA5288678";
+const QUIZ_CREATOR_NFT_ADDRESS = "0x67E05ea4eD8C8437df65a3a5182A06FE6F0C6b9F";
 
 export async function POST(request: Request) {
   try {
@@ -31,8 +31,8 @@ export async function POST(request: Request) {
 
       // Generate message hash matching the contract's implementation
       const messageHash = ethers.solidityPackedKeccak256(
-        ["address", "string", "uint256"],
-        [walletAddress, quizId, nonce]
+        ["address", "string", "uint256", "address"],
+        [walletAddress, quizId, nonce, QUIZ_CREATOR_NFT_ADDRESS]
       );
       //console.log("Generated message hash:", messageHash);
 

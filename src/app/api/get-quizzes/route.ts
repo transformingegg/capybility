@@ -15,7 +15,7 @@ export async function GET(request: Request) {
 
   try {
     const result = await pool.query(
-      "SELECT *, is_archived FROM quizzes WHERE wallet_address = $1 ORDER BY created_at DESC",
+      "SELECT *, is_archived FROM quizzes WHERE wallet_address = $1 AND status = 'minted' ORDER BY created_at DESC",
       [address]
     );
     return NextResponse.json({ success: true, quizzes: result.rows });

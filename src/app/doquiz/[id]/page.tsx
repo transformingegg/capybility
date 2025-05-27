@@ -27,7 +27,7 @@ interface QuizAttemptStatus {
   lastAttemptTime?: string;
 }
 
-const QUIZ_NFT_ADDRESS = "0x33B66e43f6f3CCd8C433c2F9D4159bdB3ce49d77" as `0x${string}`;
+const QUIZ_NFT_ADDRESS = "0x1B7088f19327AF194dC8e4668eF614733C4DF113" as `0x${string}`;
 
 if (!QUIZ_NFT_ADDRESS.match(/^0x[a-fA-F0-9]{40}$/)) {
   throw new Error("Invalid QUIZ_NFT_ADDRESS");
@@ -36,19 +36,25 @@ if (!QUIZ_NFT_ADDRESS.match(/^0x[a-fA-F0-9]{40}$/)) {
 const QUIZ_NFT_ABI = [
   {
     "inputs": [
-      { "internalType": "address", "name": "to", "type": "address" },
       { "internalType": "string", "name": "quizId", "type": "string" },
       { "internalType": "bytes", "name": "signature", "type": "bytes" }
     ],
     "name": "mint",
     "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
-    "stateMutability": "nonpayable",
+    "stateMutability": "payable",
     "type": "function"
   },
   {
     "inputs": [{ "internalType": "uint256", "name": "tokenId", "type": "uint256" }],
     "name": "getQuizId",
     "outputs": [{ "internalType": "string", "name": "", "type": "string" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "nativeMintPrice",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
     "stateMutability": "view",
     "type": "function"
   },
@@ -63,6 +69,8 @@ const QUIZ_NFT_ABI = [
     "type": "event"
   }
 ] as const;
+
+
 
 function isHexString(value: string | null): value is `0x${string}` {
   return typeof value === "string" && /^0x[a-fA-F0-9]+$/.test(value);
@@ -103,7 +111,17 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
   const [showMintSuccess, setShowMintSuccess] = useState(false);
   const [quizStatus, setQuizStatus] = useState<QuizAttemptStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [nativeMintPrice, setNativeMintPrice] = useState<bigint | null>(null);
 
+  useEffect(() => {
+    const fetchMintPrice = async () => {
+      const provider = new ethers.JsonRpcProvider("https://rpc.open-campus-codex.gelato.digital");
+      const contract = new ethers.Contract(QUIZ_NFT_ADDRESS, QUIZ_NFT_ABI, provider);
+      const price = await contract.nativeMintPrice();
+      setNativeMintPrice(price);
+    };
+    fetchMintPrice();
+  }, []);
   const { writeContractAsync: mintNFT, isPending: isMinting, error: mintError } = useWriteContract();
 
   useEffect(() => {
@@ -135,7 +153,7 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
       try {
         const response = await fetch(`/api/get-quiz?id=${resolvedParams.id}`);
         const data = await response.json();
-        if (data.success && data.quiz?.quiz_data?.quiz) {
+        if (data.success && data.quiz?.quiz_data?.quiz && data.quiz.status === "minted") {
           setQuiz({
             id: data.quiz.id,
             quiz: data.quiz.quiz_data.quiz,
@@ -257,17 +275,34 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
 
     try {
       const mintTimestamp = new Date().toISOString();
+      
+      if (nativeMintPrice == null) {
+        alert("Mint price not loaded. Please try again in a moment.");
+        setIsLoading(false);
+        return;
+      }
+      
       const tx = await mintNFT({
         address: QUIZ_NFT_ADDRESS,
         abi: QUIZ_NFT_ABI,
         functionName: "mint",
-        args: [address as `0x${string}`, resolvedParams.id, signature],
-      });
+        args: [resolvedParams.id, signature],
+        value: nativeMintPrice 
+      }) as string | { hash: string };
+
+      let txHash: string;
+      if (typeof tx === "string") {
+        txHash = tx;
+      } else if (typeof tx === "object" && tx !== null && "hash" in tx && typeof tx.hash === "string") {
+        txHash = tx.hash;
+      } else {
+        throw new Error("mintNFT did not return a valid transaction hash.");
+      }
 
       const provider = new ethers.JsonRpcProvider("https://rpc.open-campus-codex.gelato.digital");
-      
-      // Initialize receipt as null
-      let receipt = null;
+
+      //const txHash = typeof tx === "string" ? tx : tx.hash;
+      let receipt = null;      // Initialize receipt as null
       const maxAttempts = 10;  // Changed from let to const
       let attemptDelay = 5000; // This remains as let since it's updated
 
@@ -277,7 +312,7 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
           console.log(`Attempt ${attempt}: Fetching transaction receipt for tx ${tx}`);
           
           // Use getTransactionReceipt instead of waitForTransaction
-          receipt = await provider.getTransactionReceipt(tx);
+          receipt = await provider.getTransactionReceipt(txHash);
           
           if (receipt) {
             console.log("Receipt found:", receipt);
@@ -322,7 +357,7 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
       let event;
       for (let attempt = 1; attempt <= 3; attempt++) {
         console.log(`Attempt ${attempt}: Fetching transaction receipt for tx ${tx}`);
-        receipt = await provider.getTransactionReceipt(tx);
+        receipt = await provider.getTransactionReceipt(txHash);
         if (!receipt) {
           console.warn(`Attempt ${attempt}: Receipt not found. Retrying...`);
           await delay(5000);

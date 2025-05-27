@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useRef } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -15,7 +16,7 @@ import DrQuizBubble from '../../components/DrQuizBubble';
 import QuizShareSection from '../../components/QuizShareSection';
 
 
-const QUIZ_CREATOR_NFT_ADDRESS = "0xf7d547b46F331229D4FeA41d85c6561DA5288678" as `0x${string}`;
+const QUIZ_CREATOR_NFT_ADDRESS = "0x67E05ea4eD8C8437df65a3a5182A06FE6F0C6b9F" as `0x${string}`;
 const QuizCreatorNFTAbi = [
   {
     "inputs": [
@@ -43,13 +44,9 @@ const QuizCreatorNFTAbi = [
   },
   {
     "inputs": [],
-    "name": "mintPrice",
+    "name": "nativeMintPrice",
     "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
+      { "internalType": "uint256", "name": "", "type": "uint256" }
     ],
     "stateMutability": "view",
     "type": "function"
@@ -135,6 +132,7 @@ const MainContent = dynamic(
         const { writeContractAsync: mintNFT } = useWriteContract();
         //const mintPrice = parseEther("0.5"); // 0.5 EDU tokens
         const [mintPrice, setMintPrice] = useState<bigint | null>(null);
+        const shareSectionRef = useRef<HTMLDivElement | null>(null);
 
         // Add useEffect to fetch mint price when component mounts
         useEffect(() => {
@@ -142,7 +140,7 @@ const MainContent = dynamic(
             try {
               const provider = new ethers.JsonRpcProvider("https://rpc.open-campus-codex.gelato.digital");
               const contract = new ethers.Contract(QUIZ_CREATOR_NFT_ADDRESS, QuizCreatorNFTAbi, provider);
-              const price = await contract.mintPrice();
+              const price = await contract.nativeMintPrice();
               console.log("Mint price from contract:", price.toString()); // Debug log
               setMintPrice(price);
             } catch (error) {
@@ -388,6 +386,11 @@ const MainContent = dynamic(
                   // Inside handleSaveQuiz function, after successful transaction confirmation
                   if (receipt.status === 1) {
                       console.log("Processing successful transaction..."); // Add this log
+
+
+
+
+
                       // Get tokenId from receipt logs
                       const provider = new ethers.JsonRpcProvider("https://rpc.open-campus-codex.gelato.digital");
                       const contract = new ethers.Contract(
@@ -458,10 +461,23 @@ const MainContent = dynamic(
                         }
                       }
                     
+                      // set the status to minted in DB 
+                      await fetch("/api/mark-quiz-minted", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ quizId: saveData.quizId }),
+                      });
+
+
                       // Update UI state
                       setQuizId(saveData.quizId);
                       setIsSaved(true);
                       setSaveMessage("Quiz saved and NFT minted successfully! 🎉");
+
+                      setTimeout(() => {
+                        shareSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                      }, 300);
+
                       return true; // Add this line to indicate success
                   }
           
@@ -602,7 +618,7 @@ const MainContent = dynamic(
 
               {/* Add the new share section after quiz is saved */}
               {isSaved && quizId && (
-                <div className={sectionStyles}>
+                <div className={sectionStyles} ref={shareSectionRef}>
                   <QuizShareSection quizId={quizId} />
                 </div>
               )}
