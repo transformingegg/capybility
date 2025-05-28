@@ -20,15 +20,16 @@ export async function GET(request: Request) {
   try {
     // Check for any successful completions
     const completionsResult = await pool.query(
-      `SELECT * FROM quiz_submissions 
-       WHERE quiz_id = $1 
-       AND wallet_address = $2 
-       AND score = (
-         SELECT JSONB_ARRAY_LENGTH(quiz_data->'quiz') 
-         FROM quizzes 
-         WHERE id = $1
-       )
-       AND q.status = 'minted'`,
+      `SELECT qs.* FROM quiz_submissions qs
+        JOIN quizzes q ON q.id = qs.quiz_id
+        WHERE qs.quiz_id = $1
+          AND qs.wallet_address = $2
+          AND qs.score = (
+            SELECT JSONB_ARRAY_LENGTH(quiz_data->'quiz')
+            FROM quizzes
+            WHERE id = $1
+          )
+          AND q.status = 'minted'`,
       [quizId, address]
     );
 
