@@ -7,17 +7,6 @@ if (!SIGNER_PRIVATE_KEY) {
 }
 const signerWallet = new ethers.Wallet(SIGNER_PRIVATE_KEY);
 
-// Create an interface for the data structure
-interface QuizData {
-  quiz: Array<{
-    question: string;
-    choices: string[];
-    correctAnswer: number;
-  }>;
-  quizName: string;
-  tags: string[];
-}
-
 interface SigningError {
   message: string;
   code?: string;
