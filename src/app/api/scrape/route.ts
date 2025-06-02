@@ -26,7 +26,8 @@ export async function POST(req: Request) {
     if (text) {
       console.log("Analyzing text:", text);
       try {
-        const response = await fetch("https://api.hyperbolic.xyz/v1/chat/completions", {
+        const apiUrl = "https://api.hyperbolic.xyz/v1/chat/completions";
+        const fetchOptions = {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -66,7 +67,9 @@ The text to create the quiz from is:\n\n${text}`,
             top_p: 0.9,
             stream: false,
           }),
-        });
+        };
+
+        const response = await fetchWithRetry(apiUrl, fetchOptions, 2, 500);
 
         if (!response.ok) {
           const errorText = await response.text();
@@ -100,4 +103,22 @@ The text to create the quiz from is:\n\n${text}`,
     console.error("Error processing request:", error);
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
+}
+
+async function fetchWithRetry(url: string, options: RequestInit, retries = 2, delayMs = 500): Promise<Response> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const response = await fetch(url, options);
+    if (response.ok) return response;
+    if (attempt < retries) {
+      // Optionally log the retry
+      console.warn(`API call failed (attempt ${attempt + 1}), retrying...`);
+      await new Promise(res => setTimeout(res, delayMs));
+    } else {
+      // All retries failed, throw the last error
+      const errorText = await response.text();
+      throw new Error(`API request failed with status ${response.status}: ${errorText}`);
+    }
+  }
+  // Should never reach here
+  throw new Error("Unexpected error in fetchWithRetry");
 }

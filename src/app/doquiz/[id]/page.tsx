@@ -6,7 +6,9 @@ import { ethers } from "ethers";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import PageLayout from "@/components/PageLayout";
 import { buttonStyles, sectionStyles } from "@/utils/styles";
-import CustomAlertDialog from "@/components/CustomAlertDialog";
+//import CustomAlertDialog from "@/components/CustomAlertDialog";
+import MintSuccessPopup from "@/components/MintSuccessPopup";
+import { useRouter } from "next/navigation";
 
 interface QuizQuestion {
   question: string;
@@ -25,6 +27,11 @@ interface QuizAttemptStatus {
   hasCompletedQuiz: boolean;
   hasAttemptedToday: boolean;
   lastAttemptTime?: string;
+}
+
+interface MetadataAttribute {
+  trait_type: string;
+  value: string;
 }
 
 const QUIZ_NFT_ADDRESS = "0x1B7088f19327AF194dC8e4668eF614733C4DF113" as `0x${string}`;
@@ -112,6 +119,9 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
   const [quizStatus, setQuizStatus] = useState<QuizAttemptStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [nativeMintPrice, setNativeMintPrice] = useState<bigint | null>(null);
+  const [nftImageUrl, setNftImageUrl] = useState<string>("");
+  const [rarity, setRarity] = useState<string>(""); // Set this based on your logic
+  const router = useRouter();
 
   useEffect(() => {
     const fetchMintPrice = async () => {
@@ -441,6 +451,7 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
           quizId: resolvedParams.id,
           walletAddress: address,
           mintTimestamp,
+          tokenId
         }),
       });
 
@@ -470,10 +481,33 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
       if (!createMetadataData.success) {
         console.error("Failed to create metadata:", createMetadataData.error);
         alert("Failed to create metadata: " + createMetadataData.error);
-      }
+      } else {
+        setTokenId(tokenId);
 
-      setTokenId(tokenId);
-      setShowMintSuccess(true);
+        // Fetch the metadata JSON to get the image and rarity
+        const metadataUrl = createMetadataData.metadataUrl;
+        let imageUrl = "";
+        let rarityValue = "";
+        try {
+          const metadataResp = await fetch(metadataUrl);
+          const metadataJson = await metadataResp.json();
+          imageUrl = metadataJson.image;
+          // Find rarity attribute if present
+          if (Array.isArray(metadataJson.attributes)) {
+            const rarityAttr = metadataJson.attributes.find(
+              (attr: MetadataAttribute) => attr.trait_type === "Rarity"
+            );
+            rarityValue = rarityAttr ? rarityAttr.value : "";
+          }
+        } catch (err) {
+          console.error("Error fetching NFT metadata JSON:", err);
+        }
+
+        console.log("NFT minted successfully with imageURL of:", imageUrl);
+        setNftImageUrl(imageUrl);
+        setRarity(rarityValue);
+        setShowMintSuccess(true);
+      }
     } catch (error) {
       console.error("Error minting NFT:", error);
       alert((error as Error).message);
@@ -594,13 +628,15 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
           </div>
         )}
       </div>
-      <CustomAlertDialog
-        isOpen={showMintSuccess}
-        title="Success!"
-        message="NFT minted successfully!"
-        confirmLabel="OK"
-        onConfirm={() => setShowMintSuccess(false)}
-        type="success"
+      
+      <MintSuccessPopup
+        open={showMintSuccess}
+        rarity={rarity}
+        nftImageUrl={nftImageUrl}
+        onGoToDashboard={() => {
+          setShowMintSuccess(false);
+          router.push("/user-dashboard");
+        }}
       />
     </PageLayout>
   );

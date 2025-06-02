@@ -3,10 +3,10 @@ import { Pool } from "pg";
 
 export async function POST(request: Request) {
   try {
-    const { quizId, walletAddress, mintTimestamp } = await request.json();
+    const { quizId, walletAddress, mintTimestamp, tokenId } = await request.json();
 
     // Validate required fields
-    if (!quizId || !walletAddress || !mintTimestamp) {
+    if (!quizId || !walletAddress || !mintTimestamp || !tokenId) {
       return NextResponse.json(
         { success: false, error: "Missing required fields" },
         { status: 400 }
@@ -33,18 +33,15 @@ export async function POST(request: Request) {
 
       if (perfectScoreCheck.rows.length === 0) {
         return NextResponse.json(
-          { 
-            success: false, 
-            error: "No perfect score submission found for this quiz" 
-          },
+          { success: false, error: "No perfect score submission found for this quiz" },
           { status: 404 }
         );
       }
 
-      // Update the submission record to mark NFT as minted
+      // Update the submission record to mark NFT as minted and store tokenId
       const updateResult = await pool.query(
         `UPDATE quiz_submissions 
-         SET nft_minted = true, mint_timestamp = $3 
+         SET nft_minted = true, mint_timestamp = $3, token_id = $4
          WHERE quiz_id = $1 
          AND wallet_address = $2 
          AND score = (
@@ -53,15 +50,12 @@ export async function POST(request: Request) {
            WHERE id = $1
          )
          RETURNING *`,
-        [quizId, walletAddress, mintTimestamp]
+        [quizId, walletAddress, mintTimestamp, tokenId]
       );
 
       if (updateResult.rows.length === 0) {
         return NextResponse.json(
-          { 
-            success: false, 
-            error: "Failed to update record" 
-          },
+          { success: false, error: "Failed to update record" },
           { status: 500 }
         );
       }

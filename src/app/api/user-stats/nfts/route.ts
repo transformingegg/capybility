@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { ethers } from "ethers";
+import { Pool } from "pg";
 
 // Add these interfaces
 interface MetadataAttribute {
@@ -8,6 +9,7 @@ interface MetadataAttribute {
 }
 
 interface NFTMetadata {
+  image: string;
   attributes: MetadataAttribute[];
 }
 
@@ -47,9 +49,6 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const address = searchParams.get("address");
 
-  console.log("Fetching NFTs for address:", address);
-  console.log("Using base URL:", BASE_URL);
-
   if (!address) {
     return NextResponse.json({ success: false, error: "No address provided" }, { status: 400 });
   }
@@ -57,9 +56,8 @@ export async function GET(request: Request) {
   try {
     const provider = new ethers.JsonRpcProvider("https://rpc.open-campus-codex.gelato.digital");
     const contract = new ethers.Contract(QUIZ_NFT_ADDRESS, QUIZ_NFT_ABI, provider);
-    
-    
-    // Efficiently fetch all token IDs owned by the address
+
+    // 1. Get all token IDs owned by the user (on-chain)
     let ownedNFTs: number[] = [];
     try {
       const tokenIds: bigint[] = await contract.tokensOfOwner(address);
@@ -67,34 +65,53 @@ export async function GET(request: Request) {
     } catch (e) {
       console.error("Error fetching tokensOfOwner:", e);
     }
-    console.log("Found owned NFTs:", ownedNFTs);
 
-    const rarityDistribution: { [key: string]: number } = {};
-    for (const tokenId of ownedNFTs) {
-      try {
-        const metadataUrl = `${BASE_URL}/metadata/${tokenId}.json`;
-        console.log(`Fetching metadata from: ${metadataUrl}`);
-        const response = await fetch(metadataUrl);
-        const metadata = await response.json() as NFTMetadata;
-        console.log(`Metadata for token ${tokenId}:`, metadata);
-        
-        const rarity = metadata.attributes.find(
-          (attr: MetadataAttribute) => attr.trait_type === "Rarity"
-        )?.value;
-        
-        if (rarity) {
-          rarityDistribution[rarity] = (rarityDistribution[rarity] || 0) + 1;
-        }
-      } catch (e) {
-        console.error(`Error fetching metadata for token ${tokenId}:`, e);
-      }
+    // 2. Get all token IDs from the database for this user
+    let dbTokenIds: number[] = [];
+    try {
+      const pool = new Pool({ connectionString: process.env.POSTGRES_URL });
+      const dbResult = await pool.query(
+        `SELECT token_id FROM quiz_submissions WHERE wallet_address = $1 AND nft_minted = true AND token_id IS NOT NULL`,
+        [address]
+      );
+      dbTokenIds = dbResult.rows.map(row => Number(row.token_id));
+      await pool.end();
+    } catch (e) {
+      console.error("Error fetching DB token IDs:", e);
     }
 
-    console.log("Final rarity distribution:", rarityDistribution);
+    // 3. Only include NFTs present in both lists
+    const crossCheckedTokenIds = ownedNFTs.filter(id => dbTokenIds.includes(id));
 
-    return NextResponse.json({ 
-      success: true, 
-      rarityDistribution 
+    // 4. Build rarity distribution as before
+    const rarityDistribution: { [key: string]: number } = {};
+    const nfts: { tokenId: number; image: string }[] = [];
+for (const tokenId of crossCheckedTokenIds) {
+  try {
+    const metadataUrl = `${BASE_URL}/metadata/${tokenId}`;
+    const response = await fetch(metadataUrl);
+    if (!response.ok) continue;
+    const metadata = await response.json() as NFTMetadata;
+    if (!metadata || !Array.isArray(metadata.attributes)) continue;
+    const rarity = metadata.attributes.find(
+      (attr: MetadataAttribute) => attr.trait_type === "Rarity"
+    )?.value;
+    if (rarity) {
+      rarityDistribution[rarity] = (rarityDistribution[rarity] || 0) + 1;
+    }
+    if (metadata.image) {
+      nfts.push({ tokenId, image: metadata.image });
+    }
+  } catch (e) {
+    console.error(`Error fetching metadata for token ${tokenId}:`, e);
+  }
+}
+
+    return NextResponse.json({
+      success: true,
+      rarityDistribution,
+      totalNFTs: crossCheckedTokenIds.length,
+      nfts,
     });
   } catch (error) {
     console.error("Error fetching NFTs:", error);
