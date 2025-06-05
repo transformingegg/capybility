@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-
+import FieldHelp from "@/components/FieldHelp";
 interface QuizQuestion {
   question: string;
   choices: string[];
@@ -133,8 +133,12 @@ export default function BuildQuiz({ quizJson, onQuizUpdated }: BuildQuizProps) {
 
   return (
     <div className="bg-white p-4 rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-4">Build Quiz</h2>
-      
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold mb-4">Build Quiz</h2>
+        <FieldHelp
+          helpText="This is an AI Generated Quiz, you can edit every part of it by clicking the small pencil icon, making the change, then clicking back on the page to confirm the edit. Submit the Quiz using the button below when you are done."
+        />
+      </div>
       {/* Quiz Name Section */}
       <div className="mb-6">
         <div className="flex items-center justify-between">

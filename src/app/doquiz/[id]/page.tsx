@@ -21,6 +21,7 @@ interface QuizData {
   quiz: QuizQuestion[];
   walletAddress: string;
   quizName: string;
+  sourceUrl?: string;
 }
 
 interface QuizAttemptStatus {
@@ -77,7 +78,9 @@ const QUIZ_NFT_ABI = [
   }
 ] as const;
 
-
+function ensureQuizSuffix(name: string) {
+  return /quiz$/i.test(name.trim()) ? name : `${name.trim()} QUIZ`;
+}
 
 function isHexString(value: string | null): value is `0x${string}` {
   return typeof value === "string" && /^0x[a-fA-F0-9]+$/.test(value);
@@ -168,7 +171,8 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
             id: data.quiz.id,
             quiz: data.quiz.quiz_data.quiz,
             walletAddress: data.quiz.wallet_address,
-            quizName: data.quiz.quiz_name || data.quiz.quiz_data.quizName || "Untitled Quiz"
+            quizName: data.quiz.quiz_name || data.quiz.quiz_data.quizName || "Untitled Quiz",
+            sourceUrl: data.quiz.source_url || null,
           });
           setAnswers(new Array(data.quiz.quiz_data.quiz.length).fill(-1));
         } else {
@@ -535,8 +539,23 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
       <LoadingOverlay isVisible={isLoading} message={loadingMessage} />
       <div className="space-y-6">
         <div className={sectionStyles}>
-          <h1 className="text-3xl font-bold">{quiz.quizName}</h1>
-          <span className="text-sm text-gray-500">Quiz ID: {resolvedParams.id}</span>
+          <h1 className="text-3xl font-bold mb-3">{ensureQuizSuffix(quiz.quizName)}</h1>
+          {quiz.sourceUrl && (
+            <div className="text-sm mb-1" style={{ color: "#009bb3" }}>
+              Looking for Answers? Try here:{" "}
+              <a
+                href={quiz.sourceUrl}
+                className="underline break-all"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {quiz.sourceUrl}
+              </a>
+            </div>
+          )}
+        <div className="flex justify-end">
+            <span className="text-xs text-gray-400 text-right">Quiz ID: {resolvedParams.id}</span>
+        </div>
         </div>
         
         {isConnected ? (

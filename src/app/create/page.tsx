@@ -14,7 +14,7 @@ import { ethers } from 'ethers';
 import { useWriteContract } from 'wagmi';
 import DrQuizBubble from '../../components/DrQuizBubble';
 import QuizShareSection from '../../components/QuizShareSection';
-
+import FieldHelp from "@/components/FieldHelp";
 
 const QUIZ_CREATOR_NFT_ADDRESS = "0x67E05ea4eD8C8437df65a3a5182A06FE6F0C6b9F" as `0x${string}`;
 const QuizCreatorNFTAbi = [
@@ -569,7 +569,11 @@ const MainContent = dynamic(
 
                   {isEditing && (
                     <div className={sectionStyles}>
-                      <h3 className="text-lg font-semibold mb-4">What content do you want Dr Q to use to create the quiz?</h3>
+                      <div className="flex items-center">
+                        <h3 className="text-lg font-semibold mb-2">What content do you want Dr Q to use to create the quiz?</h3>
+                        <FieldHelp helpText="This is where you put the information you would like to make the quiz about. It should be over 150 words and below 5000 words. It does not need to be polished or formatted in nature for the AI to be able to utilise it for quiz creation." />
+                      </div>
+
                       <textarea
                         value={extractedText}
                         onChange={(e) => setExtractedText(e.target.value)}

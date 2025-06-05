@@ -1,6 +1,8 @@
 "use client";
 import { useState } from "react";
 import { buttonStyles } from "@/utils/styles";
+import FieldHelp from "@/components/FieldHelp";
+
 
 interface UrlFormProps {
   onUrlSubmitted: (url: string) => void;
@@ -43,7 +45,8 @@ export default function UrlForm({
             className="flex-1 p-2 border rounded-md"
             disabled={isUrlSubmitted}
             required
-          />
+          />    <FieldHelp helpText="This is the link where your information can be found." />
+
           <button
             type="submit"
             disabled={!url.trim() || isUrlSubmitted}
@@ -80,6 +83,8 @@ export default function UrlForm({
             >
               ENTER MY OWN TEXT
             </button>
+            <FieldHelp helpText="Choose 'GATHER FROM URL' if you want Capybility to try to get the information from the URL. This sometimes does not work. Chose 'ENTER MY OWN TEXT' if you already have your information ready to paste in." />
+
           </div>
         </div>
       )}

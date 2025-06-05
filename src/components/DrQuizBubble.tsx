@@ -19,7 +19,7 @@ export default function DrQuizBubble({
         {/* Speech Bubble */}
         <div className={`
           flex-grow
-          bg-red-50 border-2 border-red-500 rounded-xl p-4
+          bg-[#e6f7fb] border-2 border-[#009bb3] rounded-xl p-4
           ${isExpanded ? 'min-h-[100px]' : 'min-h-[40px]'}
           transition-all duration-300 ease-in-out
           w-full
@@ -28,7 +28,7 @@ export default function DrQuizBubble({
             {!isExpanded && <span className="font-bold text-gray-700">{collapsedText}</span>}
             <button 
               onClick={() => setIsExpanded(!isExpanded)} 
-              className="text-red-500 hover:text-red-700 transition-colors ml-auto"
+              className="text-[#009bb3] hover:text-[#007a8a] transition-colors ml-auto"
               aria-label={isExpanded ? 'Minimize' : 'Expand'}
             >
               {isExpanded ? '▼' : '▶'}
