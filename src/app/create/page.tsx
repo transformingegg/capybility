@@ -133,6 +133,7 @@ const MainContent = dynamic(
         //const mintPrice = parseEther("0.5"); // 0.5 EDU tokens
         const [mintPrice, setMintPrice] = useState<bigint | null>(null);
         const shareSectionRef = useRef<HTMLDivElement | null>(null);
+        const [hasPermission, setHasPermission] = useState(false);
 
         // Add useEffect to fetch mint price when component mounts
         useEffect(() => {
@@ -580,10 +581,28 @@ const MainContent = dynamic(
                         className="w-full h-64 p-4 border rounded-md mb-4"
                         placeholder="Enter or edit the content for your quiz here..."
                       />
+                      <div className="flex items-center mb-2">
+                      <input
+                        id="permission-checkbox"
+                        type="checkbox"
+                        checked={hasPermission}
+                        onChange={(e) => setHasPermission(e.target.checked)}
+                        className="mr-2 accent-[#009bb3]"
+                      />
+                      <label htmlFor="permission-checkbox" className="text-sm">
+                        I have the appropriate permissions to utilise this information to make a quiz
+                      </label>
+                    </div>
+                    
                       <button
                         onClick={handleGetQuiz}
-                        disabled={!extractedText.trim() || isLoading}
-                        className={buttonStyles + ((!extractedText.trim() || isLoading) ? " opacity-50 cursor-not-allowed" : "")}
+                        disabled={!extractedText.trim() || isLoading || !hasPermission}
+                        className={
+                          buttonStyles +
+                          ((!extractedText.trim() || isLoading || !hasPermission)
+                            ? " opacity-50 cursor-not-allowed"
+                            : "")
+                        }
                       >
                         GET DR Q. TO CREATE A QUIZ
                       </button>
@@ -605,9 +624,14 @@ const MainContent = dynamic(
                   <div className="mt-4 flex items-center gap-4">
                     <button
                       onClick={(e) => handleSaveQuiz(e)}
-                      disabled={isLoading || isSaved}
-                      type="button" // Add this to explicitly make it a button, not a submit
-                      className={buttonStyles + ((isLoading || isSaved || !mintPrice) ? " opacity-50 cursor-not-allowed" : "")}
+                      disabled={isLoading || isSaved || !mintPrice || !hasPermission}
+                      type="button"
+                      className={
+                        buttonStyles +
+                        ((isLoading || isSaved || !mintPrice || !hasPermission)
+                          ? " opacity-50 cursor-not-allowed"
+                          : "")
+                      }
                     >
                       {isLoading ? "SAVING..." : isSaved ? "QUIZ SAVED" : "SAVE QUIZ"}
                     </button>
