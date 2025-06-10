@@ -9,7 +9,7 @@ export default function Privacy() {
 
         <h2>1. Introduction</h2>
         <p>
-          CAPYBILITY ("we", "us", or "our") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our platform, including when you connect your wallet, create quizzes, and complete quizzes.
+          CAPYBILITY (&quot;we&quot;, &quot;us&quot;, or &quot;our&quot;) is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our platform, including when you connect your wallet, create quizzes, and complete quizzes.
         </p>
 
         <h2>2. Information We Collect</h2>
@@ -24,7 +24,7 @@ export default function Privacy() {
             <b>Usage Data:</b> We may collect information about your interactions with the platform, such as pages visited, features used, and time spent.
           </li>
           <li>
-            <b>Cookies & Analytics:</b> We may use cookies and analytics tools to improve our services and understand user behavior.
+            <b>Cookies &amp; Analytics:</b> We may use cookies and analytics tools to improve our services and understand user behavior.
           </li>
         </ul>
 
@@ -61,7 +61,7 @@ export default function Privacy() {
           <li>You may opt out of cookies via your browser settings.</li>
         </ul>
 
-        <h2>7. Children's Privacy</h2>
+        <h2>7. Children&apos;s Privacy</h2>
         <p>
           CAPYBILITY is not intended for children under 13. We do not knowingly collect personal information from children under 13.
         </p>

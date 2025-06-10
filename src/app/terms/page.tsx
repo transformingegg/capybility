@@ -60,7 +60,7 @@ export default function Terms() {
         <h2>6. Prize Distribution and Promotions</h2>
         <ul>
           <li>
-            From time to time, CAPYBILITY may offer prizes, rewards, or other incentives in connection with quizzes, contests, or promotional events ("Prize Events").
+            From time to time, CAPYBILITY may offer prizes, rewards, or other incentives in connection with quizzes, contests, or promotional events (&quot;Prize Events&quot;).
           </li>
           <li>
             CAPYBILITY reserves the sole and absolute right to modify, suspend, or cancel any Prize Event, including the eligibility criteria, prize amounts, distribution methods, or any other aspect of a Prize Event, at any time and for any reason, with or without notice.
@@ -72,27 +72,27 @@ export default function Terms() {
             CAPYBILITY is not responsible for any loss, delay, or inability to receive a prize due to incorrect information, technical issues, or other circumstances beyond our control.
           </li>
         </ul>
-        <h2>6. Disclaimer of Warranties</h2>
+        <h2>7. Disclaimer of Warranties</h2>
         <p>
-          CAPYBILITY is provided "as is" and without warranties of any kind. We do not guarantee the accuracy, completeness, or reliability of any content or service.
+          CAPYBILITY is provided &quot;as is&quot; and without warranties of any kind. We do not guarantee the accuracy, completeness, or reliability of any content or service.
         </p>
 
-        <h2>7. Limitation of Liability</h2>
+        <h2>8. Limitation of Liability</h2>
         <p>
           To the fullest extent permitted by law, CAPYBILITY and its affiliates shall not be liable for any damages arising from your use of the platform.
         </p>
 
-        <h2>8. Changes to Terms</h2>
+        <h2>9. Changes to Terms</h2>
         <p>
           We may update these Terms of Use at any time. Continued use of CAPYBILITY after changes constitutes acceptance of the new terms.
         </p>
 
-        <h2>9. Governing Law</h2>
+        <h2>10. Governing Law</h2>
         <p>
           These terms are governed by the laws of your jurisdiction, without regard to conflict of law principles.
         </p>
 
-        <h2>10. Contact Us</h2>
+        <h2>11. Contact Us</h2>
         <p>
           For questions about these Terms, contact us at <a href="mailto:support@capybility.com">support@capybility.com</a>.
         </p>
