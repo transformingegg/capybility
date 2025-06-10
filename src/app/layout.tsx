@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Web Page Text Extractor & Analyzer",
-  description: "A Web3 app to extract text and generate quizzes on the EDU Chain Testnet",
+  title: "CAPYBILIY - SHOW YOURSELF ",
+  description: "Using Quizzes to Showcase Your Products and Skills",
 };
 
 export default function RootLayout({

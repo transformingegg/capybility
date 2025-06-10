@@ -17,7 +17,8 @@ export async function GET(request: Request) {
     const result = await pool.query(
       `SELECT DISTINCT wallet_address 
        FROM quiz_submissions 
-       WHERE quiz_id = $1 
+       WHERE quiz_id = $1
+       AND nft_minted = true 
        ORDER BY wallet_address`,
       [quizId]
     );
