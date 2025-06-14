@@ -99,7 +99,9 @@ export default function StatisticsSection({ address }: { address: `0x${string}` 
               <Image
                 src={mostRecentNFT.image}
                 alt={`NFT #${mostRecentNFT.tokenId}`}
-                style={{ width: 120, height: "auto", borderRadius: 12, boxShadow: "0 4px 24px rgba(0,0,0,0.2)" }}
+                width={120}
+                height={120}  
+                style={{ borderRadius: 12, boxShadow: "0 4px 24px rgba(0,0,0,0.2)" }}
               />
               <span className="mt-2 text-gray-700 font-medium">Token ID: {mostRecentNFT.tokenId}</span>
             </div>

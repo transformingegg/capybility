@@ -33,7 +33,7 @@ export default function UserDashboard() {
   return (
     <PageLayout>
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold text-gray-800">My Stats</h1>
+        <h1 className="text-3xl font-bold text-gray-800">Quiz Completer Dashboard</h1>
         <StatisticsSection address={address} />
         <KnowledgePackSection address={address} />
         <FutureFeatureSection />

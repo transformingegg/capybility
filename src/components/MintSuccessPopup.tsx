@@ -29,6 +29,8 @@ const MintSuccessPopup: React.FC<MintSuccessPopupProps> = ({
           <Image
             src="/img/YellowBack.png"
             alt="Background"
+            width={300} // Replace with the actual width of WhiteFront.png
+            height={300} // Replace with the actual height of WhiteFront.png
             className="mint-bg-img"
             style={{ zIndex: 1 }}
           />
@@ -36,11 +38,15 @@ const MintSuccessPopup: React.FC<MintSuccessPopupProps> = ({
             src="/img/WhiteFront.png"
             alt="Spinning Front"
             className="mint-spin-img"
+            width={300} // Replace with the actual width of WhiteFront.png
+            height={300} // Replace with the actual height of WhiteFront.png
             style={{ zIndex: 2 }}
           />
           <Image
             src={nftImageUrl}
             alt="NFT"
+            width={300} // Replace with the actual width of WhiteFront.png
+            height={300} // Replace with the actual height of WhiteFront.png
             className="mint-nft-img"
             style={{ zIndex: 3 }}
           />

@@ -16,6 +16,12 @@ interface QuizQuestion {
   correctAnswer: number;
 }
 
+interface NFTMetadata {
+  image: string;
+  attributes?: { trait_type: string; value: string }[];
+  [key: string]: unknown;
+}
+
 interface QuizData {
   id: string;
   quiz: QuizQuestion[];
@@ -35,7 +41,7 @@ interface MetadataAttribute {
   value: string;
 }
 
-const QUIZ_NFT_ADDRESS = "0x1B7088f19327AF194dC8e4668eF614733C4DF113" as `0x${string}`;
+const QUIZ_NFT_ADDRESS = process.env.NEXT_PUBLIC_QUIZ_COMPLETION_NFT_ADDRESS as `0x${string}`;
 
 if (!QUIZ_NFT_ADDRESS.match(/^0x[a-fA-F0-9]{40}$/)) {
   throw new Error("Invalid QUIZ_NFT_ADDRESS");
@@ -75,7 +81,40 @@ const QUIZ_NFT_ABI = [
     ],
     "name": "Transfer",
     "type": "event"
+  },
+  {
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "quizId",
+				"type": "string"
+			},
+			{
+				"internalType": "bytes",
+				"name": "signature",
+				"type": "bytes"
+			}
+		],
+		"name": "mintWithDiscount",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "payable",
+		"type": "function"
+	},
+  {
+    "inputs": [],
+    "name": "discountBps",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
   }
+
+
 ] as const;
 
 function ensureQuizSuffix(name: string) {
@@ -104,6 +143,41 @@ interface QuizError {
     reason?: string;
     [key: string]: unknown;
   };
+}
+
+
+async function pollForMetadataJson(
+  metadataUrl: string,
+  maxAttempts = 10,
+  intervalMs = 3000
+): Promise<NFTMetadata | null> {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const resp = await fetch(metadataUrl, { cache: "reload" });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const json = await resp.json();
+      if (json && typeof json === "object" && json.image) {
+        // Now poll the image URL
+        for (let imgAttempt = 1; imgAttempt <= maxAttempts; imgAttempt++) {
+          try {
+            const imgResp = await fetch(json.image, { cache: "reload" });
+            if (imgResp.ok) {
+              return json;
+            }
+          } catch (err) {
+              console.warn(`Image poll attempt ${imgAttempt} failed`, err);          
+          }
+          await new Promise(res => setTimeout(res, intervalMs));
+        }
+        // If image never becomes available, return null
+        return null;
+      }
+    } catch (err) {
+      console.warn(`JSON Poll attempt failed`, err);
+    }
+    await new Promise(res => setTimeout(res, intervalMs));
+  }
+  return null;
 }
 
 export default function QuizPage({ params }: { params: Promise<{ id: string }> }) {
@@ -269,6 +343,8 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
   };
 
   const handleMint = async () => {
+    
+
     if (!signature || !address) {
       alert("Minting is not ready. Please try again.");
       return;
@@ -288,20 +364,44 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
     setLoadingMessage('Minting NFT...');
 
     try {
-      const mintTimestamp = new Date().toISOString();
       
+      const capyStatusResp = await fetch(`/api/check-capy-status?address=${address}`);
+      const capyStatus = await capyStatusResp.json();
+      const isCapyHolder = !!capyStatus.hasNFT;
+
+      
+
+      let mintFunction: "mint" | "mintWithDiscount" = "mint";
+      let mintValue: bigint = nativeMintPrice ?? 0n;
+
       if (nativeMintPrice == null) {
         alert("Mint price not loaded. Please try again in a moment.");
         setIsLoading(false);
         return;
       }
+
+      if (isCapyHolder) {
+        const provider = new ethers.JsonRpcProvider("https://rpc.open-campus-codex.gelato.digital");
+        const contract = new ethers.Contract(QUIZ_NFT_ADDRESS, QUIZ_NFT_ABI, provider);
+        const [onchainMintPrice, discountBps] = await Promise.all([
+          contract.nativeMintPrice(),
+          contract.discountBps(),
+        ]);
+        mintFunction = "mintWithDiscount";
+        mintValue = (BigInt(onchainMintPrice) * BigInt(discountBps)) / 10000n;
+      }
+
+      
+      const mintTimestamp = new Date().toISOString();
+      
+      
       
       const tx = await mintNFT({
         address: QUIZ_NFT_ADDRESS,
         abi: QUIZ_NFT_ABI,
-        functionName: "mint",
+        functionName: mintFunction,
         args: [resolvedParams.id, signature],
-        value: nativeMintPrice 
+        value: mintValue
       }) as string | { hash: string };
 
       let txHash: string;
@@ -490,18 +590,24 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
 
         // Fetch the metadata JSON to get the image and rarity
         const metadataUrl = createMetadataData.metadataUrl;
+        console.log("Metadata URL returned from API:", metadataUrl);
         let imageUrl = "";
         let rarityValue = "";
+        const metadataJson = await pollForMetadataJson(metadataUrl, 10, 3000);
+
         try {
-          const metadataResp = await fetch(metadataUrl);
-          const metadataJson = await metadataResp.json();
-          imageUrl = metadataJson.image;
-          // Find rarity attribute if present
-          if (Array.isArray(metadataJson.attributes)) {
-            const rarityAttr = metadataJson.attributes.find(
-              (attr: MetadataAttribute) => attr.trait_type === "Rarity"
-            );
-            rarityValue = rarityAttr ? rarityAttr.value : "";
+          if (metadataJson) {
+
+            //const metadataResp = await fetch(metadataUrl);
+            //const metadataJson = await metadataResp.json();
+            imageUrl = metadataJson.image;
+            // Find rarity attribute if present
+            if (Array.isArray(metadataJson.attributes)) {
+              const rarityAttr = metadataJson.attributes.find(
+                (attr: MetadataAttribute) => attr.trait_type === "Rarity"
+              );
+              rarityValue = rarityAttr ? rarityAttr.value : "";
+            }
           }
         } catch (err) {
           console.error("Error fetching NFT metadata JSON:", err);

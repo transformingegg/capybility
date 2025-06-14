@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { ethers } from "ethers";
 
 // First, fix your contract address
-const QUIZ_CREATOR_NFT_ADDRESS = "0x67E05ea4eD8C8437df65a3a5182A06FE6F0C6b9F";
+const QUIZ_CREATOR_NFT_ADDRESS = process.env.NEXT_PUBLIC_QUIZ_CREATOR_NFT_ADDRESS as `0x${string}`;
 
 export async function POST(request: Request) {
   try {

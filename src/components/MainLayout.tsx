@@ -4,9 +4,24 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { FaXTwitter, FaDiscord, FaTelegram } from 'react-icons/fa6';
+import { useAccount } from "wagmi";
+import { useEffect } from "react";
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { address, isConnected } = useAccount();
+  const [isCapyHolder, setIsCapyHolder] = useState(false);
+
+  useEffect(() => {
+    if (!address || !isConnected) {
+      setIsCapyHolder(false);
+      return;
+    }
+    fetch(`/api/check-capy-status?address=${address}`)
+      .then(res => res.json())
+      .then(data => setIsCapyHolder(!!data.hasNFT))
+      .catch(() => setIsCapyHolder(false));
+  }, [address, isConnected]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -73,6 +88,15 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
               {/* Wallet connect button */}
               <div className="flex justify-center">
                 <ConnectButton />
+                  {isCapyHolder && (
+                    <span
+                      title="Capybility NFT Holder"
+                      className="inline-flex items-center justify-center rounded-full bg-[#00c7df] text-white font-bold"
+                      style={{ width: 22, height: 22, fontSize: 16 }}
+                    >
+                      C
+                    </span>
+                  )}
               </div>
             </div>
           </div>

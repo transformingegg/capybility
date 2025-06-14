@@ -20,6 +20,9 @@ contract QuizCreatorNFT is ERC721, AccessControl {
     uint256 public tokenMintPrice;
     address public signer;
     
+    uint256 public discountBps = 10000; // 10000 = 100% (no discount), 9000 = 90%, etc.
+
+
     Counters.Counter private _tokenIdCounter;
     string private _baseTokenURI;
     
@@ -60,6 +63,11 @@ contract QuizCreatorNFT is ERC721, AccessControl {
         tokenMintPrice = initialTokenMintPrice;
         signer = initialSigner;
         _tokenIdCounter.increment();
+    }
+
+    function setDiscountBps(uint256 newDiscountBps) external onlyRole(ADMIN_ROLE) {
+        require(newDiscountBps <= 10000, "Discount cannot exceed 100%");
+        discountBps = newDiscountBps;
     }
 
     // Mint with native token (ETH/BNB/MATIC)
@@ -116,6 +124,40 @@ contract QuizCreatorNFT is ERC721, AccessControl {
         require(hasRole(SIGNER_ROLE, recoveredSigner), "Invalid signature");
 
         require(paymentToken.transferFrom(msg.sender, address(this), tokenMintPrice), "Token transfer failed");
+
+        _usedSignatures[signature] = true;
+        _nonces[msg.sender]++;
+
+        uint256 tokenId = _tokenIdCounter.current();
+        _tokenIdCounter.increment();
+        _safeMint(msg.sender, tokenId);
+        _quizIds[tokenId] = quizId;
+        _quizCreators[quizId] = msg.sender;
+        _ownedTokens[msg.sender].push(tokenId);
+
+        emit QuizCreated(msg.sender, tokenId, quizId);
+        return tokenId;
+    }
+
+    function mintWithDiscount(
+        string calldata quizId,
+        bytes calldata signature
+    ) external payable returns (uint256) {
+        require(!_usedSignatures[signature], "Signature already used");
+        require(_quizCreators[quizId] == address(0), "Quiz already has a creator");
+
+        uint256 discountedPrice = (nativeMintPrice * discountBps) / 10000;
+        require(msg.value >= discountedPrice, "Insufficient native token sent");
+
+        bytes32 messageHash = keccak256(abi.encodePacked(
+            msg.sender,
+            quizId,
+            _nonces[msg.sender],
+            address(this)
+        ));
+        bytes32 ethSignedMessageHash = messageHash.toEthSignedMessageHash();
+        address recoveredSigner = ethSignedMessageHash.recover(signature);
+        require(hasRole(SIGNER_ROLE, recoveredSigner), "Invalid signature");
 
         _usedSignatures[signature] = true;
         _nonces[msg.sender]++;

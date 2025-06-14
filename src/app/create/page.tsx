@@ -16,7 +16,7 @@ import DrQuizBubble from '../../components/DrQuizBubble';
 import QuizShareSection from '../../components/QuizShareSection';
 import FieldHelp from "@/components/FieldHelp";
 
-const QUIZ_CREATOR_NFT_ADDRESS = "0x67E05ea4eD8C8437df65a3a5182A06FE6F0C6b9F" as `0x${string}`;
+const QUIZ_CREATOR_NFT_ADDRESS = process.env.NEXT_PUBLIC_QUIZ_CREATOR_NFT_ADDRESS as `0x${string}`;
 const QuizCreatorNFTAbi = [
   {
     "inputs": [
@@ -75,6 +75,23 @@ const QuizCreatorNFTAbi = [
     ],
     "name": "QuizCreated",
     "type": "event"
+  },
+  {
+    "inputs": [
+      { "internalType": "string", "name": "quizId", "type": "string" },
+      { "internalType": "bytes", "name": "signature", "type": "bytes" }
+    ],
+    "name": "mintWithDiscount",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "discountBps",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
   }
 ] as const;
 
@@ -343,13 +360,38 @@ const MainContent = dynamic(
                 contractAddress: QUIZ_CREATOR_NFT_ADDRESS
               });
               let tx; // Declare tx at a higher scope
+              
+              
+              let mintFunction: "mint" | "mintWithDiscount" = "mint";
+              let mintValue: bigint = mintPrice!; // You already check for null above
+
+              // 1. Check Capy status
+              const capyStatusResp = await fetch(`/api/check-capy-status?address=${address}`);
+              const capyStatus = await capyStatusResp.json();
+              const isCapyHolder = !!capyStatus.hasNFT;
+
+              if (isCapyHolder) {
+                // 2. Fetch on-chain price and discount
+                const provider = new ethers.JsonRpcProvider("https://rpc.open-campus-codex.gelato.digital");
+                const contract = new ethers.Contract(QUIZ_CREATOR_NFT_ADDRESS, QuizCreatorNFTAbi, provider);
+                const [onchainMintPrice, discountBps] = await Promise.all([
+                  contract.nativeMintPrice(),
+                  contract.discountBps(),
+                ]);
+                mintFunction = "mintWithDiscount";
+                mintValue = (BigInt(onchainMintPrice) * BigInt(discountBps)) / 10000n;
+                console.log("Capy holder detected! Using discounted mint:", mintValue.toString());
+              } else {
+                console.log("Not a Capy holder. Using regular mint price:", mintValue.toString());
+              }
+              
               try {
                 tx = await mintNFT({
                   address: QUIZ_CREATOR_NFT_ADDRESS,  
                   abi: QuizCreatorNFTAbi,
-                  functionName: "mint",
+                  functionName: mintFunction,
                   args: [saveData.quizId, signData.signature],
-                  value: mintPrice
+                  value: mintValue
                 });
               } catch (error) {
                 const txError = error as TransactionError;
@@ -624,11 +666,11 @@ const MainContent = dynamic(
                   <div className="mt-4 flex items-center gap-4">
                     <button
                       onClick={(e) => handleSaveQuiz(e)}
-                      disabled={isLoading || isSaved || !mintPrice || !hasPermission}
+                      disabled={isLoading || isSaved || !mintPrice}
                       type="button"
                       className={
                         buttonStyles +
-                        ((isLoading || isSaved || !mintPrice || !hasPermission)
+                        ((isLoading || isSaved || !mintPrice)
                           ? " opacity-50 cursor-not-allowed"
                           : "")
                       }
