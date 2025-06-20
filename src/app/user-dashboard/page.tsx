@@ -6,6 +6,8 @@ import PageLayout from "@/components/PageLayout";
 import StatisticsSection from "@/components/user-dashboard/StatisticsSection";
 import KnowledgePackSection from "@/components/user-dashboard/KnowledgePackSection";
 import FutureFeatureSection from "@/components/user-dashboard/FutureFeatureSection";
+import AvailableQuizzesSection from "@/components/user-dashboard/AvailableQuizzesSection"; // Import the new component
+
 
 export default function UserDashboard() {
   const router = useRouter();
@@ -34,6 +36,7 @@ export default function UserDashboard() {
     <PageLayout>
       <div className="space-y-6">
         <h1 className="text-3xl font-bold text-gray-800">Quiz Completer Dashboard</h1>
+        <AvailableQuizzesSection /> {/* Add the new component here */}
         <StatisticsSection address={address} />
         <KnowledgePackSection address={address} />
         <FutureFeatureSection />
