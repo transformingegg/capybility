@@ -202,7 +202,7 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
 
   useEffect(() => {
     const fetchMintPrice = async () => {
-      const provider = new ethers.JsonRpcProvider("https://rpc.open-campus-codex.gelato.digital");
+      const provider = new ethers.JsonRpcProvider("https://rpc.edu-chain.raas.gelato.cloud/");
       const contract = new ethers.Contract(QUIZ_NFT_ADDRESS, QUIZ_NFT_ABI, provider);
       const price = await contract.nativeMintPrice();
       setNativeMintPrice(price);
@@ -381,7 +381,7 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
       }
 
       if (isCapyHolder) {
-        const provider = new ethers.JsonRpcProvider("https://rpc.open-campus-codex.gelato.digital");
+        const provider = new ethers.JsonRpcProvider("https://rpc.edu-chain.raas.gelato.cloud/");
         const contract = new ethers.Contract(QUIZ_NFT_ADDRESS, QUIZ_NFT_ABI, provider);
         const [onchainMintPrice, discountBps] = await Promise.all([
           contract.nativeMintPrice(),
@@ -413,7 +413,7 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
         throw new Error("mintNFT did not return a valid transaction hash.");
       }
 
-      const provider = new ethers.JsonRpcProvider("https://rpc.open-campus-codex.gelato.digital");
+      const provider = new ethers.JsonRpcProvider("https://rpc.edu-chain.raas.gelato.cloud/");
 
       //const txHash = typeof tx === "string" ? tx : tx.hash;
       let receipt = null;      // Initialize receipt as null

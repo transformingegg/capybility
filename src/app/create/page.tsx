@@ -156,7 +156,7 @@ const MainContent = dynamic(
         useEffect(() => {
           const fetchMintPrice = async () => {
             try {
-              const provider = new ethers.JsonRpcProvider("https://rpc.open-campus-codex.gelato.digital");
+              const provider = new ethers.JsonRpcProvider("https://rpc.edu-chain.raas.gelato.cloud/");
               const contract = new ethers.Contract(QUIZ_CREATOR_NFT_ADDRESS, QuizCreatorNFTAbi, provider);
               const price = await contract.nativeMintPrice();
               console.log("Mint price from contract:", price.toString()); // Debug log
@@ -339,7 +339,7 @@ const MainContent = dynamic(
           /*
               // Attempt to estimate gas before actual mint
               try {
-                const provider = new ethers.JsonRpcProvider("https://rpc.open-campus-codex.gelato.digital");
+                const provider = new ethers.JsonRpcProvider("https://rpc.edu-chain.raas.gelato.cloud/");
                 const contract = new ethers.Contract(QUIZ_CREATOR_NFT_ADDRESS, QuizCreatorNFTAbi, provider);
                 
                 const gasEstimate = await contract.mint.estimateGas(
@@ -372,7 +372,7 @@ const MainContent = dynamic(
 
               if (isCapyHolder) {
                 // 2. Fetch on-chain price and discount
-                const provider = new ethers.JsonRpcProvider("https://rpc.open-campus-codex.gelato.digital");
+                const provider = new ethers.JsonRpcProvider("https://rpc.edu-chain.raas.gelato.cloud/");
                 const contract = new ethers.Contract(QUIZ_CREATOR_NFT_ADDRESS, QuizCreatorNFTAbi, provider);
                 const [onchainMintPrice, discountBps] = await Promise.all([
                   contract.nativeMintPrice(),
@@ -400,7 +400,7 @@ const MainContent = dynamic(
                 return false;
               }
           
-              const provider = new ethers.JsonRpcProvider("https://rpc.open-campus-codex.gelato.digital");
+              const provider = new ethers.JsonRpcProvider("https://rpc.edu-chain.raas.gelato.cloud/");
               let receipt;
           
               // Add retry logic for transaction confirmation
@@ -420,7 +420,7 @@ const MainContent = dynamic(
                   if (receipt.status !== 1) {
                       console.error("Transaction failed. Receipt:", receipt);
                       throw new Error(
-                          `Transaction failed on the blockchain. Please check your wallet or view the transaction on the explorer: https://explorer.open-campus-codex.gelato.digital/tx/${tx}`
+                          `Transaction failed on the blockchain. Please check your wallet or view the transaction on the explorer: https://educhain.blockscout.com//tx/${tx}`
                       );
                   }
 
@@ -435,7 +435,7 @@ const MainContent = dynamic(
 
 
                       // Get tokenId from receipt logs
-                      const provider = new ethers.JsonRpcProvider("https://rpc.open-campus-codex.gelato.digital");
+                      const provider = new ethers.JsonRpcProvider("https://rpc.edu-chain.raas.gelato.cloud/");
                       const contract = new ethers.Contract(
                         QUIZ_CREATOR_NFT_ADDRESS, 
                         QuizCreatorNFTAbi, 

@@ -1,11 +1,11 @@
 import { defineChain, createPublicClient, http, type Chain } from "viem";
 import { createConfig } from "wagmi";
 
-// Define EDU Chain Testnet (Open Campus Codex)
-const eduChainTestnet = defineChain({
-  id: 656476, // Official EDU Chain Testnet chain ID
-  name: "Open Campus Codex",
-  network: "open-campus-codex",
+// Define EDU Chain Mainnet
+const eduChainMainnet = defineChain({
+  id: 41923, // Official EDU Chain Mainnet chain ID
+  name: "EDU Chain",
+  network: "edu-chain",
   nativeCurrency: {
     name: "EDU",
     symbol: "EDU",
@@ -13,26 +13,26 @@ const eduChainTestnet = defineChain({
   },
   rpcUrls: {
     default: {
-      http: ["https://rpc.open-campus-codex.gelato.digital"],
+      http: ["https://rpc.edu-chain.raas.gelato.cloud/"],
     },
     public: {
-      http: ["https://rpc.open-campus-codex.gelato.digital"],
+      http: ["https://rpc.edu-chain.raas.gelato.cloud/"],
     },
   },
   blockExplorers: {
-    default: { name: "EDUScan", url: "https://opencampus-codex.blockscout.com" },
+    default: { name: "EDUScan", url: "https://eduscan.blockscout.com" },
   },
-  testnet: true,
+  testnet: false,
 });
 
 // Define the chains as a tuple
-const chains = [eduChainTestnet] as const;
+const chains = [eduChainMainnet] as const;
 
 // Define the client as a function
 const client = ({ chain }: { chain?: Chain }) =>
   createPublicClient({
-    chain: chain || eduChainTestnet,
-    transport: http("https://rpc.open-campus-codex.gelato.digital"),
+    chain: chain || eduChainMainnet,
+    transport: http("https://rpc.edu-chain.raas.gelato.cloud/"),
   });
 
 // Create a base Wagmi configuration (without connectors, which will be added on the client)
@@ -41,4 +41,4 @@ const wagmiConfig = createConfig({
   client,
 });
 
-export { chains, eduChainTestnet, wagmiConfig, client };
+export { chains, eduChainMainnet, wagmiConfig, client };

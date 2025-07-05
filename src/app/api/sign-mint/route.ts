@@ -9,7 +9,7 @@ if (!QUIZ_NFT_ADDRESS.match(/^0x[a-fA-F0-9]{40}$/)) {
   throw new Error("Invalid QUIZ_NFT_ADDRESS");
 }
 
-const provider = new ethers.JsonRpcProvider("https://rpc.open-campus-codex.gelato.digital");
+const provider = new ethers.JsonRpcProvider("https://rpc.edu-chain.raas.gelato.cloud/");
 const quizNFTContract = new ethers.Contract(QUIZ_NFT_ADDRESS, [
   "function getNonce(address user) public view returns (uint256)",
 ], provider);

@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     });*/
 
     // Simplify provider initialization
-    const provider = new ethers.JsonRpcProvider("https://rpc.open-campus-codex.gelato.digital");
+    const provider = new ethers.JsonRpcProvider("https://rpc.edu-chain.raas.gelato.cloud/");
 
     // Use the full ABI for the nonce function
     const contractABI = [

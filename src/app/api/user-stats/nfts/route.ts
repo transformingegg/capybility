@@ -54,7 +54,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const provider = new ethers.JsonRpcProvider("https://rpc.open-campus-codex.gelato.digital");
+    const provider = new ethers.JsonRpcProvider("https://rpc.edu-chain.raas.gelato.cloud/");
     const contract = new ethers.Contract(QUIZ_NFT_ADDRESS, QUIZ_NFT_ABI, provider);
 
     // 1. Get all token IDs owned by the user (on-chain)
