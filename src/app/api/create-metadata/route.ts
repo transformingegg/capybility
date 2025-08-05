@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { put } from '@vercel/blob';
-import { uploadPatternToBlob } from "@/lib/generate-pattern";
+//import { uploadPatternToBlob } from "@/lib/generate-pattern";
 
 // Function to randomly assign a rarity level or based on score
 function assignRarity(score?: number): string {
@@ -33,21 +33,15 @@ export async function POST(request: Request) {
     // Determine rarity based on score if provided, otherwise randomly assign
     const rarity = assignRarity(score);
     
-    // Generate and upload the image to Blob storage
-    const imageUrl = await uploadPatternToBlob(
-      quizId,
-      walletAddress,
-      timestamp || new Date().toISOString(),
-      rarity,
-      tokenId,
-      'quiz'
-    );
+    // Construct the image URL based on the rarity
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"; // Fallback to localhost if not set
+    const imageUrl = `${baseUrl}/img/${rarity}V2.png`; // Construct the full image URL
     
     // Create metadata
     const metadata = {
       name: score ? `Quiz Completion NFT - Score: ${Math.round((score || 0) * 100)}%` : "Quiz Completion NFT",
       description: "Capybility Quiz Completion - bestowed upon you by the great capy Dr. Q for completing a quiz.",
-      image: imageUrl, // Use the Blob URL directly
+      image: imageUrl, // This uses the static image URL based on rarity
       attributes: [
         {
           trait_type: "Quiz ID",

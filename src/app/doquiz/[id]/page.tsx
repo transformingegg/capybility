@@ -6,7 +6,6 @@ import { ethers } from "ethers";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import PageLayout from "@/components/PageLayout";
 import { buttonStyles, sectionStyles } from "@/utils/styles";
-//import CustomAlertDialog from "@/components/CustomAlertDialog";
 import MintSuccessPopup from "@/components/MintSuccessPopup";
 import { useRouter } from "next/navigation";
 
@@ -16,11 +15,6 @@ interface QuizQuestion {
   correctAnswer: number;
 }
 
-interface NFTMetadata {
-  image: string;
-  attributes?: { trait_type: string; value: string }[];
-  [key: string]: unknown;
-}
 
 interface QuizData {
   id: string;
@@ -36,10 +30,6 @@ interface QuizAttemptStatus {
   lastAttemptTime?: string;
 }
 
-interface MetadataAttribute {
-  trait_type: string;
-  value: string;
-}
 
 const QUIZ_NFT_ADDRESS = process.env.NEXT_PUBLIC_QUIZ_COMPLETION_NFT_ADDRESS as `0x${string}`;
 
@@ -83,29 +73,29 @@ const QUIZ_NFT_ABI = [
     "type": "event"
   },
   {
-		"inputs": [
-			{
-				"internalType": "string",
-				"name": "quizId",
-				"type": "string"
-			},
-			{
-				"internalType": "bytes",
-				"name": "signature",
-				"type": "bytes"
-			}
-		],
-		"name": "mintWithDiscount",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "payable",
-		"type": "function"
-	},
+        "inputs": [
+            {
+                "internalType": "string",
+                "name": "quizId",
+                "type": "string"
+            },
+            {
+                "internalType": "bytes",
+                "name": "signature",
+                "type": "bytes"
+            }
+        ],
+        "name": "mintWithDiscount",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "payable",
+        "type": "function"
+    },
   {
     "inputs": [],
     "name": "discountBps",
@@ -113,8 +103,6 @@ const QUIZ_NFT_ABI = [
     "stateMutability": "view",
     "type": "function"
   }
-
-
 ] as const;
 
 function ensureQuizSuffix(name: string) {
@@ -145,40 +133,6 @@ interface QuizError {
   };
 }
 
-
-async function pollForMetadataJson(
-  metadataUrl: string,
-  maxAttempts = 10,
-  intervalMs = 3000
-): Promise<NFTMetadata | null> {
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      const resp = await fetch(metadataUrl, { cache: "reload" });
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const json = await resp.json();
-      if (json && typeof json === "object" && json.image) {
-        // Now poll the image URL
-        for (let imgAttempt = 1; imgAttempt <= maxAttempts; imgAttempt++) {
-          try {
-            const imgResp = await fetch(json.image, { cache: "reload" });
-            if (imgResp.ok) {
-              return json;
-            }
-          } catch (err) {
-              console.warn(`Image poll attempt ${imgAttempt} failed`, err);          
-          }
-          await new Promise(res => setTimeout(res, intervalMs));
-        }
-        // If image never becomes available, return null
-        return null;
-      }
-    } catch (err) {
-      console.warn(`JSON Poll attempt failed`, err);
-    }
-    await new Promise(res => setTimeout(res, intervalMs));
-  }
-  return null;
-}
 
 export default function QuizPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -588,30 +542,11 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
       } else {
         setTokenId(tokenId);
 
-        // Fetch the metadata JSON to get the image and rarity
+        // Set the image URL to the metadata endpoint
         const metadataUrl = createMetadataData.metadataUrl;
         console.log("Metadata URL returned from API:", metadataUrl);
-        let imageUrl = "";
-        let rarityValue = "";
-        const metadataJson = await pollForMetadataJson(metadataUrl, 10, 3000);
-
-        try {
-          if (metadataJson) {
-
-            //const metadataResp = await fetch(metadataUrl);
-            //const metadataJson = await metadataResp.json();
-            imageUrl = metadataJson.image;
-            // Find rarity attribute if present
-            if (Array.isArray(metadataJson.attributes)) {
-              const rarityAttr = metadataJson.attributes.find(
-                (attr: MetadataAttribute) => attr.trait_type === "Rarity"
-              );
-              rarityValue = rarityAttr ? rarityAttr.value : "";
-            }
-          }
-        } catch (err) {
-          console.error("Error fetching NFT metadata JSON:", err);
-        }
+        const imageUrl = `/metadata/img/${tokenId}`;
+        const rarityValue = ""; // Rarity is now handled by the image endpoint
 
         console.log("NFT minted successfully with imageURL of:", imageUrl);
         setNftImageUrl(imageUrl);
