@@ -4,8 +4,7 @@ import { generatePromotionMintSignature } from "@lib/signForPromo"; // Import th
 
 const PROMOTION_NFT_ADDRESS = process.env.NEXT_PUBLIC_PROMOTION_NFT_ADDRESS as `0x${string}`;
 
-// Validate PROMOTION_NFT_ADDRESS at runtime
-if (!PROMOTION_NFT_ADDRESS.match(/^0x[a-fA-F0-9]{40}$/)) {
+if (!PROMOTION_NFT_ADDRESS || !PROMOTION_NFT_ADDRESS.match(/^0x[a-fA-F0-9]{40}$/)) {
   throw new Error("Invalid PROMOTION_NFT_ADDRESS");
 }
 
