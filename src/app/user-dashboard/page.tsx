@@ -39,8 +39,8 @@ export default function UserDashboard() {
         <h1 className="text-3xl font-bold text-gray-800">Quiz Completer Dashboard</h1>
         <AvailableQuizzesSection />
         <StatisticsSection address={address} />
+        <PromotionSection address={address} /> 
         <KnowledgePackSection address={address} />
-        <PromotionSection address={address} /> {/* Add the new component here */}
         <FutureFeatureSection />
       </div>
     </PageLayout>

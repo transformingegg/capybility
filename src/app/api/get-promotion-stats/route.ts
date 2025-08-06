@@ -19,14 +19,18 @@ export async function GET(request: Request) {
   });
 
   try {
-    // Query for qualifying quizzes
+    // Query for qualifying quizzes (for testing change the 10 to 2)
     const qualifyingQuizzesResult = await pool.query(
       `
       SELECT COUNT(DISTINCT q.id)
       FROM quizzes q
       WHERE q.wallet_address = $1
         AND q.status = 'minted'
-        AND jsonb_exists(q.quiz_data->'tags', 'EDUCHAIN')
+        AND EXISTS (
+          SELECT 1
+          FROM jsonb_array_elements_text(q.quiz_data->'tags') AS tag
+          WHERE LOWER(REPLACE(TRIM(tag), ' ', '')) = 'educhain'
+        )
         AND (
           SELECT COUNT(*)
           FROM quiz_submissions qs
@@ -46,7 +50,11 @@ export async function GET(request: Request) {
       WHERE qs.wallet_address = $1
         AND qs.nft_minted = true
         AND q.status = 'minted'
-        AND jsonb_exists(q.quiz_data->'tags', 'EDUCHAIN')
+        AND EXISTS (
+          SELECT 1
+          FROM jsonb_array_elements_text(q.quiz_data->'tags') AS tag
+          WHERE LOWER(REPLACE(TRIM(tag), ' ', '')) = 'educhain'
+        )
         AND qs.score = (SELECT JSONB_ARRAY_LENGTH(q.quiz_data->'quiz') FROM quizzes WHERE id = q.id)
       `,
       [address]

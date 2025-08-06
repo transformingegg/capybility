@@ -23,7 +23,10 @@ const MintSuccessPopup: React.FC<MintSuccessPopupProps> = ({
       <div className="mint-success-popup">
         <h2>Congratulations!</h2>
         <p>
-          You completed the quiz and just got a <b>{rarity}</b> completion token!
+          {rarity
+            ? <>You completed the quiz and just got a <b>{rarity}</b> completion token!</>
+            : <>You just earned a badge!</>
+          }
         </p>
         <div className="mint-success-image-stack">
           <Image

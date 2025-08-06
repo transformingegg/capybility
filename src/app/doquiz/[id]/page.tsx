@@ -546,7 +546,7 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
         const metadataUrl = createMetadataData.metadataUrl;
         console.log("Metadata URL returned from API:", metadataUrl);
         const imageUrl = `/metadata/img/${tokenId}`;
-        const rarityValue = ""; // Rarity is now handled by the image endpoint
+        const rarityValue = createMetadataData.rarity || "";
 
         console.log("NFT minted successfully with imageURL of:", imageUrl);
         setNftImageUrl(imageUrl);
@@ -574,6 +574,9 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
       </div>
     </PageLayout>
   );
+
+  // Log rarity value before rendering
+  console.log("MintSuccessPopup rarity value:", rarity);
 
   return (
     <PageLayout>
@@ -688,7 +691,7 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
           </div>
         )}
       </div>
-      
+
       <MintSuccessPopup
         open={showMintSuccess}
         rarity={rarity}

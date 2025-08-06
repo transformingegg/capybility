@@ -34,10 +34,6 @@ export async function POST(request: Request) {
         {
           trait_type: "Creation Date",
           value: new Date().toISOString(),
-        },
-        {
-          trait_type: "Rarity",
-          value: "Epic"
         }
       ],
     };

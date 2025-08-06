@@ -1,0 +1,39 @@
+import { ethers } from "ethers";
+
+// Wallet private key for signing (store securely in .env)
+const SIGNER_PRIVATE_KEY = process.env.SIGNER_PRIVATE_KEY;
+if (!SIGNER_PRIVATE_KEY) {
+  throw new Error("SIGNER_PRIVATE_KEY is not set in .env");
+}
+const signerWallet = new ethers.Wallet(SIGNER_PRIVATE_KEY);
+
+interface SigningError {
+  message: string;
+  code?: string;
+  reason?: string;
+}
+
+// Function to generate a signature for promotion minting
+export async function generatePromotionMintSignature(
+  toAddress: string,
+  promotionType: string,
+  nonce: string,
+  contractAddress: string
+): Promise<{ success: boolean; signature?: string; error?: string }> {
+  try {
+    // Generate the message hash (same as in the contract)
+    const messageHash = ethers.solidityPackedKeccak256(
+      ["address", "string", "uint256", "address"],
+      [toAddress, promotionType, nonce, contractAddress]
+    );
+    const ethSignedMessageHash = ethers.getBytes(messageHash);
+
+    // Sign the message
+    const signature = await signerWallet.signMessage(ethSignedMessageHash);
+    return { success: true, signature };
+  } catch (error: unknown) {
+    const signingError = error as SigningError;
+    console.error("Error generating signature:", signingError);
+    return { success: false, error: signingError.message };
+  }
+}

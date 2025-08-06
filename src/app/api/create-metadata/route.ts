@@ -80,7 +80,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      metadataUrl: metadataBlob.url
+      metadataUrl: metadataBlob.url,
+      rarity: rarity
     });
     
   } catch (error) {
