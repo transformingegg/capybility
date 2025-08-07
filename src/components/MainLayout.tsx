@@ -34,7 +34,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
             <div className="flex justify-center md:justify-start">
               <Link href="/" className="flex-shrink-0">
                 <Image
-                  src="/img/banner.png"
+                  src="/img/bannerNew.png"
                   alt="CAPYBILITY"
                   width={400}
                   height={80}
@@ -75,13 +75,13 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                   Home
                 </Link>
                 <Link href="/creator-dashboard" className="text-[#00c7df] hover:opacity-80 font-bold">
-                  Creators
+                  Create
                 </Link>
                 <Link href="/user-dashboard" className="text-[#00c7df] hover:opacity-80 font-bold">
-                  Quizzers
+                  Do
                 </Link>
                 <Link href="/why-capybility" className="text-[#00c7df] hover:opacity-80 font-bold">
-                  Why?
+                  Guide
                 </Link>
               </nav>
 

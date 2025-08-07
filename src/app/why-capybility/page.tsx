@@ -1,20 +1,74 @@
 import MainLayout from '@/components/MainLayout';
+import { sectionStyles } from "@/utils/styles";
 
 export default function WhyCapybility() {
   return (
     <MainLayout>
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-4xl font-bold text-gray-900 mb-8">Why CAPYBILITY?</h1>
+        <h1 className="text-4xl font-bold text-gray-900 mb-8">Guide</h1>
         <div className="prose prose-lg">
-          <p className="text-gray-600 mb-8">
-            The wonderfully simple 5 question multiple choice quiz has so much to offer. What would it look like to provide the tools to allow ALL the stakeholders of an ecosystem? CAPYBILITY is attempting just that!. It is for Influencers, Researchers, Ecosystems, Web3 Projects, NFT Communities, Educators, Learners, and people who want to build up an online Knowledge Portfolio to show what they know. Find out more by watching the video below! 
-          </p>
-          
-          {/* Video section */}
-          <div className="aspect-w-16 aspect-h-9 mt-8 mb-8">
-            <div className="w-full h-[400px] bg-gray-100 rounded-lg flex items-center justify-center">
-              <p className="text-gray-500">Video Coming Soon</p>
-            </div>
+
+          {/* Section 1: How to do a quiz */}
+          <div className={sectionStyles + " mb-8"}>
+            <h2 className="text-2xl font-bold mb-4">How to Do Quizzes</h2>
+            <ol className="list-decimal ml-6 mb-8">
+              <li>Connect your wallet using the button at the top right.</li>
+              <li>Go to the <b>User Dashboard</b> by clicking &quot;Do Quiz&quot; navigation on the navigation menu OR by clicking the &quot;User Dashboard&quot; button on the home page.</li>
+              <li>Browse the available quizzes and select one to try. You can also just follow a direct link to a quiz that you got from a project or quiz creator directly.</li>
+              <li>Answer the multiple choice questions and submit your quiz by &quot;signing&quot; with your wallet.</li>
+              <li>Mint your quiz completion as an NFT with randomly generated rarity &ndash; Something special might come to those who get lucky here!</li>
+              <li>Check your stats, completions, earned badges and promotion achievements in your user dashboard.</li>
+            </ol>
+            <p className="text-gray-600 mb-2 font-semibold">Rules for doing Quizzes:</p>
+            <ul className="list-disc ml-6 mb-0">
+              <li>To mint a quiz completion NFT there is a small fee (50% discount for capyfriends holders). This is primarily to stop bots.</li>
+              <li>Any attempt at automated tools or scripts for quiz completion will be discovered and users will be banned from site use.</li>
+              <li>Users can only attempt a quiz completion for a particular quiz once per 24 hour period. If they don&apos;t get it fully correct (5/5), they will have to wait until the next day to try again.</li>
+            </ul>
+          </div>
+
+          {/* Section 2: How to create a quiz */}
+          <div className={sectionStyles + " mb-8"}>
+            <h2 className="text-2xl font-bold mb-4">How to Create Quizzes</h2>
+            <ol className="list-decimal ml-6 mb-8">
+              <li>Connect your wallet using the button at the top right.</li>
+              <li>Go to the <b>Creator Dashboard</b> by clicking &quot;CREATOR DASHBOARD&quot; on the homepage or by clicking &quot;Create&quot; in the navigation menu.</li>
+              <li>Click the &quot;Create Quiz&quot; button.</li>
+              <li>Follow the prompts of the quiz creation tool to add your content and generate questions. You will need your text content handy and a URL to where your content can be found (e.g. a webpage, medium article, x post, etc.).</li>
+              <li>Use the AI generated Quiz to get a starting quiz, and then edit questions, answers, and tags as needed.</li>
+              <li>Save your quiz and mint it as an NFT.</li>
+              <li>Share your unique quiz link with others to invite participation.</li>
+            </ol>
+            <p className="text-gray-600 mb-2 font-semibold">Rules for Creating Quizzes:</p>
+            <ul className="list-disc ml-6 mb-0">
+              <li>To mint a quiz creation NFT there is a small fee (50% discount for capyfriends holders). This is primarily to stop bots.</li>
+              <li>Any attempt at automated scripts for creating quizzes without interacting with the site in a meaningful way will be discovered and users will be banned from site use.</li>
+              <li>Users can create as many quizzes as they like.</li>
+              <li>Users creating nonsense quizzes or spamming the quiz creation tool will be banned from site use.</li>
+            </ul>
+          </div>
+
+          {/* Section 3: How to participate in the Educhain Experts Promotion */}
+          <div className={sectionStyles}>
+            <h2 className="text-2xl font-bold mb-4">How to Participate in the Educhain Experts Promotion</h2>
+            <p className="text-gray-600 mb-4">
+              The Educhain Experts Promotion is designed to reward expert uses of the educhain ecosystem. To participate, follow these steps:
+            </p>
+            <ol className="list-decimal ml-6 mb-8">
+              <li>Complete qualifying quizzes and quiz completions listed in the <b>Promotions</b> section of your dashboard.</li>
+              <li>Track your progress using the progress bars for quizzes and completions.</li>
+              <li>Once you meet the requirements, click the &quot;Mint My Educhain Expert Badge&quot; button.</li>
+              <li>Confirm the transaction in your wallet to receive your badge NFT.</li>
+              <li>Your badge will be displayed in your dashboard once minted.</li>
+            </ol>
+            <p className="text-gray-600 mb-2 font-semibold">Rules for Promotions:</p>
+            <ul className="list-disc ml-6 mb-0">
+              <li>Capybility reserves the right to change, modify and / or cancel the promotion at any time for any reason.</li>
+              <li>Any attempt at cheating during the promotion will be discovered and users will be banned from site use.</li>
+              <li>Users can create as many quizzes as they like, and complete as many quizzes as are available. For this promotion, only quizzes tagged with &quot;EDUCHAIN&quot;, &quot;EDU CHAIN&quot; in upper or lower case variants will be included as qualifying quizzes.</li>
+              <li>Users creating nonsense quizzes or spamming the quiz creation tool will be banned from site use.</li>
+              <li>Rules and Conditions Subject to Change.</li>
+            </ul>
           </div>
         </div>
       </div>

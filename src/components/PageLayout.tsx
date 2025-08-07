@@ -31,8 +31,8 @@ export default function PageLayout({ children }: PageLayoutProps) {
             <div className="flex justify-center md:justify-start max-w-[400px]">
               <Link href="/" className="cursor-pointer transition-opacity hover:opacity-80">
               <Image
-                src="/Banner.png"
-                alt="Pruv.it Banner"
+                src="/img/bannerNew.png"
+                alt="Capybility Banner"
                 width={400}
                 height={120}
                 priority
