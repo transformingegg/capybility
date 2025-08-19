@@ -32,8 +32,10 @@ export async function GET(
     }
 
     const imageBuffer = fs.readFileSync(imagePath);
+    // Convert Buffer to ArrayBuffer explicitly
+    const arrayBuffer = Uint8Array.from(imageBuffer).buffer as ArrayBuffer;
 
-    return new Response(imageBuffer, {
+    return new NextResponse(arrayBuffer, {
       headers: {
         'Content-Type': 'image/png',
         'Cache-Control': 'public, max-age=31536000, immutable'

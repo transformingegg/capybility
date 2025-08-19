@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@opencampus/ocid-connect-js": "^2.0.4",
     "@rainbow-me/rainbowkit": "^2.2.4",
     "@tanstack/react-query": "^5.67.2",
     "@types/cheerio": "^0.22.35",
