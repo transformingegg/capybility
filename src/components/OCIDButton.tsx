@@ -14,41 +14,27 @@ export default function OCIDButton() {
   const { isInitialized, authState, ocAuth } = useOCAuth();
   const [user, setUser] = useState<OCIDUser | null>(null);
 
-  // --- LOG 1: Log on every single render ---
-  console.log(
-    `%c--- [Render] ---`, 
-    'color: blue; font-weight: bold;', 
-    { 
-      isInitialized, 
-      isAuthenticated: authState.isAuthenticated, 
-      userInAuthState: authState.user,
-      userInComponentState: user 
-    }
-  );
-
-  // --- LOG 2: Log when the component first mounts ---
+  // This is the corrected effect. It depends on the authentication status,
+  // not the user object which we now know is always undefined in authState.
   useEffect(() => {
-    console.log('%c--- [Mount] --- OCIDButton component has mounted.', 'color: green;');
-  }, []);
+    console.log(`%c--- [Effect] --- Auth status changed. isInitialized: ${isInitialized}, isAuthenticated: ${authState.isAuthenticated}`, 'color: purple;');
 
-  // --- LOG 3: Log when the isInitialized flag changes ---
-  useEffect(() => {
-    console.log(`%c--- [Effect] --- isInitialized flag is now: ${isInitialized}`, 'color: purple;');
-  }, [isInitialized]);
+    // If the SDK is ready and the user is logged in...
+    if (isInitialized && authState.isAuthenticated) {
+      // ...then we get the user data by calling getAuthState().
+      const fullAuthState = ocAuth.getAuthState();
+      console.log('%c--- [Action] --- Calling ocAuth.getAuthState()', 'font-weight: bold;', fullAuthState);
 
-  // --- LOG 4: Log whenever the authState.user object changes ---
-  useEffect(() => {
-    console.log('%c--- [Effect] --- authState.user has changed.', 'color: orange;', authState.user);
-    
-    // Sync local state with the user object from the SDK
-    if (authState.user) {
-      console.log('%c--- [Action] --- User data found in authState. Calling setUser.', 'font-weight: bold;');
-      setUser(authState.user);
+      if (fullAuthState?.user) {
+        // And save it to our component's state.
+        console.log('%c--- [Action] --- User data found. Calling setUser.', 'font-weight: bold;');
+        setUser(fullAuthState.user);
+      }
     } else {
-      console.log('%c--- [Action] --- No user data in authState. Setting user state to null.', 'font-weight: bold;');
+      // If not authenticated, ensure our local user state is null.
       setUser(null);
     }
-  }, [authState.user]);
+  }, [isInitialized, authState.isAuthenticated, ocAuth]); // Depend on the auth status
 
 
   const handleLogout = async () => {
@@ -58,6 +44,8 @@ export default function OCIDButton() {
       console.error('Logout error:', error);
     }
   };
+
+  // --- The rendering logic below is now correct because it depends on our 'user' state ---
 
   if (!isInitialized) {
     return <div className="text-sm text-gray-500 animate-pulse h-[50px] w-[200px]">Initializing OCID...</div>;
