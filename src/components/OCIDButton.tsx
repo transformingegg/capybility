@@ -86,8 +86,8 @@ export default function OCIDButton() {
           <Image 
             src="/img/RectangularConnectedOCID.png" 
             alt="OCID Connected"
-            width={180}
-            height={40}
+            width={160}
+            height={30}
           />
         </button>
       </div>
@@ -99,8 +99,8 @@ export default function OCIDButton() {
       <Image 
         src="/img/PillConnectOCID.png" 
         alt="Connect with OCID"
-        width={200}
-        height={50}
+        width={160}
+        height={30}
       />
     </button>
   );

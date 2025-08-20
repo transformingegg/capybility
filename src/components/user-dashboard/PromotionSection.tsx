@@ -6,6 +6,7 @@ import { ethers } from "ethers";
 import MintSuccessPopup from "@/components/MintSuccessPopup";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import BadgeSubmissionSection from './BadgeSubmissionSection'; // Import the new component
 
 
 interface PromotionStats {
@@ -347,6 +348,11 @@ export default function PromotionSection({ address }: { address: `0x${string}` |
               <p className="text-green-700 font-semibold text-center">
                 Congratulations! You have already achieved and minted this badge!
               </p>
+
+              {/* --- THIS IS THE CHANGE --- */}
+              {/* The BadgeSubmissionSection will now appear here when hasMinted is true */}
+              <BadgeSubmissionSection />
+
             </div>
           )}
           {isMinting && <p>Minting Promotion NFT...</p>}
