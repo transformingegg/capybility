@@ -2,20 +2,21 @@
 
 import { useOCAuth } from '@opencampus/ocid-connect-js';
 import Image from 'next/image';
-import { useEffect, useState } from 'react'; // Import useState
+import { useEffect, useState } from 'react';
 
-// Define a type for the user object for better TypeScript support
 interface OCIDUser {
   name: string;
   picture: string;
   email: string;
-  // Add other user properties if needed
 }
 
 export default function OCIDButton() {
   const { isInitialized, authState, ocAuth } = useOCAuth();
-  // Create a state variable to hold the user object
   const [user, setUser] = useState<OCIDUser | null>(null);
+
+  // --- NEW DIAGNOSTIC LOG ---
+  // This log will run every time the component renders, showing us the current state.
+  console.log(`--- OCIDButton Render --- User state is:`, user);
 
   const handleLogout = async () => {
     try {
@@ -27,24 +28,32 @@ export default function OCIDButton() {
 
   // This useEffect will now sync the user data from the SDK to our component's state
   useEffect(() => {
+    console.log("useEffect triggered. Checking auth state...");
     if (isInitialized && authState.isAuthenticated) {
       const fullAuthState = ocAuth.getAuthState();
       if (fullAuthState?.user) {
-        console.log("User data found, setting state:", fullAuthState.user);
-        setUser(fullAuthState.user); // This will trigger a re-render with the user data
+        // Only set the state if it's not already set, to avoid potential loops
+        if (!user) {
+          console.log("User data found, calling setUser:", fullAuthState.user);
+          setUser(fullAuthState.user);
+        }
       }
     } else {
-      // If the user logs out, clear our user state
-      setUser(null);
+      // If the user logs out or is not authenticated, ensure state is null
+      if (user) {
+        console.log("User is not authenticated, clearing user state.");
+        setUser(null);
+      }
     }
-  }, [isInitialized, authState.isAuthenticated, ocAuth]);
+    // We've removed ocAuth from the dependency array as it can sometimes cause unnecessary re-renders.
+    // The core logic depends on the initialization and authentication flags.
+  }, [isInitialized, authState.isAuthenticated, user]);
 
 
   if (!isInitialized) {
     return <div className="text-sm text-gray-500 animate-pulse h-[50px] w-[200px]">Initializing OCID...</div>;
   }
 
-  // --- FINAL LOGIC ---
   // Now, we simply check our own state variable 'user'.
   if (user) {
     return (
