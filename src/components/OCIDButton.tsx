@@ -35,19 +35,11 @@ export default function OCIDButton() {
   const [user, setUser] = useState<OCIDUser | null>(null);
 
   useEffect(() => {
-    console.log(`%c--- [Effect] --- Auth status changed. isInitialized: ${isInitialized}, isAuthenticated: ${authState.isAuthenticated}`, 'color: purple;');
-
     if (isInitialized && authState.isAuthenticated) {
       const fullAuthState = ocAuth.getAuthState();
-      
-      // --- THIS IS THE FIX ---
-      // Instead of looking for a .user property, we look for the idToken.
       if (fullAuthState?.idToken) {
-        console.log('%c--- [Action] --- idToken found. Decoding it...', 'font-weight: bold;');
         const decodedUser = parseJwt(fullAuthState.idToken);
-        
         if (decodedUser) {
-          console.log('%c--- [Action] --- Decoded user data. Calling setUser.', 'font-weight: bold;', decodedUser);
           setUser(decodedUser);
         }
       }
@@ -72,16 +64,10 @@ export default function OCIDButton() {
   if (user) {
     return (
       <div className="flex items-center gap-4">
+        {/* This block is updated to show the email instead of the picture */}
         <div className="flex items-center gap-3 p-2 border border-gray-200 rounded-lg">
-          <Image
-            src={user.picture}
-            alt="User Avatar"
-            width={32}
-            height={32}
-            className="rounded-full"
-          />
-          <div className="flex-grow">
-            <p className="text-sm font-semibold text-gray-800">{user.name}</p>
+          <div className="flex-grow text-center">
+            <p className="text-sm font-semibold text-gray-800">{user.email}</p>
             <p className="text-xs text-gray-500">OCID Linked</p>
           </div>
         </div>
