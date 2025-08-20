@@ -5,8 +5,16 @@ import Image from 'next/image';
 import { useEffect } from 'react';
 
 export default function OCIDButton() {
-  // Destructure isInitialized from the hook. This is the key.
   const { isInitialized, authState, ocAuth } = useOCAuth();
+
+  // --- NEW TROUBLESHOOTING LOG ---
+  // This will run on every render and show us the raw state.
+  console.log('OCIDButton State:', { 
+    isInitialized: isInitialized, 
+    isAuthenticated: authState.isAuthenticated,
+    isLoading: authState.isLoading,
+    error: authState.error 
+  });
 
   useEffect(() => {
     if (isInitialized && authState.isAuthenticated && authState.user) {

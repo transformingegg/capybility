@@ -7,7 +7,11 @@ export default function RedirectPage() {
   const router = useRouter();
 
   // On success, redirect the user back to the dashboard
-  const loginSuccess = () => router.push('/user-dashboard');
+  const loginSuccess = () => {
+    // --- NEW TROUBLESHOOTING LOG ---
+    console.log("LoginCallBack SUCCESS! Redirecting to dashboard...");
+    router.push('/user-dashboard');
+  };
 
   // On error, log it and redirect back to the dashboard
   const loginError = (error: Error) => {
