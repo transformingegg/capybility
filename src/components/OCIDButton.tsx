@@ -10,31 +10,51 @@ interface OCIDUser {
   email: string;
 }
 
+// Helper function to decode the JWT payload
+function parseJwt(token: string) {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map(function (c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        })
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    console.error("Error decoding JWT", e);
+    return null;
+  }
+}
+
 export default function OCIDButton() {
   const { isInitialized, authState, ocAuth } = useOCAuth();
   const [user, setUser] = useState<OCIDUser | null>(null);
 
-  // This is the corrected effect. It depends on the authentication status,
-  // not the user object which we now know is always undefined in authState.
   useEffect(() => {
     console.log(`%c--- [Effect] --- Auth status changed. isInitialized: ${isInitialized}, isAuthenticated: ${authState.isAuthenticated}`, 'color: purple;');
 
-    // If the SDK is ready and the user is logged in...
     if (isInitialized && authState.isAuthenticated) {
-      // ...then we get the user data by calling getAuthState().
       const fullAuthState = ocAuth.getAuthState();
-      console.log('%c--- [Action] --- Calling ocAuth.getAuthState()', 'font-weight: bold;', fullAuthState);
-
-      if (fullAuthState?.user) {
-        // And save it to our component's state.
-        console.log('%c--- [Action] --- User data found. Calling setUser.', 'font-weight: bold;');
-        setUser(fullAuthState.user);
+      
+      // --- THIS IS THE FIX ---
+      // Instead of looking for a .user property, we look for the idToken.
+      if (fullAuthState?.idToken) {
+        console.log('%c--- [Action] --- idToken found. Decoding it...', 'font-weight: bold;');
+        const decodedUser = parseJwt(fullAuthState.idToken);
+        
+        if (decodedUser) {
+          console.log('%c--- [Action] --- Decoded user data. Calling setUser.', 'font-weight: bold;', decodedUser);
+          setUser(decodedUser);
+        }
       }
     } else {
-      // If not authenticated, ensure our local user state is null.
       setUser(null);
     }
-  }, [isInitialized, authState.isAuthenticated, ocAuth]); // Depend on the auth status
+  }, [isInitialized, authState.isAuthenticated, ocAuth]);
 
 
   const handleLogout = async () => {
@@ -44,8 +64,6 @@ export default function OCIDButton() {
       console.error('Logout error:', error);
     }
   };
-
-  // --- The rendering logic below is now correct because it depends on our 'user' state ---
 
   if (!isInitialized) {
     return <div className="text-sm text-gray-500 animate-pulse h-[50px] w-[200px]">Initializing OCID...</div>;
