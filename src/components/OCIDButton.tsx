@@ -7,19 +7,20 @@ import { useEffect } from 'react';
 export default function OCIDButton() {
   const { isInitialized, authState, ocAuth } = useOCAuth();
 
-  // --- NEW TROUBLESHOOTING LOG ---
-  // This will run on every render and show us the raw state.
+  // --- UPDATED TROUBLESHOOTING LOG ---
+  // Let's explicitly log the user object to see if it's missing.
   console.log('OCIDButton State:', { 
     isInitialized: isInitialized, 
     isAuthenticated: authState.isAuthenticated,
+    user: authState.user, // This is the new, important part
     isLoading: authState.isLoading,
     error: authState.error 
   });
 
   useEffect(() => {
     if (isInitialized && authState.isAuthenticated && authState.user) {
-      console.log("OCID Login Successful. Full user data:", authState.user);
-      console.log("User's .edu email:", authState.user.email);
+      console.log("useEffect: User is authenticated with a valid user object.");
+      console.log("useEffect: Full user data:", authState.user);
     }
   }, [isInitialized, authState.isAuthenticated, authState.user]);
 
@@ -31,14 +32,11 @@ export default function OCIDButton() {
     }
   };
 
-  // --- THIS IS THE CRITICAL CHANGE ---
-  // Do not render anything until the SDK has finished its initial check from local storage.
-  // This prevents the button from showing the wrong state on page load.
   if (!isInitialized) {
     return <div className="text-sm text-gray-500 animate-pulse h-[50px] w-[200px]">Initializing OCID...</div>;
   }
 
-  // Now that we know the SDK is initialized, we can safely check the auth state.
+  // The condition that is likely failing
   if (authState.isAuthenticated && authState.user) {
     // --- RENDER CONNECTED STATE ---
     return (
