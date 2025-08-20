@@ -2,31 +2,39 @@
 
 import { useOCAuth } from '@opencampus/ocid-connect-js';
 import Image from 'next/image';
+import { useEffect } from 'react';
 
-// This component now manages its own state and logic.
-// It no longer needs props like 'onClick'.
 export default function OCIDButton() {
-  const { authState, ocAuth } = useOCAuth();
+  // Destructure isInitialized from the hook. This is the key.
+  const { isInitialized, authState, ocAuth } = useOCAuth();
+
+  useEffect(() => {
+    if (isInitialized && authState.isAuthenticated && authState.user) {
+      console.log("OCID Login Successful. Full user data:", authState.user);
+      console.log("User's .edu email:", authState.user.email);
+    }
+  }, [isInitialized, authState.isAuthenticated, authState.user]);
 
   const handleLogout = async () => {
     try {
-      // The guide implies signOutRedirect is the correct method
       await ocAuth.signOutRedirect();
     } catch (error) {
       console.error('Logout error:', error);
     }
   };
 
-  // Show a loading state while the SDK initializes
-  if (authState.isLoading) {
-    return <div className="text-sm text-gray-500 animate-pulse">Initializing OCID...</div>;
+  // --- THIS IS THE CRITICAL CHANGE ---
+  // Do not render anything until the SDK has finished its initial check from local storage.
+  // This prevents the button from showing the wrong state on page load.
+  if (!isInitialized) {
+    return <div className="text-sm text-gray-500 animate-pulse h-[50px] w-[200px]">Initializing OCID...</div>;
   }
 
-  // --- RENDER CONNECTED STATE ---
+  // Now that we know the SDK is initialized, we can safely check the auth state.
   if (authState.isAuthenticated && authState.user) {
+    // --- RENDER CONNECTED STATE ---
     return (
       <div className="flex items-center gap-4">
-        {/* User info display */}
         <div className="flex items-center gap-3 p-2 border border-gray-200 rounded-lg">
           <Image
             src={authState.user.picture}
@@ -40,7 +48,6 @@ export default function OCIDButton() {
             <p className="text-xs text-gray-500">OCID Linked</p>
           </div>
         </div>
-        {/* Disconnect button using your image */}
         <button onClick={handleLogout} className="hover:opacity-90 transition-opacity">
           <Image 
             src="/img/RectangularConnectedOCID.png" 
