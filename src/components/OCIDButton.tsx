@@ -4,10 +4,12 @@ import { useOCAuth } from '@opencampus/ocid-connect-js';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 
+// Updated interface to include the OCId
 interface OCIDUser {
   name: string;
   picture: string;
   email: string;
+  OCId: string; 
 }
 
 // Helper function to decode the JWT payload
@@ -37,10 +39,18 @@ export default function OCIDButton() {
   useEffect(() => {
     if (isInitialized && authState.isAuthenticated) {
       const fullAuthState = ocAuth.getAuthState();
-      if (fullAuthState?.idToken) {
-        const decodedUser = parseJwt(fullAuthState.idToken);
-        if (decodedUser) {
-          setUser(decodedUser);
+      // We need both the idToken and the OCId to be present
+      if (fullAuthState?.idToken && fullAuthState?.OCId) {
+        const decodedToken = parseJwt(fullAuthState.idToken);
+        if (decodedToken) {
+          // Construct a user object with all the data we need
+          const userProfile: OCIDUser = {
+            name: decodedToken.name || '',
+            picture: decodedToken.picture || '',
+            email: decodedToken.email || '',
+            OCId: fullAuthState.OCId // Get the .edu username from the OCId property
+          };
+          setUser(userProfile);
         }
       }
     } else {
@@ -51,7 +61,8 @@ export default function OCIDButton() {
 
   const handleLogout = async () => {
     try {
-      await ocAuth.signOutRedirect();
+      // Corrected: The method is logout(), not signOutRedirect()
+      await ocAuth.logout();
     } catch (error) {
       console.error('Logout error:', error);
     }
@@ -64,10 +75,10 @@ export default function OCIDButton() {
   if (user) {
     return (
       <div className="flex items-center gap-4">
-        {/* This block is updated to show the email instead of the picture */}
         <div className="flex items-center gap-3 p-2 border border-gray-200 rounded-lg">
           <div className="flex-grow text-center">
-            <p className="text-sm font-semibold text-gray-800">{user.email}</p>
+            {/* Corrected: Display the OCId (.edu username) */}
+            <p className="text-sm font-semibold text-gray-800">{user.OCId}</p>
             <p className="text-xs text-gray-500">OCID Linked</p>
           </div>
         </div>
