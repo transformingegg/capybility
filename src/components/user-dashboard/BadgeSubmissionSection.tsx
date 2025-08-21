@@ -2,8 +2,8 @@
 
 import { useOCAuth } from '@opencampus/ocid-connect-js';
 import { useState } from 'react';
-import Image from 'next/image'; // Import the Next.js Image component
-import Link from 'next/link';   // Import the Next.js Link component
+import Image from 'next/image';
+import Link from 'next/link';
 
 export default function BadgeSubmissionSection() {
   const { isInitialized, authState, ocAuth } = useOCAuth();
@@ -22,7 +22,7 @@ export default function BadgeSubmissionSection() {
 
   const handleClaimBadge = async () => {
     setIsSubmitting(true);
-    setSubmissionStatus("Submitting your badge...");
+    setSubmissionStatus("Claiming your badge...");
 
     const authData = ocAuth.getAuthState();
     const holderAddress = authData?.ethAddress;
@@ -69,6 +69,7 @@ export default function BadgeSubmissionSection() {
       
       <div className="flex flex-col items-center gap-4">
         {isClaimed ? (
+          // --- SUCCESS STATE ---
           <div className="text-center">
             <Image
               src="/img/OCBClaimed.png"
@@ -76,13 +77,9 @@ export default function BadgeSubmissionSection() {
               width={200}
               height={50}
             />
-            {claimedUserOcId && (
-              <Link href={`https://id.opencampus.xyz/public/credentials?username=${claimedUserOcId}`} target="_blank" rel="noopener noreferrer" className="mt-4 inline-block text-blue-600 hover:underline">
-                View Your OC Achievements Now
-              </Link>
-            )}
           </div>
         ) : (
+          // --- INITIAL STATE ---
           <button
             onClick={handleClaimBadge}
             disabled={isSubmitting}
@@ -100,6 +97,15 @@ export default function BadgeSubmissionSection() {
 
       {submissionStatus && (
         <p className="mt-4 text-sm text-gray-700 text-center">{submissionStatus}</p>
+      )}
+
+      {/* The link is now here, below the status message, and will only appear when claimed */}
+      {isClaimed && claimedUserOcId && (
+        <div className="text-center mt-2">
+          <Link href={`https://id.opencampus.xyz/public/credentials?username=${claimedUserOcId}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+            View Your OC Achievements Now
+          </Link>
+        </div>
       )}
     </div>
   );
