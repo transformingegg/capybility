@@ -20,9 +20,9 @@ export async function POST(request: Request) {
       description: "Awarded for consistent demonstration on of knowledge and activity within Capybility that shows they are an Educhain Ecosystem Expert",
       credentialSubject: {
         type: "Person",
-        image: "https://www.capybility.xyz/img/EduchainExpertPromo1300x1300.png", // URL to your badge image
+        image: "https://www.capybility.xyz/img/EduchainExpert.png", // URL to your badge image
         achievement: {
-          name: "CAPYBILITY EDUCHAIN EXPERT", // This must match your badge submission form
+          name: "CAPYBILITY EDUCHAIN EXPERT",
           identifier: "CapybilityEduchainExpert",
           description: "Awarded for consistent demonstration on of knowledge and activity within Capybility that shows they are an Educhain Ecosystem Expert",
           achievementType: "Badge"

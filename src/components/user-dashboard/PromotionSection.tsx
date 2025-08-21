@@ -339,7 +339,7 @@ export default function PromotionSection({ address }: { address: `0x${string}` |
           {hasMinted && (
             <div className="flex flex-col items-center mt-4">
               <Image
-                src="/img/EduchainExpertPromo.png"
+                src="/img/EduchainExpertCapybilityPromo.png"
                 alt={`${promotionType} Badge`}
                 width={40}
                 height={40}

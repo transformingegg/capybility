@@ -10,7 +10,17 @@ export async function POST(request: Request) {
     }
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-    const imageUrl = `${baseUrl}/img/${promotionType.replace(/\s+/g, '')}.png`; // Dynamic image URL
+
+    let imageUrl: string;
+
+    // Check the promotionType and set the image URL accordingly
+    if (promotionType === 'Educhain Expert') {
+      imageUrl = `${baseUrl}/img/EduchainExpertCapybilityPromo.png`;
+    } else {
+      // You can add more 'else if' blocks here for other promotion types
+      // Or use a default fallback like the original regex
+      imageUrl = `${baseUrl}/img/${promotionType.replace(/\s+/g, '')}.png`;
+    }
 
     const metadata = {
       name: `${promotionType} Badge`,
