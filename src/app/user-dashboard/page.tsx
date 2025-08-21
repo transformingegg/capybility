@@ -42,8 +42,8 @@ export default function UserDashboard() {
         </div>
         
         <AvailableQuizzesSection />
-        <StatisticsSection address={address} />
         <PromotionSection address={address} /> 
+        <StatisticsSection address={address} />
         <KnowledgePackSection address={address} />
         <FutureFeatureSection />
       </div>

@@ -2,16 +2,20 @@
 
 import { useOCAuth } from '@opencampus/ocid-connect-js';
 import { useState } from 'react';
+import Image from 'next/image'; // Import the Next.js Image component
+import Link from 'next/link';   // Import the Next.js Link component
 
 export default function BadgeSubmissionSection() {
   const { isInitialized, authState, ocAuth } = useOCAuth();
   const [submissionStatus, setSubmissionStatus] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isClaimed, setIsClaimed] = useState(false);
+  const [claimedUserOcId, setClaimedUserOcId] = useState<string | null>(null);
 
   if (!isInitialized || !authState.isAuthenticated) {
     return (
       <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg mt-4">
-        <p className="text-sm text-yellow-800">Please connect your OCID to claim your achievement badge.</p>
+        <p className="text-sm text-yellow-800">Now it&apos;s time to make it official with an OpenCampus Badge! Please connect your OCID at the top of the dashboard to claim your Open Campus Badge.</p>
       </div>
     );
   }
@@ -43,15 +47,14 @@ export default function BadgeSubmissionSection() {
         throw new Error(result.error || 'An unknown error occurred.');
       }
 
-      setSubmissionStatus("Success! Your achievement badge has been submitted.");
-      alert('Success! Your achievement badge has been submitted.');
+      setSubmissionStatus("Success! Your achievement badge has been claimed!");
+      setIsClaimed(true);
+      setClaimedUserOcId(holderOcId);
 
     } catch (error) {
-      // Fix 1: Handle the error type safely.
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
       console.error("Badge submission error:", error);
       setSubmissionStatus(`Error: ${errorMessage}`);
-      alert(`Error submitting badge: ${errorMessage}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -61,22 +64,42 @@ export default function BadgeSubmissionSection() {
     <div className="p-6 bg-gray-50 border border-gray-200 rounded-lg mt-6">
       <h3 className="text-lg font-semibold text-gray-800 mb-2">Claim Your Open Campus Badge</h3>
       <p className="text-gray-600 mb-4 text-sm">
-        {/* Fix 2: Replace the apostrophe with its HTML entity equivalent. */}
         You&apos;ve earned the on-chain NFT! Now, claim the corresponding achievement badge to display on your Open Campus profile.
       </p>
       
-      <div className="flex items-center gap-4">
-        <button
-          onClick={handleClaimBadge}
-          disabled={isSubmitting}
-          className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-        >
-          {isSubmitting ? 'Submitting...' : 'Claim Badge'}
-        </button>
+      <div className="flex flex-col items-center gap-4">
+        {isClaimed ? (
+          <div className="text-center">
+            <Image
+              src="/img/OCBClaimed.png"
+              alt="Open Campus Badge Claimed"
+              width={200}
+              height={50}
+            />
+            {claimedUserOcId && (
+              <Link href={`https://id.opencampus.xyz/public/credentials?username=${claimedUserOcId}`} target="_blank" rel="noopener noreferrer" className="mt-4 inline-block text-blue-600 hover:underline">
+                View Your OC Achievements Now
+              </Link>
+            )}
+          </div>
+        ) : (
+          <button
+            onClick={handleClaimBadge}
+            disabled={isSubmitting}
+            className="disabled:opacity-50 disabled:cursor-not-allowed transition-opacity hover:opacity-90"
+          >
+            <Image
+              src="/img/ClaimOCB.png"
+              alt="Claim Open Campus Badge"
+              width={200}
+              height={50}
+            />
+          </button>
+        )}
       </div>
 
       {submissionStatus && (
-        <p className="mt-4 text-sm text-gray-700">{submissionStatus}</p>
+        <p className="mt-4 text-sm text-gray-700 text-center">{submissionStatus}</p>
       )}
     </div>
   );
