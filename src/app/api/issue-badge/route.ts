@@ -13,6 +13,9 @@ export async function POST(request: Request) {
       throw new Error("OC_STAGING_API_KEY is not set in environment variables.");
     }
 
+    // Define the unique identifier for the badge type
+    const badgeIdentifier = "CapybilityEduchainExpert";
+
     // Construct the payload as per the documentation for OCB Issuance
     const credentialPayload = {
       validFrom: new Date().toISOString(),
@@ -20,20 +23,26 @@ export async function POST(request: Request) {
       description: "Awarded for consistent demonstration on of knowledge and activity within Capybility that shows they are an Educhain Ecosystem Expert",
       credentialSubject: {
         type: "Person",
-        image: "https://www.capybility.xyz/img/EduchainExpert.png", // URL to your badge image
+        image: "https://www.capybility.xyz/img/EduchainExpertCapybilityPromo.png", // URL to your badge image
         achievement: {
           name: "CAPYBILITY EDUCHAIN EXPERT",
-          identifier: "CapybilityEduchainExpert",
+          identifier: badgeIdentifier,
           description: "Awarded for consistent demonstration on of knowledge and activity within Capybility that shows they are an Educhain Ecosystem Expert",
           achievementType: "Badge"
         },
       },
     };
 
+    // --- THIS IS THE FIX ---
+    // Create a unique reference ID for this specific issuance event by combining
+    // the badge type and the user's wallet address.
+    const issuerReferenceId = `${badgeIdentifier}-${holderAddress}`;
+
     const body = {
       credentialPayload,
       collectionSymbol: "ocbadge",
-      holderAddress: holderAddress, // Using wallet address as required for Yuzu points
+      holderAddress: holderAddress,
+      issuerReferenceId: issuerReferenceId, // Add the new field here
     };
 
     const response = await fetch('https://api.vc.staging.opencampus.xyz/issuer/vc', {
