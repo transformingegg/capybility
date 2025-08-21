@@ -58,7 +58,7 @@ export async function POST(request: Request) {
 
     if (!response.ok) {
       console.error("Error from Open Campus API:", responseData);
-      throw new Error(responseData.message || 'Failed to issue badge.');
+      throw new Error(responseData.message || 'You have already claimed this badge.'); //this is the main reason why an error would happen here. Consider changing if other weird errors happen.
     }
 
     return NextResponse.json({ success: true, data: responseData });
