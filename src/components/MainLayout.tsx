@@ -170,7 +170,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
               <FaTelegram className="h-6 w-6" />
             </a>
             <a 
-              href="https://discord.gg/5srEY8f8" 
+              href="https://discord.gg/hGYKakYugz" 
               className="text-gray-500 hover:text-gray-900"
               target="_blank"
               rel="noopener noreferrer"
