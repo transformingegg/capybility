@@ -45,7 +45,7 @@ export async function POST(request: Request) {
       issuerReferenceId: issuerReferenceId, // Add the new field here
     };
 
-    const response = await fetch('https://api.vc.staging.opencampus.xyz/issuer/vc', {
+    const response = await fetch('https://api.vc.opencampus.xyz/issuer/vc', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
