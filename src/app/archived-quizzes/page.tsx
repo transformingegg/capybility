@@ -4,7 +4,21 @@ import { useAccount } from "wagmi";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import PageLayout from "@/components/PageLayout";
-import { buttonStyles, sectionStyles } from "@/utils/styles";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface Quiz {
   id: string;
@@ -71,110 +85,129 @@ export default function ArchivedQuizzes() {
   }, [isConnected, address, router]);
 
   const handleCompletersClick = async (quizId: string) => {
-    try {
-      if (expandedQuizId === quizId) {
-        setExpandedQuizId(null);
-        return;
-      }
+    const newExpandedId = expandedQuizId === quizId ? null : quizId;
+    setExpandedQuizId(newExpandedId);
 
-      setExpandedQuizId(quizId);
-      const response = await fetch(`/api/get-completers?quizId=${quizId}`);
-      const data = await response.json();
-      
-      if (data.success) {
-        setCompleters(prev => ({
-          ...prev,
-          [quizId]: data.completers
-        }));
+    if (newExpandedId && !completers[quizId]) {
+      try {
+        const response = await fetch(`/api/get-completers?quizId=${quizId}`);
+        const data = await response.json();
+        
+        if (data.success) {
+          setCompleters(prev => ({
+            ...prev,
+            [quizId]: data.completers
+          }));
+        }
+      } catch (error) {
+        console.error("Error fetching completers:", error);
       }
-    } catch (error) {
-      console.error("Error fetching completers:", error);
-      alert("Failed to load completers");
     }
   };
 
-  const redButtonStyles = "bg-red-600 text-white font-bold uppercase px-3 py-1 text-xs rounded-md hover:opacity-90 transition-opacity";
-
   return (
-    <PageLayout>
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-gray-800">ARCHIVED QUIZZES</h1>
-          <Link href="/" className={buttonStyles}>
-            BACK TO DASHBOARD
-          </Link>
-        </div>
+    <PageLayout fullWidth={true}>
+      <div 
+        style={{
+          backgroundImage: "url('/img/capyback.webp')",
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundAttachment: 'fixed',
+          minHeight: 'calc(100vh - 65px)',
+        }}
+      >
+        <div className="max-w-4xl mx-auto p-6 space-y-6">
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle>Archived Quizzes</CardTitle>
+                <Link href="/creator-dashboard">
+                  <Button>BACK TO DASHBOARD</Button>
+                </Link>
+              </div>
+            </CardHeader>
+          </Card>
 
-        {isLoading ? (
-          <div className={sectionStyles}>
-            <p>Loading archived quizzes...</p>
-          </div>
-        ) : quizzes.filter(quiz => quiz.is_archived && quiz.status === "minted").length > 0 ? (
-          <div className={`overflow-x-auto ${sectionStyles}`}>
-            <table className="min-w-full">
-              <thead>
-                <tr>
-                  <th className="text-left py-2 px-3 border-b-2 border-[#00c7df] text-sm">Quiz Name</th>
-                  <th className="text-left py-2 px-3 border-b-2 border-[#00c7df] text-sm">Created</th>
-                  <th className="text-right py-2 px-3 border-b-2 border-[#00c7df] text-sm">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {quizzes
-                  .filter(quiz => quiz.is_archived)
-                  .map((quiz) => (
-                    <>
-                      <tr key={quiz.id} className="border-b border-[#00c7df] last:border-0">
-                        <td className="py-2 px-3 text-sm">
-                          {quiz.quiz_name || quiz.quiz_data.quizName || "Untitled Quiz"}
-                        </td>
-                        <td className="py-2 px-3 text-sm">
-                          {formatDate(quiz.created_at)}
-                        </td>
-                        <td className="py-2 px-3">
-                          <div className="flex justify-end gap-1">
-                            <button
-                              onClick={() => handleCompletersClick(quiz.id)}
-                              className={`${redButtonStyles} ${expandedQuizId === quiz.id ? 'bg-opacity-50' : ''}`}
-                            >
-                              COMPLETERS
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                      {expandedQuizId === quiz.id && (
-                        <tr>
-                          <td colSpan={3} className="border-b border-[#00c7df]">
-                            <div className="p-4">
-                              <div className="bg-gray-50 rounded-md p-2 h-[180px] overflow-y-auto text-sm font-mono">
-                                {completers[quiz.id] ? (
-                                  completers[quiz.id].length > 0 ? (
-                                    completers[quiz.id].map((completer, index) => (
-                                      <div key={index} className="mb-1">
-                                        {completer.wallet_address}
-                                      </div>
-                                    ))
-                                  ) : (
-                                    <p className="text-gray-500 text-center font-sans">No one has completed this quiz yet.</p>
-                                  )
-                                ) : (
-                                  <p className="text-gray-500 text-center font-sans">Loading completers...</p>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </>
-                  ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className={sectionStyles}>
-            <p className="text-gray-600 mb-4">You don&apos;t have any archived quizzes.</p>
-          </div>
-        )}
+          {isLoading ? (
+            <Card>
+              <CardContent className="pt-6">
+                <p>Loading archived quizzes...</p>
+              </CardContent>
+            </Card>
+          ) : quizzes.filter(quiz => quiz.is_archived && quiz.status === "minted").length > 0 ? (
+            <Card>
+              <CardContent className="pt-6">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Quiz Name</TableHead>
+                      <TableHead>Created</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {quizzes
+                      .filter(quiz => quiz.is_archived)
+                      .map((quiz) => (
+                        <>
+                          <TableRow key={quiz.id}>
+                            <TableCell>
+                              {quiz.quiz_name || quiz.quiz_data.quizName || "Untitled Quiz"}
+                            </TableCell>
+                            <TableCell>
+                              {formatDate(quiz.created_at)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button 
+                                size="sm"
+                                onClick={() => handleCompletersClick(quiz.id)}
+                                aria-expanded={expandedQuizId === quiz.id}
+                              >
+                                COMPLETERS
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                          {expandedQuizId === quiz.id && (
+                            <TableRow>
+                              <TableCell colSpan={3}>
+                                <div className="p-4 bg-muted rounded-md">
+                                  <h4 className="font-semibold mb-2">Completers:</h4>
+                                  <div className="bg-background rounded-md p-2 h-[180px] overflow-y-auto text-sm font-mono border">
+                                    {completers[quiz.id] ? (
+                                      completers[quiz.id].length > 0 ? (
+                                        completers[quiz.id].map((completer, index) => (
+                                          <div key={index} className="mb-1">
+                                            {completer.wallet_address}
+                                          </div>
+                                        ))
+                                      ) : (
+                                        <p className="text-gray-500 text-center font-sans pt-4">No one has completed this quiz yet.</p>
+                                      )
+                                    ) : (
+                                      <p className="text-gray-500 text-center font-sans pt-4">Loading completers...</p>
+                                    )}
+                                  </div>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </>
+                      ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>No Archived Quizzes</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">You don&apos;t have any archived quizzes.</p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
     </PageLayout>
   );

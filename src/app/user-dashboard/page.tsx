@@ -8,7 +8,8 @@ import KnowledgePackSection from "@/components/user-dashboard/KnowledgePackSecti
 import FutureFeatureSection from "@/components/user-dashboard/FutureFeatureSection";
 import AvailableQuizzesSection from "@/components/user-dashboard/AvailableQuizzesSection";
 import PromotionSection from "@/components/user-dashboard/PromotionSection";
-import OCIDButton from "@/components/OCIDButton"; // Import the self-contained button
+import OCIDButton from "@/components/OCIDButton";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function UserDashboard() {
   const router = useRouter();
@@ -19,7 +20,7 @@ export default function UserDashboard() {
     const timer = setTimeout(() => {
       setIsInitialized(true);
       if (!isConnected) {
-        router.push('/');
+        router.push('/?auth_required=true');
       }
     }, 500);
     return () => clearTimeout(timer);
@@ -30,22 +31,34 @@ export default function UserDashboard() {
   }
 
   return (
-    <PageLayout>
-      <div className="space-y-6">
-        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-          <h1 className="text-3xl font-bold text-gray-800">Quiz Completer Dashboard</h1>
+    <PageLayout fullWidth={true}>
+      <div 
+        style={{
+          backgroundImage: "url('/img/capyback.webp')",
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundAttachment: 'fixed',
+          minHeight: 'calc(100vh - 65px)', // Adjust 65px based on header height
+        }}
+      >
+        <div className="max-w-4xl mx-auto p-6 space-y-8">
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+                <CardTitle className="text-3xl">Quiz Completer Dashboard</CardTitle>
+                <div>
+                  <OCIDButton />
+                </div>
+              </div>
+            </CardHeader>
+          </Card>
           
-          <div>
-            {/* Render the self-contained button component */}
-            <OCIDButton />
-          </div>
+          <AvailableQuizzesSection />
+          <PromotionSection address={address} /> 
+          <StatisticsSection address={address} />
+          <KnowledgePackSection address={address} />
+          <FutureFeatureSection />
         </div>
-        
-        <AvailableQuizzesSection />
-        <PromotionSection address={address} /> 
-        <StatisticsSection address={address} />
-        <KnowledgePackSection address={address} />
-        <FutureFeatureSection />
       </div>
     </PageLayout>
   );

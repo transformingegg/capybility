@@ -1,6 +1,21 @@
 "use client";
-import { useState, useEffect } from "react";
-import FieldHelp from "@/components/FieldHelp";
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Trash2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import CustomAlertDialog from "@/components/CustomAlertDialog";
+
 interface QuizQuestion {
   question: string;
   choices: string[];
@@ -16,35 +31,45 @@ interface QuizData {
 interface BuildQuizProps {
   quizJson: string;
   onQuizUpdated: (quiz: QuizQuestion[], quizName: string, tags: string[]) => void;
+  isSubmittable: (isReady: boolean) => void;
 }
 
-const EditIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    className="h-4 w-4"
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-    />
-  </svg>
-);
+const cardVariants = {
+  hidden: (direction: number) => ({
+    opacity: 0,
+    x: direction > 0 ? 200 : -200,
+  }),
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.3 },
+  },
+  exit: (direction: number) => ({
+    opacity: 0,
+    x: direction < 0 ? 200 : -200,
+    transition: { duration: 0.3 },
+  }),
+};
 
-export default function BuildQuiz({ quizJson, onQuizUpdated }: BuildQuizProps) {
+export default function BuildQuiz({ quizJson, onQuizUpdated, isSubmittable }: BuildQuizProps) {
   const [quiz, setQuiz] = useState<QuizQuestion[]>([]);
   const [quizName, setQuizName] = useState("");
   const [tags, setTags] = useState<string[]>([]);
-  const [editingQuestion, setEditingQuestion] = useState<{ [key: string]: boolean }>({});
-  const [editingChoice, setEditingChoice] = useState<{ [key: string]: boolean }>({});
-  const [editingAnswer, setEditingAnswer] = useState<{ [key: string]: boolean }>({});
-  const [error, setError] = useState<{ [key: string]: string }>({});
-  const [editingName, setEditingName] = useState(false);
-  const [editingTags, setEditingTags] = useState(false);
+  const [newTag, setNewTag] = useState("");
+  
+  const [buildStep, setBuildStep] = useState(0); // 0: Name, 1: Tags, 2-6: Questions, 7: Review
+  const [direction, setDirection] = useState(1);
+
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [questionToDelete, setQuestionToDelete] = useState<number | null>(null);
+  const [height, setHeight] = useState<number | "auto">("auto");
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (cardRef.current) {
+      setHeight(cardRef.current.offsetHeight);
+    }
+  }, [buildStep, quiz, quizName, tags]); // Re-measure on step and data changes
 
   useEffect(() => {
     try {
@@ -57,269 +82,307 @@ export default function BuildQuiz({ quizJson, onQuizUpdated }: BuildQuizProps) {
     }
   }, [quizJson]);
 
-  // Update the handleChange function with proper typing
-  const handleChange = (
-    index: number, 
-    field: keyof QuizQuestion, 
-    value: string | string[] | number
-  ) => {
+  useEffect(() => {
+    // A quiz is submittable only when it has 5 questions and the user is on the final review step.
+    isSubmittable(quiz.length === 5 && buildStep === 7);
+  }, [quiz.length, buildStep, isSubmittable]);
+
+  const handleNext = () => {
+    setDirection(1);
+    setBuildStep((prev) => Math.min(prev + 1, 7));
+  };
+
+  const handlePrev = () => {
+    setDirection(-1);
+    setBuildStep((prev) => Math.max(prev - 1, 0));
+  };
+
+  const handleGoToStep = (step: number) => {
+    setDirection(step > buildStep ? 1 : -1);
+    setBuildStep(step);
+  };
+
+  const handleQuizNameChange = (newName: string) => {
+    setQuizName(newName);
+    onQuizUpdated(quiz, newName, tags);
+  }
+
+  const handleQuestionTextChange = (qIndex: number, newText: string) => {
     const newQuiz = [...quiz];
-    newQuiz[index] = { ...newQuiz[index], [field]: value };
+    newQuiz[qIndex].question = newText;
     setQuiz(newQuiz);
     onQuizUpdated(newQuiz, quizName, tags);
   };
 
-  const handleNameChange = (newName: string) => {
-    setQuizName(newName);
-    onQuizUpdated(quiz, newName, tags);
+  const handleChoiceTextChange = (qIndex: number, cIndex: number, newText: string) => {
+    const newQuiz = [...quiz];
+    newQuiz[qIndex].choices[cIndex] = newText;
+    setQuiz(newQuiz);
+    onQuizUpdated(newQuiz, quizName, tags);
   };
 
-  const handleTagsChange = (newTags: string[]) => {
+  const handleCorrectAnswerChange = (qIndex: number, newCorrectAnswer: string) => {
+    const newQuiz = [...quiz];
+    newQuiz[qIndex].correctAnswer = parseInt(newCorrectAnswer, 10);
+    setQuiz(newQuiz);
+    onQuizUpdated(newQuiz, quizName, tags);
+  };
+
+  const handleAddTag = () => {
+    if (newTag.trim() && !tags.includes(newTag.trim())) {
+      const newTags = [...tags, newTag.trim()];
+      setTags(newTags);
+      onQuizUpdated(quiz, quizName, newTags);
+      setNewTag("");
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    const newTags = tags.filter(tag => tag !== tagToRemove)
     setTags(newTags);
     onQuizUpdated(quiz, quizName, newTags);
   };
 
-  const toggleEdit = (questionIndex: number, choiceIndex?: number) => {
-    const key = `${questionIndex}${choiceIndex !== undefined ? `-${choiceIndex}` : ''}`;
-    if (choiceIndex !== undefined) {
-      setEditingChoice(prev => ({
-        ...prev,
-        [key]: !prev[key]
-      }));
-    } else {
-      setEditingQuestion(prev => ({
-        ...prev,
-        [key]: !prev[key]
-      }));
+  const handleRemoveQuestion = (qIndex: number) => {
+    setQuestionToDelete(qIndex);
+    setIsAlertOpen(true);
+  };
+
+  const confirmRemoveQuestion = () => {
+    if (questionToDelete !== null) {
+      const newQuiz = [...quiz];
+      newQuiz[questionToDelete] = {
+        question: "New Question",
+        choices: ["Choice A", "Choice B", "Choice C", "Choice D"],
+        correctAnswer: 0,
+      };
+      setQuiz(newQuiz);
+      onQuizUpdated(newQuiz, quizName, tags);
+      setQuestionToDelete(null);
     }
+    setIsAlertOpen(false);
   };
 
-  const toggleEditAnswer = (questionIndex: number) => {
-    const key = questionIndex.toString();
-    setEditingAnswer(prev => ({
-      ...prev,
-      [key]: !prev[key]
-    }));
-  };
-
-  const handleChoiceEdit = (questionIndex: number, choiceIndex: number, value: string) => {
-    const newQuiz = [...quiz];
-    newQuiz[questionIndex].choices[choiceIndex] = value;
-    setQuiz(newQuiz);
-    onQuizUpdated(newQuiz, quizName, tags);
-  };
-
-  const validOptions = ['A', 'B', 'C', 'D'];
-
-  const handleAnswerEdit = (questionIndex: number, value: string) => {
-    const key = questionIndex.toString();
-    const upperValue = value.toUpperCase();
-
-    if (validOptions.includes(upperValue)) {
-      const newIndex = validOptions.indexOf(upperValue);
-      handleChange(questionIndex, "correctAnswer", newIndex);
-      setEditingAnswer(prev => ({
-        ...prev,
-        [key]: false,
-      }));
-      setError(prev => ({ ...prev, [key]: "" }));
-    } else {
-      setError(prev => ({
-        ...prev,
-        [key]: "Please enter A, B, C, or D.",
-      }));
-    }
-  };
+  const totalSteps = 7; // Name, Tags, 5 Questions
+  const progress = Math.round((buildStep / totalSteps) * 100);
 
   return (
-    <div className="bg-white p-4 rounded-lg shadow-md">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold mb-4">Build Quiz</h2>
-        <FieldHelp
-          helpText="This is an AI Generated Quiz, you can edit every part of it by clicking the small pencil icon, making the change, then clicking back on the page to confirm the edit. Submit the Quiz using the button below when you are done."
-        />
-      </div>
-      {/* Quiz Name Section */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center flex-grow">
-            <h3 className="text-lg font-semibold">Quiz Name:</h3>
-            {editingName ? (
-              <input
-                type="text"
-                value={quizName}
-                onChange={(e) => handleNameChange(e.target.value)}
-                onBlur={() => setEditingName(false)}
-                className="flex-1 ml-2 p-1 border rounded"
-                autoFocus
-              />
-            ) : (
-              <span className="ml-2">{quizName}</span>
-            )}
-          </div>
-          <button
-            onClick={() => setEditingName(true)}
-            className="text-blue-500 hover:text-blue-700 ml-4"
-            aria-label="Edit quiz name"
-          >
-            <EditIcon />
-          </button>
+    <div className="overflow-hidden relative">
+      <div className="mb-4">
+        <div className="relative h-2 bg-gray-200 rounded-full">
+          <motion.div 
+            className="absolute top-0 left-0 h-2 bg-yellow-400 rounded-full"
+            initial={{ width: 0 }}
+            animate={{ width: `${progress}%` }}
+            transition={{ duration: 0.5 }}
+          />
         </div>
+        <p className="text-sm text-center mt-1 text-gray-600">Step {buildStep + 1} of {totalSteps + 1}</p>
       </div>
-
-      {/* Tags Section */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-lg font-semibold">Tags:</h3>
-          <button
-            onClick={() => setEditingTags(!editingTags)}
-            className="text-blue-500 hover:text-blue-700"
-            aria-label="Edit tags"
+      <motion.div 
+        className="relative"
+        animate={{ height }}
+        transition={{ duration: 0.3 }}
+      >
+        <AnimatePresence initial={false} custom={direction}>
+          <motion.div
+            key={buildStep}
+            ref={cardRef}
+            custom={direction}
+            variants={cardVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            className="absolute w-full"
           >
-            {editingTags ? (
-              <span>Done</span>
-            ) : (
-              <EditIcon />
+            {/* Step 0: Quiz Name */}
+            {buildStep === 0 && (
+              <Card className="bg-slate-50 dark:bg-slate-900 border-yellow-400">
+                <CardHeader className="flex flex-row items-start justify-between">
+                  <div>
+                    <CardTitle className="text-yellow-400">Quiz Name</CardTitle>
+                    <CardDescription>Give your quiz a catchy name.</CardDescription>
+                  </div>
+                  <Button variant="link" onClick={() => handleGoToStep(7)} className="text-yellow-400">Skip to Review</Button>
+                </CardHeader>
+                <CardContent>
+                  <Input
+                    value={quizName}
+                    onChange={(e) => handleQuizNameChange(e.target.value)}
+                    placeholder="e.g., 'The Wonders of the Cosmos'"
+                    className="text-lg"
+                  />
+                </CardContent>
+                <CardFooter className="flex justify-end">
+                  <Button onClick={handleNext} className="bg-yellow-400 hover:bg-yellow-500 text-black">Next</Button>
+                </CardFooter>
+              </Card>
             )}
-          </button>
-        </div>
-        {editingTags ? (
-          <div className="flex flex-wrap gap-2">
-            {tags.map((tag, index) => (
-              <div key={index} className="flex items-center">
-                <input
-                  type="text"
-                  value={tag}
-                  onChange={(e) => {
-                    const newTags = [...tags];
-                    newTags[index] = e.target.value;
-                    handleTagsChange(newTags);
-                  }}
-                  className="p-1 border rounded"
-                />
-                <button
-                  onClick={() => {
-                    const newTags = tags.filter((_, i) => i !== index);
-                    handleTagsChange(newTags);
-                  }}
-                  className="ml-1 text-red-500 hover:text-red-700"
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-            <button
-              onClick={() => handleTagsChange([...tags, ""])}
-              className="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600"
-            >
-              + Add Tag
-            </button>
-          </div>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {tags.map((tag, index) => (
-              <span key={index} className="bg-gray-200 px-2 py-1 rounded">
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
 
-      {/* Questions Section */}
-      {quiz.map((question, qIndex) => {
-        const editKey = qIndex.toString();
-
-        return (
-          <div key={qIndex} className="mb-6 p-4 border rounded">
-            <div className="mb-4">
-              {editingQuestion[editKey] ? (
-                <textarea
-                  value={question.question}
-                  onChange={(e) => handleChange(qIndex, "question", e.target.value)}
-                  onBlur={() => toggleEdit(qIndex)}
-                  className="w-full p-2 border rounded"
-                  autoFocus
-                />
-              ) : (
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold">{question.question}</h3>
-                  <button
-                    onClick={() => toggleEdit(qIndex)}
-                    className="text-blue-500 hover:text-blue-700"
-                    aria-label="Edit question"
-                  >
-                    <EditIcon />
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <div className="ml-4">
-              {question.choices.map((choice, cIndex) => (
-                <div key={cIndex} className="mb-2 flex items-center">
-                  <span className="mr-2">{String.fromCharCode(65 + cIndex)}.</span>
-                  {editingChoice[`${qIndex}-${cIndex}`] ? (
-                    <input
-                      type="text"
-                      value={choice}
-                      onChange={(e) => handleChoiceEdit(qIndex, cIndex, e.target.value)}
-                      onBlur={() => toggleEdit(qIndex, cIndex)}
-                      className="flex-1 p-1 border rounded"
-                      autoFocus
+            {/* Step 1: Tags */}
+            {buildStep === 1 && (
+              <Card className="bg-slate-50 dark:bg-slate-900 border-yellow-400">
+                <CardHeader className="flex flex-row items-start justify-between">
+                  <div>
+                    <CardTitle className="text-yellow-400">Tags</CardTitle>
+                    <CardDescription>Add some tags to help others find your quiz.</CardDescription>
+                  </div>
+                  <Button variant="link" onClick={() => handleGoToStep(7)} className="text-yellow-400">Skip to Review</Button>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {tags.map((tag, index) => (
+                      <Badge key={index} variant="secondary" className="text-sm">
+                        {tag}
+                        <button onClick={() => handleRemoveTag(tag)} className="ml-2 font-bold hover:text-red-500">&times;</button>
+                      </Badge>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={newTag}
+                      onChange={(e) => setNewTag(e.target.value)}
+                      placeholder="Add a tag"
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddTag(); } }}
                     />
-                  ) : (
-                    <div className="flex items-center justify-between flex-1">
-                      <span>{choice}</span>
-                      <button
-                        onClick={() => toggleEdit(qIndex, cIndex)}
-                        className="text-blue-500 hover:text-blue-700"
-                        aria-label="Edit choice"
-                      >
-                        <EditIcon />
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+                    <Button onClick={handleAddTag} className="bg-yellow-400 hover:bg-yellow-500 text-black">Add</Button>
+                  </div>
+                </CardContent>
+                <CardFooter className="flex justify-between">
+                  <Button variant="outline" onClick={handlePrev} className="border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-black">Previous</Button>
+                  <Button onClick={handleNext} className="bg-yellow-400 hover:bg-yellow-500 text-black">Next</Button>
+                </CardFooter>
+              </Card>
+            )}
 
-            <div className="mt-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <p>Correct Answer:</p>
-                  {editingAnswer[editKey] ? (
-                    <div className="ml-2">
-                      <input
-                        type="text"
-                        defaultValue={String.fromCharCode(65 + question.correctAnswer)}
-                        onChange={(e) => handleAnswerEdit(qIndex, e.target.value)}
-                        onBlur={() => setEditingAnswer(prev => ({ ...prev, [editKey]: false }))}
-                        className="w-16 p-1 border rounded"
-                        autoFocus
-                      />
-                      {error[editKey] && (
-                        <p className="text-red-500 text-sm">{error[editKey]}</p>
-                      )}
+            {/* Steps 2-6: Questions */}
+            {buildStep >= 2 && buildStep <= 6 && quiz[buildStep - 2] && (
+              <Card className="bg-slate-50 dark:bg-slate-900 border-yellow-400">
+                <CardHeader className="flex flex-row items-start justify-between">
+                  <div>
+                      <CardTitle className="text-yellow-400">Question {buildStep - 1}</CardTitle>
+                      <CardDescription>Edit the question and choices below.</CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button variant="link" onClick={() => handleGoToStep(7)} className="text-yellow-400">Skip to Review</Button>
+                    <Button variant="destructive" size="icon" onClick={() => handleRemoveQuestion(buildStep - 2)}>
+                        <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label htmlFor={`question-${buildStep - 2}`}>Question Text</Label>
+                    <Input
+                      id={`question-${buildStep - 2}`}
+                      value={quiz[buildStep - 2].question}
+                      onChange={(e) => handleQuestionTextChange(buildStep - 2, e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label>Choices</Label>
+                    <div className="space-y-2">
+                      {quiz[buildStep - 2].choices.map((choice, cIndex) => (
+                        <div key={cIndex} className="flex items-center gap-2">
+                          <Label htmlFor={`choice-${buildStep - 2}-${cIndex}`} className="w-6 text-right">{String.fromCharCode(65 + cIndex)}.</Label>
+                          <Input
+                            id={`choice-${buildStep - 2}-${cIndex}`}
+                            value={choice}
+                            onChange={(e) => handleChoiceTextChange(buildStep - 2, cIndex, e.target.value)}
+                          />
+                        </div>
+                      ))}
                     </div>
-                  ) : (
-                    <span className="ml-2">
-                      {String.fromCharCode(65 + question.correctAnswer)}
-                    </span>
-                  )}
-                </div>
-                <button
-                  onClick={() => toggleEditAnswer(qIndex)}
-                  className="text-blue-500 hover:text-blue-700"
-                  aria-label="Edit answer"
-                >
-                  <EditIcon />
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-      })}
+                  </div>
+                  <div>
+                    <Label htmlFor={`correct-answer-${buildStep - 2}`}>Correct Answer</Label>
+                    <Select
+                      value={quiz[buildStep - 2].correctAnswer.toString()}
+                      onValueChange={(value) => handleCorrectAnswerChange(buildStep - 2, value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select correct answer" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {quiz[buildStep - 2].choices.map((_, cIndex) => (
+                          <SelectItem key={cIndex} value={cIndex.toString()}>
+                            {String.fromCharCode(65 + cIndex)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </CardContent>
+                <CardFooter className="flex justify-between">
+                  <Button variant="outline" onClick={handlePrev} className="border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-black">Previous</Button>
+                  <Button onClick={handleNext} className="bg-yellow-400 hover:bg-yellow-500 text-black">Next</Button>
+                </CardFooter>
+              </Card>
+            )}
+
+            {/* Step 7: Final Review */}
+            {buildStep === 7 && (
+              <Card className="border-yellow-400">
+                <CardHeader>
+                  <CardTitle className="text-yellow-400">Final Review</CardTitle>
+                  <CardDescription>Review your quiz below. Go back to make changes or save to finish.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="flex justify-between items-center">
+                    <h3 className="font-bold text-lg">{quizName}</h3>
+                    <Button variant="link" onClick={() => handleGoToStep(0)} className="text-yellow-400">Edit</Button>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <h4 className="font-semibold">Tags</h4>
+                      <Button variant="link" onClick={() => handleGoToStep(1)} className="text-yellow-400">Edit</Button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {tags.map((tag, index) => <Badge key={index} variant="secondary">{tag}</Badge>)}
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    {quiz.map((q, qIndex) => (
+                      <div key={qIndex} className="p-3 border border-yellow-400 rounded-lg bg-slate-50 dark:bg-slate-900">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="font-semibold">{qIndex + 1}. {q.question}</p>
+                            <ul className="list-none pl-5 mt-1">
+                              {q.choices.map((c, cIndex) => (
+                                <li key={cIndex} className={`text-sm ${cIndex === q.correctAnswer ? 'font-bold text-yellow-500' : ''}`}>
+                                  {String.fromCharCode(65 + cIndex)}. {c}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                          <Button variant="link" onClick={() => handleGoToStep(qIndex + 2)} className="text-yellow-400">Edit</Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+                <CardFooter className="flex justify-between">
+                  <Button variant="outline" onClick={handlePrev} className="border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-black">Previous</Button>
+                  <p className="text-sm text-green-600">Ready to save!</p>
+                </CardFooter>
+              </Card>
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </motion.div>
+
+      <CustomAlertDialog
+        isOpen={isAlertOpen}
+        onCancel={() => setIsAlertOpen(false)}
+        onConfirm={confirmRemoveQuestion}
+        title="Are you sure?"
+        message="This will reset the question to a blank state. Your quiz must always have 5 questions. This action cannot be undone."
+        confirmLabel="Reset Question"
+        cancelLabel="Cancel"
+        type="warning"
+      />
     </div>
   );
 }

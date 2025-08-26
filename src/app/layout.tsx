@@ -26,7 +26,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body 
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        style={{
+          backgroundImage: "url('/img/capyback.webp')",
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundAttachment: 'fixed',
+        }}
+      >
         <ClientProviders>{children}</ClientProviders>
       </body>
     </html>

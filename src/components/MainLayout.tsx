@@ -7,7 +7,7 @@ import { FaXTwitter, FaDiscord, FaTelegram } from 'react-icons/fa6';
 import { useAccount } from "wagmi";
 import { useEffect } from "react";
 
-export default function MainLayout({ children }: { children: React.ReactNode }) {
+export default function MainLayout({ children, noPadding = false }: { children: React.ReactNode, noPadding?: boolean }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { address, isConnected } = useAccount();
   const [isCapyHolder, setIsCapyHolder] = useState(false);
@@ -34,7 +34,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
             <div className="flex justify-center md:justify-start">
               <Link href="/" className="flex-shrink-0">
                 <Image
-                  src="/img/bannerNew.png"
+                  src="/img/bannerMain.webp"
                   alt="CAPYBILITY"
                   width={400}
                   height={80}
@@ -143,13 +143,14 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
       {/* Main content */}
       <main className="flex-grow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className={noPadding ? "" : "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"}>
           {children}
         </div>
       </main>
 
       {/* Footer */}
       <footer className="bg-gray-50 border-t border-gray-200">
+        <div className="w-full h-1 bg-black" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Social Icons */}
           <div className="flex justify-center space-x-6 mb-4">

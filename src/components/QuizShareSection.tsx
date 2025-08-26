@@ -1,8 +1,10 @@
 "use client";
 import { useState } from 'react';
-import Link from 'next/link';
 import Image from 'next/image';
-import { buttonStyles } from "@/utils/styles";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Copy } from 'lucide-react';
 
 interface QuizShareSectionProps {
   quizId: string;
@@ -11,11 +13,9 @@ interface QuizShareSectionProps {
 export default function QuizShareSection({ quizId }: QuizShareSectionProps) {
   const [copySuccess, setCopySuccess] = useState<string>('');
   const quizUrl = `${process.env.NEXT_PUBLIC_APP_URL}/doquiz/${quizId}`;
-  const imageUrl = `${process.env.NEXT_PUBLIC_APP_URL}/img/Button.png`;
+  const imageUrl = `${process.env.NEXT_PUBLIC_APP_URL}/img/capyrep.png`;
 
-  const embedCode = `<a href="${quizUrl}" target="_blank" rel="noopener noreferrer">
-  <img src="${imageUrl}" alt="Take this quiz" style="max-width: 300px;" />
-</a>`;
+  const embedCode = `<a href="${quizUrl}" target="_blank" rel="noopener noreferrer"><img src="${imageUrl}" alt="Take this quiz on Capybility" style="max-width: 300px; border-radius: 8px;" /></a>`;
 
   const handleCopy = async (text: string, type: string) => {
     try {
@@ -30,81 +30,77 @@ export default function QuizShareSection({ quizId }: QuizShareSectionProps) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-semibold mb-2">Have a go at your Quiz</h3>
-        <Link href={`/doquiz/${quizId}`} className={buttonStyles}>
-          DO QUIZ NOW
-        </Link>
-      </div>
-
-      <div>
-        <h3 className="text-lg font-semibold mb-2">
-          This is a link to your quiz. Copy it and put it anywhere you think people will find it. 
-          Even on the URL where the info is!
-        </h3>
-        <div className="flex items-center gap-2 bg-gray-100 p-2 rounded">
-          <span className="flex-grow font-mono text-sm break-all">{quizUrl}</span>
-          <button
-            onClick={() => handleCopy(quizUrl, 'URL')}
-            className="text-blue-500 hover:text-blue-700 p-2"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
-              <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      <div>
-        <h3 className="text-lg font-semibold mb-2">
-          Here is a button you can save and use to draw attention to your link
-        </h3>
-        <div className="relative w-[300px] h-[100px]">
-          <Image
-            src="/img/Button.png"
-            alt="Quiz button"
-            fill
-            style={{ objectFit: 'contain' }}
-          />
-        </div>
-      </div>
-
-      <div>
-        <h3 className="text-lg font-semibold mb-2">
-          Here is some HTML embed code you can use to include a link to your quiz
-        </h3>
-        <div className="relative">
-          <pre className="bg-gray-100 p-4 rounded overflow-x-auto">
-            <code className="text-sm">{embedCode}</code>
-          </pre>
-          <button
-            onClick={() => handleCopy(embedCode, 'HTML')}
-            className="absolute top-2 right-2 text-blue-500 hover:text-blue-700 p-2"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
-              <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
-            </svg>
-          </button>
-        </div>
-      </div>
-
       {copySuccess && (
-        <div className="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg">
+        <div className="text-center text-green-600 font-semibold p-2 bg-green-100 rounded-md">
           {copySuccess}
         </div>
       )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Share the Link</CardTitle>
+          <CardDescription>Copy this link and share it anywhere.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-2">
+            <Input readOnly value={quizUrl} className="flex-grow font-mono text-sm" />
+            <Button size="icon" variant="outline" onClick={() => handleCopy(quizUrl, 'URL')}>
+              <Copy className="h-4 w-4" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Grab an Image</CardTitle>
+          <CardDescription>Right-click and save an image to use with your link.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+          <div className="text-center">
+            <p className="font-semibold mb-2">Generic</p>
+            <Image
+              src="/img/capyrep.png"
+              alt="Take this quiz on Capybility"
+              width={300}
+              height={100}
+              className="rounded-lg mx-auto border"
+            />
+          </div>
+          <div className="text-center">
+            <p className="font-semibold mb-2">With Reward</p>
+            <Image
+              src="/img/capyreward.png"
+              alt="Take this quiz and earn a reward"
+              width={300}
+              height={100}
+              className="rounded-lg mx-auto border"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>HTML Embed Code</CardTitle>
+          <CardDescription>Use this code to embed the quiz button directly on your website.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="relative">
+            <pre className="bg-gray-100 dark:bg-gray-800 p-4 rounded overflow-x-auto">
+              <code className="text-sm">{embedCode}</code>
+            </pre>
+            <Button
+              size="icon"
+              variant="outline"
+              onClick={() => handleCopy(embedCode, 'HTML')}
+              className="absolute top-2 right-2"
+            >
+              <Copy className="h-4 w-4" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

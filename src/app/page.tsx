@@ -1,34 +1,84 @@
 "use client";
 import MainLayout from '@/components/MainLayout';
 import Link from 'next/link';
-import { buttonStyles } from "@/utils/styles";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { AuroraBackground } from '@/components/magicui/aurora-background';
+import { AuroraText } from '@/components/magicui/aurora-text';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 
 export default function Home() {
+  const searchParams = useSearchParams();
+  const [showAuthAlert, setShowAuthAlert] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get('auth_required')) {
+      setShowAuthAlert(true);
+    }
+  }, [searchParams]);
+
   return (
-    <MainLayout>
-      <div className="max-w-4xl mx-auto text-center">
-        <p className="text-xl text-gray-600 mb-8">
-          Show what you know with CAPYBILITY! Create a Quiz or Do a Quiz. The choice is yours!  
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-12">
-          <div className="bg-white p-8 rounded-lg shadow-lg border-2 border-[#00c7df]">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Create Quizzes</h2>
-            <p className="text-gray-600 mb-6">
-              Use our smart Quiz creating tool to make a quiz and get others to do it. Track participating users and reward them for learning about your thing! 
-            </p>
-            <Link href="/creator-dashboard" className={buttonStyles}>
-              CREATOR DASHBOARD
-            </Link>
-          </div>
-          <div className="bg-white p-8 rounded-lg shadow-lg border-2 border-[#00c7df]">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Do Quizzes</h2>
-            <p className="text-gray-600 mb-6">
-              Take simple quizzes to build up your knowledge portfolio. Get rewarded along the way! 
-            </p>
-            <Link href="/user-dashboard" className={buttonStyles}>
-              USER DASHBOARD
-            </Link>
-          </div>
+    <MainLayout noPadding={true}>
+      <AlertDialog open={showAuthAlert} onOpenChange={setShowAuthAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Wallet Connection Required</AlertDialogTitle>
+            <AlertDialogDescription>
+              You must have your wallet connected to access that page. Please connect your wallet and try again.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogAction>OK</AlertDialogAction>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AuroraBackground className="bg-zinc-900">
+        <div className="text-center py-8 md:py-12">
+          <h1 className="text-4xl md:text-7xl font-bold text-white">
+            Show you <AuroraText colors={["#fcdd3f", "#00c7df", "#fcdd3f"]} speed={2}>Know.</AuroraText>
+          </h1>
+        </div>
+      </AuroraBackground>
+      <div className="max-w-4xl mx-auto text-center pt-8 pb-12 px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <Card className="flex flex-col">
+            <CardHeader>
+              <CardTitle className="text-4xl">Create Quizzes</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-grow">
+              <p className="text-gray-600 mb-6">
+                Use our smart Quiz creating tool to make a quiz and get others to do it. Track participating users and reward them for learning about your thing! 
+              </p>
+            </CardContent>
+            <CardFooter>
+              <Link href="/creator-dashboard" className="w-full">
+                <Button className="w-full">CREATOR DASHBOARD</Button>
+              </Link>
+            </CardFooter>
+          </Card>
+          <Card className="flex flex-col">
+            <CardHeader>
+              <CardTitle className="text-4xl">Do Quizzes</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-grow">
+              <p className="text-gray-600 mb-6">
+                Take simple quizzes to build up your knowledge portfolio. Get rewarded along the way! 
+              </p>
+            </CardContent>
+            <CardFooter>
+              <Link href="/user-dashboard" className="w-full">
+                <Button className="w-full">USER DASHBOARD</Button>
+              </Link>
+            </CardFooter>
+          </Card>
         </div>
       </div>
     </MainLayout>

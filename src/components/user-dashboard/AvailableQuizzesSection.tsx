@@ -2,7 +2,9 @@
 import { useEffect, useState } from "react";
 import { useAccount } from "wagmi";
 import Link from "next/link";
-import { sectionStyles } from "@/utils/styles";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
 
 interface Quiz {
   id: string;
@@ -21,7 +23,7 @@ interface Quiz {
   is_archived: boolean;
   status?: string;
   source_url?: string;
-  has_attempted_today: boolean; // Add this field
+  has_attempted_today: boolean;
 }
 
 export default function AvailableQuizzesSection() {
@@ -51,32 +53,32 @@ export default function AvailableQuizzesSection() {
     fetchAvailableQuizzes();
   }, [address]);
 
-  const tableButtonStyles = "bg-gradient-to-r from-[#00c7df] to-[#ced661] text-white font-bold uppercase px-3 py-1 text-xs rounded-md hover:opacity-90 transition-opacity";
-
   return (
-    <div className={sectionStyles}>
-      <h2 className="text-2xl font-semibold text-gray-700 mb-4">Available Quizzes</h2>
-      {isLoading ? (
-        <p>Loading available quizzes...</p>
-      ) : availableQuizzes.length > 0 ? (
-        <div className="overflow-x-auto">
-          <table className="min-w-full">
-            <thead>
-              <tr>
-                <th className="text-left py-2 px-3 border-b-2 border-[#00c7df] text-sm">Quiz Name</th>
-                <th className="text-right py-2 px-3 border-b-2 border-[#00c7df] text-sm">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+    <Card>
+      <CardHeader>
+        <CardTitle>Available Quizzes</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <p>Loading available quizzes...</p>
+        ) : availableQuizzes.length > 0 ? (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Quiz Name</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {availableQuizzes.map((quiz) => (
-                <tr key={quiz.id} className="border-b border-[#00c7df] last:border-0">
-                  <td className="py-2 px-3 text-sm">
+                <TableRow key={quiz.id}>
+                  <TableCell>
                     {quiz.quiz_name || quiz.quiz_data.quizName || "Untitled Quiz"}
-                  </td>
-                  <td className="py-2 px-3">
-                    <div className="flex justify-end gap-1">
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
                       {quiz.has_attempted_today ? (
-                        <p className="text-red-500 text-xs">Already Attempted Today - Try Tomorrow</p>
+                        <p className="text-red-500 text-xs self-center">Already Attempted Today</p>
                       ) : (
                         <>
                           {quiz.source_url && (
@@ -84,29 +86,25 @@ export default function AvailableQuizzesSection() {
                               href={quiz.source_url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className={tableButtonStyles}
                             >
-                              Learn
+                              <Button variant="outline" size="sm">Learn</Button>
                             </a>
                           )}
-                          <Link
-                            href={`/doquiz/${quiz.id}`}
-                            className={tableButtonStyles}
-                          >
-                            Do Quiz
+                          <Link href={`/doquiz/${quiz.id}`}>
+                            <Button size="sm">Do Quiz</Button>
                           </Link>
                         </>
                       )}
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <p>No quizzes available at the moment.</p>
-      )}
-    </div>
+            </TableBody>
+          </Table>
+        ) : (
+          <p>No quizzes available at the moment.</p>
+        )}
+      </CardContent>
+    </Card>
   );
 }

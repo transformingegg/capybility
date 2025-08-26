@@ -1,20 +1,30 @@
 "use client";
-import { useState, useEffect } from "react";
-import { useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import UrlForm from "../../components/UrlForm";
 import BuildQuiz from "../../components/BuildQuiz";
 import { useAccount } from "wagmi";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import PageLayout from "@/components/PageLayout";
-import { buttonStyles, sectionStyles } from "@/utils/styles";
 import { ethers } from 'ethers';
 import { useWriteContract } from 'wagmi';
 import DrQuizBubble from '../../components/DrQuizBubble';
 import QuizShareSection from '../../components/QuizShareSection';
-import FieldHelp from "@/components/FieldHelp";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 const QUIZ_CREATOR_NFT_ADDRESS = process.env.NEXT_PUBLIC_QUIZ_CREATOR_NFT_ADDRESS as `0x${string}`;
 const QuizCreatorNFTAbi = [
@@ -95,8 +105,11 @@ const QuizCreatorNFTAbi = [
   }
 ] as const;
 
-// Add this helper function at the top level with your other constants
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const cardVariants = {
+    hidden: { opacity: 0, x: 200 },
+    visible: { opacity: 1, x: 0 },
+    exit: { opacity: 0, x: -200 },
+};
 
 const MainContent = dynamic(
   () =>
@@ -107,37 +120,15 @@ const MainContent = dynamic(
         correctAnswer: number;
       }
 
-      // Add error interfaces
-      interface ApiError {
-        message: string;
-        code?: string;
-        details?: {
-          reason?: string;
-          [key: string]: unknown;
-        };
-      }
-
-      interface TransactionError {
-        message: string;
-        code?: string;
-        transaction?: {
-          hash?: string;
-          [key: string]: unknown;
-        };
-      }
-
-      interface ExtendedError extends Error {
-        code?: string | number;
-        data?: unknown;
-      }
-
       const MainContentComponent = () => {
         const router = useRouter();
         const { isConnected, address } = useAccount();
+        const [step, setStep] = useState(1);
         const [url, setUrl] = useState("");
-        const [isUrlSubmitted, setIsUrlSubmitted] = useState(false);
+        const [autoGather, setAutoGather] = useState(true);
         const [extractedText, setExtractedText] = useState("");
-        const [isEditing, setIsEditing] = useState(false);
+        const [scrapedUrl, setScrapedUrl] = useState(""); // Cache key for scraping
+        const [sourceTextForQuiz, setSourceTextForQuiz] = useState(""); // Cache key for quiz generation
         const [isLoading, setIsLoading] = useState(false);
         const [loadingMessage, setLoadingMessage] = useState("");
         const [editedQuiz, setEditedQuiz] = useState<QuizQuestion[]>([]);
@@ -151,6 +142,7 @@ const MainContent = dynamic(
         const [mintPrice, setMintPrice] = useState<bigint | null>(null);
         const shareSectionRef = useRef<HTMLDivElement | null>(null);
         const [hasPermission, setHasPermission] = useState(false);
+        const [isQuizSubmittable, setIsQuizSubmittable] = useState(false);
 
         // Add useEffect to fetch mint price when component mounts
         useEffect(() => {
@@ -176,45 +168,60 @@ const MainContent = dynamic(
 
         if (!isConnected) return null;
 
-        const handleUrlSubmitted = (submittedUrl: string) => {
-          setUrl(submittedUrl);
-          setIsUrlSubmitted(true);
-        };
+        const handleUrlSubmitted = async (submittedUrl: string, autoGatherValue: boolean) => {
+            setUrl(submittedUrl);
+            setAutoGather(autoGatherValue);
 
-        const handleSourceTypeSelected = async (type: 'scrape' | 'manual') => {
-          if (type === 'scrape') {
-            setIsLoading(true);
-            setLoadingMessage("Scraping webpage content...");
-            try {
-              const response = await fetch("/api/scrape", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ url }),
-              });
-              const data = await response.json();
-              setExtractedText(data.scrapedText || "");
-            } catch (error) {
-              console.error("Error extracting text:", error);
+            // Only scrape if auto-gather is on AND the URL is new.
+            if (autoGatherValue && submittedUrl !== scrapedUrl) {
+              setIsLoading(true);
+              setLoadingMessage("Scraping webpage content...");
+              try {
+                const response = await fetch("/api/scrape", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ url: submittedUrl }),
+                });
+                const data = await response.json();
+                if (!response.ok || data.error) {
+                  throw new Error(data.error || "Failed to scrape URL");
+                }
+                setExtractedText(data.scrapedText || "");
+                setScrapedUrl(submittedUrl); // Cache the URL that was scraped
+              } catch (error) {
+                console.error("Error extracting text:", error);
+                setSaveMessage((error as Error).message);
+                setIsLoading(false);
+                return; // Stop on error
+              } finally {
+                setIsLoading(false);
+              }
+            } else if (!autoGatherValue) {
+              // If user unchecks the box, clear previous scrape data
               setExtractedText("");
-            } finally {
-              setIsLoading(false);
+              setScrapedUrl("");
             }
-          }
-          setIsEditing(true);
+            setStep(2); // Move to next step
         };
 
         const handleGetQuiz = async () => {
+          // Only generate quiz if the source text has changed.
+          if (extractedText === sourceTextForQuiz) {
+            setStep(3); // Move to next step without calling API
+            return;
+          }
+
           setIsLoading(true);
           setLoadingMessage("Generating quiz questions...");
           try {
-            const response = await fetch("/api/scrape", {
+            const response = await fetch("/api/generate-quiz", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ text: extractedText }),
+              body: JSON.stringify({ text: extractedText, userAddress: address }),
             });
             
             if (!response.ok) {
-              throw new Error('Failed to analyze text');
+              throw new Error('Failed to generate quiz');
             }
             
             const data = await response.json();
@@ -222,342 +229,96 @@ const MainContent = dynamic(
               throw new Error(data.error);
             }
             
-            let cleanedAnalysis = data.analysis
-              .trim()
-              .replace(/Here is the quiz in the requested JSON format:\s*/i, "")
-              .replace(/^```json\s*|\s*```$/g, "");
-        
-            const jsonStart = cleanedAnalysis.indexOf("{");
-            const jsonEnd = cleanedAnalysis.lastIndexOf("}") + 1;
-            if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
-              cleanedAnalysis = cleanedAnalysis.slice(jsonStart, jsonEnd);
-            }
-            
-            try {
-              const parsedQuiz = JSON.parse(cleanedAnalysis);
-              if (!parsedQuiz.quiz || !Array.isArray(parsedQuiz.quiz)) {
-                throw new Error('Invalid quiz format received');
-              }
-              setEditedQuiz(parsedQuiz.quiz);
-              setQuizName(parsedQuiz.quizName || "");
-              setQuizTags(parsedQuiz.tags || []);
-            } catch (parseError) {
-              console.error("Error parsing quiz JSON:", parseError);
-              setSaveMessage("Failed to parse quiz data. Please try again.");
-            }
+            setEditedQuiz(data.quiz.quiz);
+            setQuizName(data.quiz.quizName);
+            setQuizTags(data.quiz.tags);
+            setSourceTextForQuiz(extractedText); // Cache the text used for generation
+            setStep(3); // Move to quiz building step
           } catch (error) {
             console.error("Error generating quiz:", error);
-            setSaveMessage("Failed to generate quiz. Please try again.");
+            setSaveMessage((error as Error).message);
           } finally {
             setIsLoading(false);
             setLoadingMessage("");
           }
         };
 
-        const handleSaveQuiz = async (e?: React.MouseEvent) => {
-          // Prevent default button behavior if event exists
-          if (e) {
-            e.preventDefault();
-            e.stopPropagation(); // Add this to ensure the event doesn't bubble up
+        const handleMintQuiz = async (e?: React.MouseEvent) => {
+          if (!isQuizSubmittable) {
+            alert("Your quiz must have exactly 5 questions to be saved.");
+            return;
           }
+          if (e) e.preventDefault();
+          
+          setIsLoading(true);
+          setLoadingMessage("Saving quiz and minting NFT...");
           
           try {
-            // Debug log initial state
-            console.log("Starting handleSaveQuiz...");
-            console.log("Current mintPrice:", mintPrice?.toString());
-            console.log("Current address:", address);
-        
-            if (!editedQuiz.length) {
-              setSaveMessage("No quiz data to save");
-              return false; // Prevent state reset
-            }
-            
-            setIsLoading(true);
-            setLoadingMessage("Saving quiz and minting NFT...");
-            
-            try {
-              // First save the quiz
               const saveResponse = await fetch("/api/save-quiz", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ 
-                  quiz: editedQuiz, 
-                  walletAddress: address,
-                  quizName,
-                  tags: quizTags,
-                  sourceUrl: url // Add this line to include the URL
-                }),
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ 
+                    quiz: editedQuiz, 
+                    walletAddress: address,
+                    quizName,
+                    tags: quizTags,
+                    sourceUrl: url
+                  }),
               });
-          
               const saveData = await saveResponse.json();
-              if (!saveData.success) {
-                throw new Error(saveData.error || "Failed to save quiz");
-              }
-          
-              // Get signature for minting
-              console.log("Requesting signature with params:", {
-                walletAddress: address,
-                quizId: saveData.quizId
-              });
-              const signResponse = await fetch("/api/sign-quiz-creation", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  walletAddress: address,
-                  quizId: saveData.quizId,
-                }),
-              });
-          
-              const signData = await signResponse.json();
-              console.log("Raw signature response:", signData);
-              if (!signData.success) {
-                throw new Error("Failed to get signature");
-              }
-          
-              // Mint NFT with EDU payment
-              setLoadingMessage("Minting NFT...");
-              
-              if (!mintPrice) {
-                throw new Error("Mint price not loaded");
-              }
-          
-              // Debug log to verify the value being sent
-              console.log("Sending mint price:", mintPrice.toString());
-              
-              // After getting signature, log it
-              console.log("Signature obtained:", signData.signature);
-              console.log("Quiz ID:", saveData.quizId);
-          
-              // Before minting, log all parameters
-              console.log("Minting parameters:", {
-                contractAddress: QUIZ_CREATOR_NFT_ADDRESS,
-                quizId: saveData.quizId,
-                signature: signData.signature,
-                value: mintPrice?.toString(),
-                sender: address
-              });
-          /*
-              // Attempt to estimate gas before actual mint
-              try {
-                const provider = new ethers.JsonRpcProvider("https://rpc.edu-chain.raas.gelato.cloud/");
-                const contract = new ethers.Contract(QUIZ_CREATOR_NFT_ADDRESS, QuizCreatorNFTAbi, provider);
-                
-                const gasEstimate = await contract.mint.estimateGas(
-                  saveData.quizId,
-                  signData.signature,
-                  { value: mintPrice }
-                );
-                console.log("Gas estimate:", gasEstimate.toString());
-              } catch (estimateError) {
-                console.error("Gas estimation failed:", estimateError);
-              }
-          */
-              // Proceed with mint
-              console.log("Attempting mint with:", {
-                quizId: saveData.quizId,
-                signature: signData.signature,
-                senderAddress: address,
-                contractAddress: QUIZ_CREATOR_NFT_ADDRESS
-              });
-              let tx; // Declare tx at a higher scope
-              
-              
-              let mintFunction: "mint" | "mintWithDiscount" = "mint";
-              let mintValue: bigint = mintPrice!; // You already check for null above
+              if (!saveData.success) throw new Error(saveData.error || "Failed to save quiz");
 
-              // 1. Check Capy status
+              const signResponse = await fetch("/api/sign-quiz-creation", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ walletAddress: address, quizId: saveData.quizId }),
+              });
+              const signData = await signResponse.json();
+              if (!signData.success) throw new Error("Failed to get signature");
+
+              if (!mintPrice) throw new Error("Mint price not loaded");
+
+              let mintFunction: "mint" | "mintWithDiscount" = "mint";
+              let mintValue: bigint = mintPrice;
+
               const capyStatusResp = await fetch(`/api/check-capy-status?address=${address}`);
               const capyStatus = await capyStatusResp.json();
-              const isCapyHolder = !!capyStatus.hasNFT;
-
-              if (isCapyHolder) {
-                // 2. Fetch on-chain price and discount
-                const provider = new ethers.JsonRpcProvider("https://rpc.edu-chain.raas.gelato.cloud/");
-                const contract = new ethers.Contract(QUIZ_CREATOR_NFT_ADDRESS, QuizCreatorNFTAbi, provider);
-                const [onchainMintPrice, discountBps] = await Promise.all([
-                  contract.nativeMintPrice(),
-                  contract.discountBps(),
-                ]);
-                mintFunction = "mintWithDiscount";
-                mintValue = (BigInt(onchainMintPrice) * BigInt(discountBps)) / 10000n;
-                console.log("Capy holder detected! Using discounted mint:", mintValue.toString());
-              } else {
-                console.log("Not a Capy holder. Using regular mint price:", mintValue.toString());
+              if (capyStatus.hasNFT) {
+                  const provider = new ethers.JsonRpcProvider("https://rpc.edu-chain.raas.gelato.cloud/");
+                  const contract = new ethers.Contract(QUIZ_CREATOR_NFT_ADDRESS, QuizCreatorNFTAbi, provider);
+                  const discountBps = await contract.discountBps();
+                  mintFunction = "mintWithDiscount";
+                  mintValue = (mintPrice * BigInt(discountBps)) / 10000n;
               }
-              
-              try {
-                tx = await mintNFT({
+
+              const tx = await mintNFT({
                   address: QUIZ_CREATOR_NFT_ADDRESS,  
                   abi: QuizCreatorNFTAbi,
                   functionName: mintFunction,
                   args: [saveData.quizId, signData.signature],
                   value: mintValue
-                });
-              } catch (error) {
-                const txError = error as TransactionError;
-                console.error("Transaction error:", txError);
-                setSaveMessage(`Transaction failed: ${txError.transaction?.hash || txError.message}`);
-                return false;
-              }
-          
+              });
+
               const provider = new ethers.JsonRpcProvider("https://rpc.edu-chain.raas.gelato.cloud/");
-              let receipt;
-          
-              // Add retry logic for transaction confirmation
-              for (let attempt = 1; attempt <= 5; attempt++) {
-                  console.log(`Attempt ${attempt}: Fetching transaction receipt for tx ${tx}`);
-                  receipt = await provider.getTransactionReceipt(tx);
-                  
-                  if (!receipt) {
-                      console.warn(`Attempt ${attempt}: Receipt not found. Retrying...`);
-                      await delay(10000);
-                      continue;
-                  }
+              const receipt = await provider.waitForTransaction(tx);
 
-                  console.log("Receipt found:", receipt); // Add this log
-                  console.log("Receipt status:", receipt.status); // Add this log
-          
-                  if (receipt.status !== 1) {
-                      console.error("Transaction failed. Receipt:", receipt);
-                      throw new Error(
-                          `Transaction failed on the blockchain. Please check your wallet or view the transaction on the explorer: https://educhain.blockscout.com//tx/${tx}`
-                      );
-                  }
-
-                  console.log("Transaction successful, looking for event..."); // Add this log
-                  
-                  // Inside handleSaveQuiz function, after successful transaction confirmation
-                  if (receipt.status === 1) {
-                      console.log("Processing successful transaction..."); // Add this log
-
-
-
-
-
-                      // Get tokenId from receipt logs
-                      const provider = new ethers.JsonRpcProvider("https://rpc.edu-chain.raas.gelato.cloud/");
-                      const contract = new ethers.Contract(
-                        QUIZ_CREATOR_NFT_ADDRESS, 
-                        QuizCreatorNFTAbi, 
-                        provider
-                      );
-                      
-                      const event = receipt.logs.find(log => {
-                        try {
-                          console.log("Parsing log:", log); // Add this
-                          const parsedLog = contract.interface.parseLog(log);
-                          console.log("Parsed log:", parsedLog); // Add this
-                          const isQuizCreated = parsedLog?.name === "QuizCreated";
-                          console.log("Is QuizCreated event?", isQuizCreated); // Add this
-                          return isQuizCreated;
-                        } catch (error) {
-                          console.error("Error parsing log:", error);
-                          return false;
-                        }
-                      });
-                      
-                      if (!event) {
-                        console.log("No QuizCreated event found in logs"); // Add this
-                      }
-                    
-                      if (event) {
-                        try {
-                          const parsedLog = contract.interface.parseLog(event);
-                          if (!parsedLog) {
-                            throw new Error("Failed to parse event log");
-                          }
-                          
-                          const tokenId = parsedLog.args.tokenId.toString();
-                          console.log("Extracted tokenId for metadata creation:", tokenId);
-                    
-                          // Create metadata
-                          console.log("Sending metadata creation request...");
-                          const createMetadataResponse = await fetch("/api/create-quizcreator-metadata", {
-                            method: "POST",
-                            headers: { 
-                              "Content-Type": "application/json",
-                              "Accept": "application/json"
-                            },
-                            body: JSON.stringify({
-                              tokenId,
-                              quizId: saveData.quizId,
-                              walletAddress: address
-                            }),
-                          });
-                    
-                          console.log("Metadata API response status:", createMetadataResponse.status);
-                          const responseText = await createMetadataResponse.text();
-                          console.log("Raw API response:", responseText);
-                    
-                          try {
-                            const createMetadataData = JSON.parse(responseText);
-                            if (!createMetadataData.success) {
-                              console.error("Failed to create metadata:", createMetadataData.error);
-                            } else {
-                              console.log("Metadata created successfully!");
-                            }
-                          } catch (jsonError) {
-                            console.error("Error parsing API response:", jsonError);
-                          }
-                        } catch (parseError) {
-                          console.error("Error in metadata creation process:", parseError);
-                        }
-                      }
-                    
-                      // set the status to minted in DB 
-                      await fetch("/api/mark-quiz-minted", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ quizId: saveData.quizId }),
-                      });
-
-
-                      // Update UI state
-                      setQuizId(saveData.quizId);
-                      setIsSaved(true);
-                      setSaveMessage("Quiz saved and NFT minted successfully! 🎉");
-
-                      setTimeout(() => {
-                        shareSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-                      }, 300);
-
-                      return true; // Add this line to indicate success
-                  }
-          
-                  // Keep the quiz content visible
-                  setIsEditing(true);
-                  setIsUrlSubmitted(true);
-                  
-                  // Log success for debugging
-                  console.log("Quiz saved successfully with ID:", saveData.quizId);
-                  break; // Add explicit break here
+              if (receipt?.status !== 1) {
+                  throw new Error(`Transaction failed. View on explorer: https://educhain.blockscout.com/tx/${tx}`);
               }
-          
-              if (!receipt) {
-                  throw new Error("Transaction confirmation timed out. Please check the explorer for confirmation.");
-              }
-          
-            } catch (error) {
-              console.error("Error:", error);
-              const apiError = error as ApiError;
-              setSaveMessage("Failed to save quiz or mint NFT: " + (apiError.message || "Unknown error"));
-              return false;
-            } finally {
-              setIsLoading(false);
-              setLoadingMessage("");
-            }
-            return true; // Add this line to indicate success
+              
+              setQuizId(saveData.quizId);
+              setIsSaved(true);
+              setSaveMessage("Quiz saved and NFT minted successfully! 🎉");
+              setStep(5); // Move to share step
 
           } catch (error) {
-            console.error("Full error object:", error);
-            const typedError = error as ExtendedError;
-            console.error("Error name:", typedError.name);
-            console.error("Error code:", typedError.code);
-            console.error("Error data:", typedError.data);
-            setSaveMessage("Failed to save quiz or mint NFT: " + typedError.message);
-            return false; // Prevent state reset on error
+              console.error("Error during save/mint:", error);
+              setSaveMessage((error as Error).message);
+          } finally {
+              setIsLoading(false);
+              setLoadingMessage("");
           }
-        };
+      };
 
         const handleQuizUpdated = (
           updatedQuiz: QuizQuestion[],
@@ -569,129 +330,197 @@ const MainContent = dynamic(
           setQuizTags(updatedTags);
         };
 
-        const handleSkipUrl = () => {
-          setUrl(""); // Clear URL when skipping
-          setIsUrlSubmitted(true);
-          setIsEditing(true);
-        };
-
         return (
-          <PageLayout>
-            <LoadingOverlay isVisible={isLoading} message={loadingMessage} />
-            <div className="grid gap-6">
-              <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold text-gray-800">
-                  Create Quiz
-                </h1>
-                <Link 
-                  href="/"
-                  className="text-gray-600 hover:text-gray-900"
+          <PageLayout fullWidth={true}>
+            <div 
+              style={{
+                backgroundImage: "url('/img/capyback.webp')",
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundAttachment: 'fixed',
+                minHeight: 'calc(100vh - 65px)',
+              }}
+            >
+              <div className="max-w-4xl mx-auto p-6 space-y-8">
+                <LoadingOverlay isVisible={isLoading} message={loadingMessage} />
+                
+                <Card>
+                  <CardHeader>
+                    <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+                      <CardTitle className="text-3xl">Create a Quiz</CardTitle>
+                      <Button asChild>
+                        <Link href="/">Back To Dashboard</Link>
+                      </Button>
+                    </div>
+                  </CardHeader>
+                </Card>
+
+                {/* Add DrQuizBubble here */}
+                <DrQuizBubble 
+                  text="QUIZ creation time! Let me do the heavy lifting for you - and I'll do it with my blindfold on! Just follow my lead and you'll have an awesome quiz in no time."
+                  collapsedText="Dr Quiz will guide you through quiz creation"
+                />
+
+                <AnimatePresence mode="wait">
+                <motion.div
+                  key={step}
+                  variants={cardVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                  transition={{ duration: 0.3 }}
                 >
-                  ← Back to Dashboard
-                </Link>
-              </div>
-
-              {/* Add DrQuizBubble here */}
-              <DrQuizBubble 
-                text="QUIZ creation time! Let me do the heavy lifting for you - and I'll do it with my blindfold on! Just follow my lead and you'll have an awesome quiz in no time."
-                collapsedText="Dr Quiz will guide you through quiz creation"
-              />
-
-              {/* Rest of your existing content */}
-              {!isSaved && (
-                <>
-                  <div className={sectionStyles}>
-                    <UrlForm
-                      onUrlSubmitted={handleUrlSubmitted}
-                      onSourceTypeSelected={handleSourceTypeSelected}
-                      onSkipUrl={handleSkipUrl}
-                      isLoading={isLoading}
-                      isUrlSubmitted={isUrlSubmitted}
-                    />
-                  </div>
-
-                  {isEditing && (
-                    <div className={sectionStyles}>
-                      <div className="flex items-center">
-                        <h3 className="text-lg font-semibold mb-2">What content do you want Dr Q to use to create the quiz?</h3>
-                        <FieldHelp helpText="This is where you put the information you would like to make the quiz about. It should be over 150 words and below 5000 words. It does not need to be polished or formatted in nature for the AI to be able to utilise it for quiz creation." />
-                      </div>
-
-                      <textarea
-                        value={extractedText}
-                        onChange={(e) => setExtractedText(e.target.value)}
-                        className="w-full h-64 p-4 border rounded-md mb-4"
-                        placeholder="Enter or edit the content for your quiz here..."
-                      />
-                      <div className="flex items-center mb-2">
-                      <input
-                        id="permission-checkbox"
-                        type="checkbox"
-                        checked={hasPermission}
-                        onChange={(e) => setHasPermission(e.target.checked)}
-                        className="mr-2 accent-[#009bb3]"
-                      />
-                      <label htmlFor="permission-checkbox" className="text-sm">
-                        I have the appropriate permissions to utilise this information to make a quiz
-                      </label>
-                    </div>
-                    
-                      <button
-                        onClick={handleGetQuiz}
-                        disabled={!extractedText.trim() || isLoading || !hasPermission}
-                        className={
-                          buttonStyles +
-                          ((!extractedText.trim() || isLoading || !hasPermission)
-                            ? " opacity-50 cursor-not-allowed"
-                            : "")
-                        }
-                      >
-                        GET DR Q. TO CREATE A QUIZ
-                      </button>
-                    </div>
+                  {step === 1 && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Step 1: Link</CardTitle>
+                        <CardDescription>Where is the information you want to make a quiz about located? Please provide the web link to it.</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <UrlForm 
+                          onUrlSubmit={() => {}} // We'll use the footer button
+                          url={url} 
+                          setUrl={setUrl} 
+                          autoGather={autoGather}
+                          setAutoGather={setAutoGather}
+                        />
+                      </CardContent>
+                      <CardFooter className="flex justify-end">
+                        <Button onClick={() => handleUrlSubmitted(url, autoGather)} disabled={isLoading || !url}>
+                          Next: Content
+                        </Button>
+                      </CardFooter>
+                    </Card>
                   )}
-                </>
-              )}
 
-              {editedQuiz.length > 0 && (
-                <div className={sectionStyles}>
-                  <BuildQuiz
-                    quizJson={JSON.stringify({
-                      quiz: editedQuiz,
-                      quizName,
-                      tags: quizTags
-                    })}
-                    onQuizUpdated={handleQuizUpdated}
-                  />
-                  <div className="mt-4 flex items-center gap-4">
-                    <button
-                      onClick={(e) => handleSaveQuiz(e)}
-                      disabled={isLoading || isSaved || !mintPrice}
-                      type="button"
-                      className={
-                        buttonStyles +
-                        ((isLoading || isSaved || !mintPrice)
-                          ? " opacity-50 cursor-not-allowed"
-                          : "")
-                      }
-                    >
-                      {isLoading ? "SAVING..." : isSaved ? "QUIZ SAVED" : "SAVE QUIZ"}
-                    </button>
-                    {saveMessage && (
-                      <span className="text-sm text-green-600">
-                        {saveMessage}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
+                  {step === 2 && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Step 2: Content</CardTitle>
+                        <CardDescription>Review the scraped content. You can edit it here before generating the quiz.</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <Textarea
+                          value={extractedText}
+                          onChange={(e) => setExtractedText(e.target.value)}
+                          className="w-full h-64"
+                          placeholder="Enter or edit the content for your quiz here..."
+                        />
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="permission-checkbox"
+                            checked={hasPermission}
+                            onCheckedChange={(checked) => setHasPermission(checked as boolean)}
+                          />
+                          <Label htmlFor="permission-checkbox">
+                            I have the appropriate permissions to use this information.
+                          </Label>
+                        </div>
+                      </CardContent>
+                      <CardFooter className="flex justify-between">
+                          <Button variant="outline" onClick={() => setStep(1)}>Previous: Link</Button>
+                          <Button
+                              onClick={handleGetQuiz}
+                              disabled={!extractedText.trim() || isLoading || !hasPermission}
+                          >
+                              Next: Quiz Builder
+                          </Button>
+                      </CardFooter>
+                    </Card>
+                  )}
 
-              {/* Add the new share section after quiz is saved */}
-              {isSaved && quizId && (
-                <div className={sectionStyles} ref={shareSectionRef}>
-                  <QuizShareSection quizId={quizId} />
-                </div>
-              )}
+                  {step === 3 && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Step 3: Quiz Builder</CardTitle>
+                        <CardDescription>
+                          Your 5-question quiz has been automatically generated. Use the &apos;Next&apos; and &apos;Previous&apos; buttons in the wizard below to review and edit the quiz name, tags, and each question. The final step is a full review. Once you&apos;re happy, you can proceed to the minting step.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="pt-6">
+                        <BuildQuiz
+                          quizJson={JSON.stringify({
+                            quiz: editedQuiz,
+                            quizName,
+                            tags: quizTags
+                          })}
+                          onQuizUpdated={handleQuizUpdated}
+                          isSubmittable={setIsQuizSubmittable}
+                        />
+                      </CardContent>
+                      <CardFooter className="flex justify-between items-center gap-4">
+                        <Button variant="outline" onClick={() => setStep(2)}>
+                          Previous: Content
+                        </Button>
+                        <Button
+                          onClick={() => setStep(4)}
+                          disabled={!isQuizSubmittable}
+                        >
+                          Next: Mint NFT
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  )}
+
+                  {step === 4 && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Step 4: Mint NFT</CardTitle>
+                        <CardDescription>
+                          Let&apos;s put your Quiz ownership on chain! This will require a small transaction fee in EDU tokens. Clicking the SAVE AND MINT button below will trigger a transaction in your web3 wallet. Please review and confirm it.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="flex flex-col items-center justify-center space-y-4">
+                        <Button
+                          onClick={handleMintQuiz}
+                          disabled={isLoading || isSaved || !mintPrice}
+                          type="button"
+                          size="lg"
+                        >
+                          {isLoading ? "MINTING..." : "Save and Mint NFT"}
+                        </Button>
+                        {saveMessage && (
+                          <p className="text-sm text-red-500 mt-4">{saveMessage}</p>
+                        )}
+                      </CardContent>
+                      <CardFooter className="flex justify-between items-center gap-4">
+                        <Button variant="outline" onClick={() => setStep(3)}>
+                          Previous: Quiz Builder
+                        </Button>
+                        <Button
+                          onClick={() => setStep(5)}
+                          disabled={!isSaved}
+                          type="button"
+                        >
+                          Next: Share
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  )}
+
+                  {step === 5 && (
+                    <Card ref={shareSectionRef}>
+                      <CardHeader>
+                        <CardTitle>Step 5: Share</CardTitle>
+                        <CardDescription>Your quiz has been created and the NFT has been minted. Share it with the world!</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <QuizShareSection quizId={quizId!} />
+                      </CardContent>
+                      <CardFooter className="flex justify-end items-center gap-4 mt-4">
+                        <Button onClick={() => router.push(`/doquiz/${quizId}`)} variant="outline">
+                          Do Your Quiz
+                        </Button>
+                        <span className="text-sm text-gray-500">OR</span>
+                        <Button onClick={() => router.push('/creator-dashboard')}>
+                            Go to Creator Dashboard
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  )}
+                </motion.div>
+              </AnimatePresence>
+              </div>
             </div>
           </PageLayout>
         );

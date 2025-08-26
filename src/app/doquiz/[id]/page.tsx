@@ -5,16 +5,28 @@ import { use } from "react";
 import { ethers } from "ethers";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import PageLayout from "@/components/PageLayout";
-import { buttonStyles, sectionStyles } from "@/utils/styles";
+
 import MintSuccessPopup from "@/components/MintSuccessPopup";
 import { useRouter } from "next/navigation";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+
+import { motion, AnimatePresence } from "framer-motion";
 
 interface QuizQuestion {
   question: string;
   choices: string[];
   correctAnswer: number;
 }
-
 
 interface QuizData {
   id: string;
@@ -29,7 +41,6 @@ interface QuizAttemptStatus {
   hasAttemptedToday: boolean;
   lastAttemptTime?: string;
 }
-
 
 const QUIZ_NFT_ADDRESS = process.env.NEXT_PUBLIC_QUIZ_COMPLETION_NFT_ADDRESS as `0x${string}`;
 
@@ -133,7 +144,6 @@ interface QuizError {
   };
 }
 
-
 export default function QuizPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const { isConnected, address } = useAccount();
@@ -152,6 +162,30 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
   const [nativeMintPrice, setNativeMintPrice] = useState<bigint | null>(null);
   const [nftImageUrl, setNftImageUrl] = useState<string>("");
   const [rarity, setRarity] = useState<string>(""); // Set this based on your logic
+  const [viewMode, setViewMode] = useState<'single' | 'all'>('single');
+  const [[currentQuestionIndex, direction], setPage] = useState([0, 0]);
+
+  const paginate = (newDirection: number) => {
+    setPage([currentQuestionIndex + newDirection, newDirection]);
+  };
+
+  const variants = {
+    enter: (direction: number) => ({
+      x: direction > 0 ? 300 : -300,
+      opacity: 0,
+    }),
+    center: {
+      zIndex: 1,
+      x: 0,
+      opacity: 1,
+    },
+    exit: (direction: number) => ({
+      zIndex: 0,
+      x: direction < 0 ? 300 : -300,
+      opacity: 0,
+    }),
+  };
+
   const router = useRouter();
 
   useEffect(() => {
@@ -566,130 +600,255 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
     alert(error.message || "An unknown error occurred");
   };
 */
-  if (!quiz) return (
-    <PageLayout>
-      <LoadingOverlay isVisible={isLoading} message={loadingMessage} />
-      <div className={sectionStyles}>
-        <h1 className="text-3xl font-bold mb-6">Loading Quiz...</h1>
-      </div>
-    </PageLayout>
-  );
+  if (!quiz) {
+    return (
+      <PageLayout fullWidth>
+        <LoadingOverlay isVisible={isLoading} message={loadingMessage} />
+        <Card className="max-w-2xl mx-auto">
+          <CardHeader>
+            <CardTitle className="text-3xl font-bold">Loading Quiz...</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>Please wait while we fetch the quiz details.</p>
+          </CardContent>
+        </Card>
+      </PageLayout>
+    );
+  }
 
   // Log rarity value before rendering
   console.log("MintSuccessPopup rarity value:", rarity);
 
   return (
-    <PageLayout>
+    <PageLayout fullWidth>
       <LoadingOverlay isVisible={isLoading} message={loadingMessage} />
-      <div className="space-y-6">
-        <div className={sectionStyles}>
-          <h1 className="text-3xl font-bold mb-3">{ensureQuizSuffix(quiz.quizName)}</h1>
+      
+      <Card className="mb-6 bg-gray-800 text-white rounded-none">
+        <div className="max-w-2xl mx-auto py-8 text-center">
+          <CardHeader>
+            <CardTitle className="text-3xl font-bold text-white">{ensureQuizSuffix(quiz.quizName)}</CardTitle>
+          </CardHeader>
           {quiz.sourceUrl && (
-            <div className="text-sm mb-1" style={{ color: "#009bb3" }}>
-              Looking for Answers? Try here:{" "}
-              <a
-                href={quiz.sourceUrl}
-                className="underline break-all"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {quiz.sourceUrl}
-              </a>
-            </div>
+            <CardContent>
+              <div className="text-sm text-gray-300">
+                This is where you will find the answers:{" "}
+                <a
+                  href={quiz.sourceUrl}
+                  className="underline break-all text-yellow-500 hover:text-yellow-400"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {quiz.sourceUrl}
+                </a>
+              </div>
+            </CardContent>
           )}
-        <div className="flex justify-end">
-            <span className="text-xs text-gray-400 text-right">Quiz ID: {resolvedParams.id}</span>
         </div>
+      </Card>
+
+      <div className="max-w-2xl mx-auto my-8">
+        <div className="flex items-center space-x-2 mb-4">
+          <Switch
+            id="view-mode-switch"
+            checked={viewMode === 'all'}
+            onCheckedChange={(checked) => setViewMode(checked ? 'all' : 'single')}
+          />
+          <Label htmlFor="view-mode-switch">View Whole Quiz</Label>
         </div>
         
-        {isConnected ? (
-          <>
-            {quiz.quiz.map((question, index) => (
-              <div key={index} className={sectionStyles}>
-                <h2 className="text-xl mb-4">{question.question}</h2>
-                {question.choices.map((choice, choiceIndex) => (
-                  <div key={choiceIndex} className="ml-4 mb-2">
-                    <input
-                      type="radio"
-                      id={`q${index}-c${choiceIndex}`}
-                      name={`question${index}`}
-                      value={choiceIndex}
-                      checked={answers[index] === choiceIndex}
-                      onChange={() => handleAnswerChange(index, choiceIndex)}
-                      disabled={isSubmitted || quizStatus?.hasCompletedQuiz || quizStatus?.hasAttemptedToday}
-                    />
-                    <label htmlFor={`q${index}-c${choiceIndex}`} className="ml-2">
-                      {choice}
-                    </label>
-                  </div>
-                ))}
-              </div>
-            ))}
-
-            {quizStatus?.hasCompletedQuiz ? (
-              <div className="bg-green-50 p-4 rounded-lg text-green-700 text-center">
-                You have already completed this quiz successfully!
-              </div>
-            ) : quizStatus?.hasAttemptedToday ? (
-              <div className="bg-yellow-50 p-4 rounded-lg text-yellow-700 text-center">
-                You have already attempted this quiz today. 
-                Try again after {new Date(quizStatus.lastAttemptTime!).toLocaleString()}
-              </div>
-            ) : !isSubmitted ? (
-              <button
-                onClick={handleSubmit}
-                disabled={answers.includes(-1)}
-                className={buttonStyles}
-              >
-                SUBMIT QUIZ
-              </button>
-            ) : (
-              <div className={sectionStyles}>
-                <h2 className="text-2xl mb-4">Quiz Submitted!</h2>
-                <p className="mb-4">Your score: {score} out of {quiz.quiz.length}</p>
-                
-                {score === quiz.quiz.length ? (
-                  // Perfect score - show mint button
-                  <>
-                    {signature && !isMinting && !mintError && (
-                      <button
-                        onClick={handleMint}
-                        className={buttonStyles}
-                      >
-                        MINT YOUR NFT
-                      </button>
+        <div className="space-y-6">
+          {isConnected ? (
+            <>
+              {!isSubmitted && !quizStatus?.hasCompletedQuiz && !quizStatus?.hasAttemptedToday ? (
+                <>
+                  {viewMode === 'all' ? (
+                    <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
+                      {quiz.quiz.map((question, index) => (
+                        <Card key={index} className="mb-4">
+                          <CardHeader>
+                            <CardTitle className="text-xl" style={{ color: 'hsl(var(--primary))' }}>{`${index + 1}. ${question.question}`}</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <RadioGroup
+                              onValueChange={(value) => handleAnswerChange(index, parseInt(value))}
+                              value={answers[index]?.toString()}
+                              className="ml-4 space-y-1"
+                            >
+                              {question.choices.map((choice, choiceIndex) => (
+                                <Label
+                                  key={choiceIndex}
+                                  htmlFor={`q${index}-c${choiceIndex}`}
+                                  className="flex items-center space-x-3 p-2 rounded-md hover:bg-muted cursor-pointer"
+                                >
+                                  <RadioGroupItem value={choiceIndex.toString()} id={`q${index}-c${choiceIndex}`} />
+                                  <span className="text-base font-normal">{choice}</span>
+                                </Label>
+                              ))}
+                            </RadioGroup>
+                          </CardContent>
+                        </Card>
+                      ))}
+                      <Button type="submit" disabled={answers.includes(-1)} className="w-full">
+                        SUBMIT QUIZ
+                      </Button>
+                    </form>
+                  ) : (
+                    <div className="relative h-[450px] overflow-hidden">
+                      <AnimatePresence initial={false} custom={direction}>
+                        {currentQuestionIndex < quiz.quiz.length ? (
+                          <motion.div
+                            key={currentQuestionIndex}
+                            custom={direction}
+                            variants={variants}
+                            initial="enter"
+                            animate="center"
+                            exit="exit"
+                            transition={{
+                              x: { type: "spring", stiffness: 300, damping: 30 },
+                              opacity: { duration: 0.5 }
+                            }}
+                            className="absolute w-full"
+                          >
+                            <Card className="mb-4">
+                              <CardHeader>
+                                <CardTitle className="text-xl" style={{ color: 'hsl(var(--primary))' }}>{`${currentQuestionIndex + 1}. ${quiz.quiz[currentQuestionIndex].question}`}</CardTitle>
+                              </CardHeader>
+                              <CardContent>
+                                <RadioGroup
+                                  onValueChange={(value) => handleAnswerChange(currentQuestionIndex, parseInt(value))}
+                                  value={answers[currentQuestionIndex]?.toString()}
+                                  className="ml-4 space-y-1"
+                                >
+                                  {quiz.quiz[currentQuestionIndex].choices.map((choice, choiceIndex) => (
+                                    <Label
+                                      key={choiceIndex}
+                                      htmlFor={`q${currentQuestionIndex}-c${choiceIndex}`}
+                                      className="flex items-center space-x-3 p-2 rounded-md hover:bg-muted cursor-pointer"
+                                    >
+                                      <RadioGroupItem value={choiceIndex.toString()} id={`q${currentQuestionIndex}-c${choiceIndex}`} />
+                                      <span className="text-base font-normal">{choice}</span>
+                                    </Label>
+                                  ))}
+                                </RadioGroup>
+                              </CardContent>
+                              <CardFooter className="flex justify-between">
+                                <Button
+                                  onClick={() => paginate(-1)}
+                                  disabled={currentQuestionIndex === 0}
+                                  variant="outline"
+                                >
+                                  Previous
+                                </Button>
+                                <Button
+                                  onClick={() => paginate(1)}
+                                  disabled={answers[currentQuestionIndex] === -1}
+                                >
+                                  Next
+                                </Button>
+                              </CardFooter>
+                            </Card>
+                          </motion.div>
+                        ) : (
+                          <motion.div
+                            key="submit-card"
+                            initial={{ opacity: 0, x: 300 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -300 }}
+                            transition={{
+                              x: { type: "spring", stiffness: 300, damping: 30 },
+                              opacity: { duration: 0.5 }
+                            }}
+                            className="absolute w-full"
+                          >
+                            <Card>
+                              <CardHeader>
+                                <CardTitle>Submit Your Answers</CardTitle>
+                              </CardHeader>
+                              <CardContent>
+                                <p className="mb-4">If you are sure of your answers, submit your quiz using the button below. Be careful though, you are only allowed one attempt per day.</p>
+                                <Button onClick={handleSubmit} className="w-full">
+                                  SUBMIT QUIZ
+                                </Button>
+                              </CardContent>
+                              <CardFooter>
+                                <Button
+                                  onClick={() => paginate(-1)}
+                                  variant="outline"
+                                >
+                                  Previous
+                                </Button>
+                              </CardFooter>
+                            </Card>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>
+                      {quizStatus?.hasCompletedQuiz 
+                        ? "You have already completed this quiz successfully!"
+                        : quizStatus?.hasAttemptedToday
+                        ? "You have already attempted this quiz today."
+                        : "Quiz Submitted!"
+                      }
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {quizStatus?.hasAttemptedToday && !quizStatus.hasCompletedQuiz && (
+                      <p>Try again after {new Date(quizStatus.lastAttemptTime!).toLocaleString()}</p>
                     )}
-                    {isMinting && <p>Minting NFT...</p>}
-                    {mintError && <p className="text-red-500">Minting failed: {mintError.message}</p>}
-                  </>
-                ) : (
-                  // Non-perfect score - show try again message
-                  <div className="bg-yellow-50 p-4 rounded-lg text-yellow-700">
-                    Try again tomorrow to get a perfect score (5/5) and mint your NFT!
-                  </div>
-                )}
-
-                {tokenId && (
-                  <p>
-                    NFT minted! View it at:{" "}
-                    <a
-                      href={`/metadata/${tokenId}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 underline"
-                    >
-                      Metadata Link
-                    </a>
-                  </p>
-                )}
-              </div>
-            )}
-          </>
-        ) : (
-          <div className="text-center p-4">
-            Please connect your wallet to take this quiz.
-          </div>
-        )}
+                    {isSubmitted && score !== null && (
+                      <>
+                        <p className="mb-4">Your score: {score} out of {quiz.quiz.length}</p>
+                        {score === quiz.quiz.length ? (
+                          <>
+                            {signature && !isMinting && !mintError && (
+                              <Button onClick={handleMint} className="w-full">
+                                MINT YOUR NFT
+                              </Button>
+                            )}
+                            {isMinting && <p>Minting NFT...</p>}
+                            {mintError && <p className="text-red-500">Minting failed: {mintError.message}</p>}
+                          </>
+                        ) : (
+                          <div className="bg-yellow-50 p-4 rounded-lg text-yellow-700">
+                            Try again tomorrow to get a perfect score ({quiz.quiz.length}/{quiz.quiz.length}) and mint your NFT!
+                          </div>
+                        )}
+                        {tokenId && (
+                          <p className="mt-4">
+                            NFT minted! View it at:{" "}
+                            <a
+                              href={`/metadata/${tokenId}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 underline"
+                            >
+                              Metadata Link
+                            </a>
+                          </p>
+                        )}
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+            </>
+          ) : (
+            <Card>
+              <CardContent className="text-center p-4">
+                Please connect your wallet to take this quiz.
+              </CardContent>
+            </Card>
+          )}
+        </div>
+        <div className="flex justify-end mt-8">
+          <span className="text-xs text-gray-400">Quiz ID: {resolvedParams.id}</span>
+        </div>
       </div>
 
       <MintSuccessPopup

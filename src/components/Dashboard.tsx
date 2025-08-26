@@ -1,12 +1,36 @@
 "use client";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useAccount } from "wagmi";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import PageLayout from "./PageLayout";
-import { buttonStyles, sectionStyles } from "@/utils/styles";
-import CustomAlertDialog from "./CustomAlertDialog";
 import DrQuizBubble from './DrQuizBubble';
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Quiz {
   id: string;
@@ -19,7 +43,7 @@ interface Quiz {
     quizName: string;
     tags: string[];
   };
-  quiz_name: string; // Added this field to match database
+  quiz_name: string;
   wallet_address: string;
   created_at: string;
   is_archived: boolean;
@@ -40,28 +64,34 @@ export default function Dashboard() {
   const [showArchiveAlert, setShowArchiveAlert] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isConnected) {
-      router.push('/');
-      return;
-    }
+    const checkConnection = async () => {
+      // Give wagmi a moment to initialize
+      await new Promise(resolve => setTimeout(resolve, 100));
+      if (!isConnected) {
+        router.push('/?auth_required=true');
+        return;
+      }
 
-    const fetchQuizzes = async () => {
-      try {
-        const response = await fetch(`/api/get-quizzes?address=${address}`);
-        const data = await response.json();
-        if (data.success) {
-          setQuizzes(data.quizzes);
+      const fetchQuizzes = async () => {
+        try {
+          const response = await fetch(`/api/get-quizzes?address=${address}`);
+          const data = await response.json();
+          if (data.success) {
+            setQuizzes(data.quizzes);
+          }
+        } catch (error) {
+          console.error("Error fetching quizzes:", error);
+        } finally {
+          setIsLoading(false);
         }
-      } catch (error) {
-        console.error("Error fetching quizzes:", error);
-      } finally {
-        setIsLoading(false);
+      };
+
+      if (address) {
+        fetchQuizzes();
       }
     };
 
-    if (address) {
-      fetchQuizzes();
-    }
+    checkConnection();
   }, [isConnected, address, router]);
 
   const formatDate = (dateString: string) => {
@@ -90,7 +120,7 @@ export default function Dashboard() {
       });
 
       if (response.ok) {
-        const updatedQuizzes = quizzes.filter(quiz => quiz.id !== showArchiveAlert && quiz.status === "minted");
+        const updatedQuizzes = quizzes.filter(quiz => quiz.id !== showArchiveAlert);
         setQuizzes(updatedQuizzes);
       }
     } catch (error) {
@@ -101,165 +131,187 @@ export default function Dashboard() {
   };
 
   const handleCompletersClick = async (quizId: string) => {
-    try {
-      if (expandedQuizId === quizId) {
-        setExpandedQuizId(null);
-        return;
-      }
+    // Toggle the expanded view
+    const newExpandedId = expandedQuizId === quizId ? null : quizId;
+    setExpandedQuizId(newExpandedId);
 
-      setExpandedQuizId(quizId);
-      const response = await fetch(`/api/get-completers?quizId=${quizId}`);
-      const data = await response.json();
-      
-      if (data.success) {
-        setCompleters(prev => ({
-          ...prev,
-          [quizId]: data.completers
-        }));
+    // Fetch data only if it's being opened and not already loaded
+    if (newExpandedId && !completers[quizId]) {
+      try {
+        const response = await fetch(`/api/get-completers?quizId=${quizId}`);
+        const data = await response.json();
+        
+        if (data.success) {
+          setCompleters(prev => ({
+            ...prev,
+            [quizId]: data.completers
+          }));
+        }
+      } catch (error) {
+        console.error("Error fetching completers:", error);
       }
-    } catch (error) {
-      console.error("Error fetching completers:", error);
-      alert("Failed to load completers");
     }
   };
 
   if (!isConnected) {
     return (
       <PageLayout>
-        <div className={sectionStyles}>
-          <h2 className="text-2xl font-semibold text-gray-700 mb-4">Welcome to Pruv.it</h2>
-          <p className="text-gray-600 mb-4">
-            Please connect your wallet to access the dashboard and create quizzes.
-          </p>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Welcome to Capybility</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>Please connect your wallet to access the dashboard and create quizzes.</p>
+          </CardContent>
+        </Card>
       </PageLayout>
     );
   }
 
-  const tableButtonStyles = "bg-gradient-to-r from-[#00c7df] to-[#ced661] text-white font-bold uppercase px-3 py-1 text-xs rounded-md hover:opacity-90 transition-opacity";
-  const redButtonStyles = "bg-red-600 text-white font-bold uppercase px-3 py-1 text-xs rounded-md hover:opacity-90 transition-opacity";
-
   return (
-    <PageLayout>
-      <div className="space-y-6">
-        <DrQuizBubble 
-          text="So you want to run some CAPYBILITY Quizzes do you? Well DrQuiz can help you with that. Click 'Create New Quiz' below or manage your existing quizes below."
-          collapsedText="Dr Quiz wants to help you with quizzes" // optional
-        />
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-gray-800">YOUR QUIZZES</h1>
-          <Link
-            href="/create"
-            className={buttonStyles}
-          >
-            CREATE NEW QUIZ
-          </Link>
+    <PageLayout fullWidth={true}>
+      <div 
+        style={{
+          backgroundImage: "url('/img/capyback.webp')",
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundAttachment: 'fixed',
+          minHeight: 'calc(100vh - 65px)', // Adjust 65px based on header height
+        }}
+      >
+        <div className="max-w-4xl mx-auto p-6 space-y-6">
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle>Creator Dashboard</CardTitle>
+                <Link href="/create">
+                  <Button>CREATE NEW QUIZ</Button>
+                </Link>
+              </div>
+            </CardHeader>
+          </Card>
+          <DrQuizBubble 
+            text="So you want to run some CAPYBILITY Quizzes do you? Well DrQuiz can help you with that. Click 'Create New Quiz' below or manage your existing quizes by clicking COMPLETERS to see the wallet addresses that completed it, or ARCHIVE if you are finished with the quiz."
+            collapsedText="Dr Quiz wants to help you with quizzes"
+          />
+          {isLoading ? (
+            <Card>
+              <CardContent className="pt-6">
+                <p>Loading your quizzes...</p>
+              </CardContent>
+            </Card>
+          ) : quizzes.filter(quiz => !quiz.is_archived && quiz.status === "minted").length > 0 ? (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Your Quizzes</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Quiz Name</TableHead>
+                        <TableHead>Created</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {quizzes
+                        .filter(quiz => !quiz.is_archived && quiz.status === "minted")
+                        .map((quiz) => (
+                          <React.Fragment key={quiz.id}>
+                            <TableRow>
+                              <TableCell>
+                                {quiz.quiz_name || quiz.quiz_data.quizName || "Untitled Quiz"}
+                              </TableCell>
+                              <TableCell>
+                                {formatDate(quiz.created_at)}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex justify-end gap-2">
+                                  <Link href={`/doquiz/${quiz.id}`} passHref>
+                                    <Button variant="outline" size="sm">DO QUIZ</Button>
+                                  </Link>
+                                  <Button variant="destructive" size="sm" onClick={() => handleArchiveQuiz(quiz.id)}>
+                                    ARCHIVE
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    onClick={() => handleCompletersClick(quiz.id)}
+                                    aria-expanded={expandedQuizId === quiz.id}
+                                  >
+                                    COMPLETERS
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                            {expandedQuizId === quiz.id && (
+                              <TableRow key={`${quiz.id}-completers`}>
+                                <TableCell colSpan={3}>
+                                  <div className="p-4 bg-muted rounded-md">
+                                    <h4 className="font-semibold mb-2">Completers:</h4>
+                                    <div className="bg-background rounded-md p-2 h-[180px] overflow-y-auto text-sm font-mono border">
+                                      {completers[quiz.id] ? (
+                                        completers[quiz.id].length > 0 ? (
+                                          completers[quiz.id].map((completer, index) => (
+                                            <div key={index} className="mb-1">
+                                              {completer.wallet_address}
+                                            </div>
+                                          ))
+                                        ) : (
+                                          <p className="text-gray-500 text-center font-sans pt-4">No one has completed this quiz yet.</p>
+                                        )
+                                      ) : (
+                                        <p className="text-gray-500 text-center font-sans pt-4">Loading completers...</p>
+                                      )}
+                                    </div>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </React.Fragment>
+                        ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+              <div className="flex justify-end pt-4">
+                <Link href="/archived-quizzes">
+                    <Button>GO TO ARCHIVED QUIZZES</Button>
+                </Link>
+              </div>
+            </>
+          ) : (
+            <Card>
+              <CardHeader>
+                  <CardTitle>No Quizzes Yet!</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600 mb-4">You haven&apos;t created any quizzes yet.</p>
+              </CardContent>
+              <CardFooter>
+                  <Link href="/create">
+                      <Button>CREATE YOUR FIRST QUIZ</Button>
+                  </Link>
+              </CardFooter>
+            </Card>
+          )}
         </div>
-
-        {isLoading ? (
-          <div className={sectionStyles}>
-            <p>Loading your quizzes...</p>
-          </div>
-        ) : quizzes.filter(quiz => !quiz.is_archived && quiz.status === "minted").length > 0 ? (
-          <>
-            <div className={`overflow-x-auto ${sectionStyles}`}>
-              <table className="min-w-full">
-                <thead>
-                  <tr>
-                    <th className="text-left py-2 px-3 border-b-2 border-[#00c7df] text-sm">Quiz Name</th>
-                    <th className="text-left py-2 px-3 border-b-2 border-[#00c7df] text-sm">Created</th>
-                    <th className="text-right py-2 px-3 border-b-2 border-[#00c7df] text-sm">Actions</th>
-                  </tr>
-                </thead>
-                {quizzes
-                  .filter(quiz => !quiz.is_archived && quiz.status === "minted")
-                  .map((quiz) => (
-                    <tbody key={quiz.id}>
-                      <tr className="border-b border-[#00c7df] last:border-0">
-                        <td className="py-2 px-3 text-sm">
-                          {quiz.quiz_name || quiz.quiz_data.quizName || "Untitled Quiz"}
-                        </td>
-                        <td className="py-2 px-3 text-sm">
-                          {formatDate(quiz.created_at)}
-                        </td>
-                        <td className="py-2 px-3">
-                          <div className="flex justify-end gap-1">
-                            <Link
-                              href={`/doquiz/${quiz.id}`}
-                              className={tableButtonStyles}
-                            >
-                              DO QUIZ
-                            </Link>
-                            <button
-                              onClick={() => handleArchiveQuiz(quiz.id)}
-                              className={redButtonStyles}
-                            >
-                              ARCHIVE
-                            </button>
-                            <button
-                              onClick={() => handleCompletersClick(quiz.id)}
-                              className={`${redButtonStyles} ${expandedQuizId === quiz.id ? 'bg-opacity-50' : ''}`}
-                            >
-                              COMPLETERS
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                      {expandedQuizId === quiz.id && (
-                        <tr>
-                          <td colSpan={3} className="border-b border-[#00c7df]">
-                            <div className="p-4">
-                              <div className="bg-gray-50 rounded-md p-2 h-[180px] overflow-y-auto text-sm font-mono">
-                                {completers[quiz.id] ? (
-                                  completers[quiz.id].length > 0 ? (
-                                    completers[quiz.id].map((completer, index) => (
-                                      <div key={index} className="mb-1">
-                                        {completer.wallet_address}
-                                      </div>
-                                    ))
-                                  ) : (
-                                    <p className="text-gray-500 text-center font-sans">No one has completed this quiz yet.</p>
-                                  )
-                                ) : (
-                                  <p className="text-gray-500 text-center font-sans">Loading completers...</p>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  ))}
-              </table>
-            </div>
-            <div className="flex justify-end">
-              <Link href="/archived-quizzes" className={buttonStyles}>
-                GO TO ARCHIVED QUIZZES
-              </Link>
-            </div>
-          </>
-        ) : (
-          <div className={sectionStyles}>
-            <p className="text-gray-600 mb-4">You haven&apos;t created any quizzes yet.</p>
-            <Link
-              href="/create"
-              className={buttonStyles}
-            >
-              CREATE YOUR FIRST QUIZ
-            </Link>
-          </div>
-        )}
       </div>
-      <CustomAlertDialog
-        isOpen={!!showArchiveAlert}
-        title="Archive Quiz"
-        message="Are you sure? This will mean people will no longer be able to complete your quiz."
-        confirmLabel="YES, ARCHIVE"
-        cancelLabel="CANCEL"
-        onConfirm={confirmArchive}
-        onCancel={() => setShowArchiveAlert(null)}
-        type="warning"
-      />
+      <AlertDialog open={!!showArchiveAlert} onOpenChange={(open) => !open && setShowArchiveAlert(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Archive Quiz</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure? This will mean people will no longer be able to complete your quiz.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowArchiveAlert(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmArchive}>YES, ARCHIVE</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </PageLayout>
   );
 }

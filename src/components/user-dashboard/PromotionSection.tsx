@@ -1,13 +1,14 @@
 "use client";
 import { useState, useEffect } from "react";
-import { sectionStyles, buttonStyles } from "@/utils/styles";
 import { useReadContract, useWriteContract } from "wagmi";
 import { ethers } from "ethers";
 import MintSuccessPopup from "@/components/MintSuccessPopup";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import BadgeSubmissionSection from './BadgeSubmissionSection'; // Import the new component
-
+import BadgeSubmissionSection from './BadgeSubmissionSection';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 
 interface PromotionStats {
   qualifyingQuizzes: number;
@@ -90,14 +91,13 @@ export default function PromotionSection({ address }: { address: `0x${string}` |
   const [hasQualified, setHasQualified] = useState(false);
   const [isMinting, setIsMinting] = useState(false);
   const [showMintSuccess, setShowMintSuccess] = useState(false);
-  //const [tokenId, setTokenId] = useState<string | null>(null); 
   const [nftImageUrl, setNftImageUrl] = useState<string>("");
   const router = useRouter();
   const { writeContractAsync: mintPromotionNFT } = useWriteContract();
-  const promotionType = "Educhain Expert"; // Define promotion type
+  const promotionType = "Educhain Expert";
   const [hasMinted, setHasMinted] = useState(false);
 
-  const { data: hasMintedData, refetch: refetchHasMinted } = useReadContract({ // Use useReadContract
+  const { data: hasMintedData, refetch: refetchHasMinted } = useReadContract({
     address: PROMOTION_NFT_ADDRESS,
     abi: PROMOTION_NFT_ABI,
     functionName: 'hasMintedPromotionType',
@@ -116,7 +116,6 @@ export default function PromotionSection({ address }: { address: `0x${string}` |
     }
   }, [address, refetchHasMinted]);
 
-  //change here back to qualifyingQuizzes as 10 and qualifyingQuizCompletions as 50
   useEffect(() => {
     if (promotionStats && promotionStats.qualifyingQuizzes >= 10 && promotionStats.qualifyingQuizCompletions >= 50) {
       setHasQualified(true);
@@ -137,7 +136,7 @@ export default function PromotionSection({ address }: { address: `0x${string}` |
 
       if (data.success) {
         setPromotionStats(data.stats);
-        refetchHasMinted(); // Refetch hasMinted status after fetching promotion stats
+        refetchHasMinted();
       } else {
         throw new Error(data.error || "Failed to fetch promotion statistics");
       }
@@ -154,11 +153,6 @@ export default function PromotionSection({ address }: { address: `0x${string}` |
     fetchPromotionStats();
   };
 
-  const getProgressBarWidth = (value: number, max: number): string => {
-    const percentage = (value / max) * 100;
-    return `${Math.min(percentage, 100)}%`; // Ensure it doesn't exceed 100%
-  };
-
   const handleMintPromotion = async () => {
     if (!address) {
       alert("Please connect your wallet.");
@@ -167,7 +161,6 @@ export default function PromotionSection({ address }: { address: `0x${string}` |
 
     setIsMinting(true);
     try {
-      // 1. Get Signature
       const signResponse = await fetch("/api/sign-promotion", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -181,9 +174,7 @@ export default function PromotionSection({ address }: { address: `0x${string}` |
       if (!signData.success) {
         throw new Error("Failed to get signature");
       }
-      //setSignature(signData.signature as `0x${string}`);
 
-      // 2. Mint NFT
       const tx = await mintPromotionNFT({
         address: PROMOTION_NFT_ADDRESS,
         abi: PROMOTION_NFT_ABI,
@@ -200,7 +191,6 @@ export default function PromotionSection({ address }: { address: `0x${string}` |
         throw new Error("mintPromotionNFT did not return a valid transaction hash.");
       }
 
-      // 3. Get Token ID
       const provider = new ethers.JsonRpcProvider("https://rpc.edu-chain.raas.gelato.cloud/");
       const receipt = await provider.getTransactionReceipt(txHash);
 
@@ -253,7 +243,6 @@ export default function PromotionSection({ address }: { address: `0x${string}` |
 
       const tokenId = parsedLog.args.tokenId.toString();
 
-      // 4. Create Metadata
       const createMetadataResponse = await fetch("/api/create-promotion-metadata", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -269,8 +258,6 @@ export default function PromotionSection({ address }: { address: `0x${string}` |
         throw new Error("Failed to create metadata");
       }
 
-      // 5. Set State and Show Popup
-      //setTokenId(tokenId);
       setNftImageUrl(`/promotionmetadata/img/${tokenId}`);
       setShowMintSuccess(true);
 
@@ -286,89 +273,73 @@ export default function PromotionSection({ address }: { address: `0x${string}` |
     }
   };
 
-  return ( //change the qualifyingQuizzes to 10 and QuizCompletions to 50 they are just at 2 for testing. 
-    <div className={sectionStyles}>
-      <h2 className="text-2xl font-bold mb-4">Promotion ({promotionType})</h2>
-
-      {!showPromotion ? (
-        <button
-          onClick={handleCheckExpertStatus}
-          className={buttonStyles}
-        >
-          CHECK {promotionType} STATUS
-        </button>
-      ) : isLoading ? (
-        <div>Loading {promotionType} status...</div>
-      ) : error ? (
-        <div>Error loading {promotionType} status: {error}</div>
-      ) : promotionStats ? (
-        <div className="space-y-4">
-          <div>
-            <h3 className="text-lg font-semibold mb-2">Qualifying Quizzes (10 required)</h3>
-            <div className="bg-gray-200 rounded-full h-4 relative">
-              <div
-                className="bg-green-500 rounded-full h-4 absolute top-0 left-0"
-                style={{ width: getProgressBarWidth(promotionStats.qualifyingQuizzes, 10) }}
-              ></div>
-              <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-xs font-bold text-white">
-                {Math.min(promotionStats.qualifyingQuizzes, 10)} / 10
-              </span>
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Promotion ({promotionType})</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {!showPromotion ? (
+          <Button onClick={handleCheckExpertStatus}>
+            CHECK {promotionType.toUpperCase()} STATUS
+          </Button>
+        ) : isLoading ? (
+          <div>Loading {promotionType} status...</div>
+        ) : error ? (
+          <div>Error loading {promotionType} status: {error}</div>
+        ) : promotionStats ? (
+          <div className="space-y-4">
+            <div>
+              <div className="flex justify-between mb-1">
+                <h3 className="text-sm font-medium">Qualifying Quizzes (10 required)</h3>
+                <span className="text-sm text-muted-foreground">{Math.min(promotionStats.qualifyingQuizzes, 10)} / 10</span>
+              </div>
+              <Progress value={(promotionStats.qualifyingQuizzes / 10) * 100} />
             </div>
+
+            <div>
+              <div className="flex justify-between mb-1">
+                <h3 className="text-sm font-medium">Qualifying Quiz Completions (50 required)</h3>
+                <span className="text-sm text-muted-foreground">{Math.min(promotionStats.qualifyingQuizCompletions, 50)} / 50</span>
+              </div>
+              <Progress value={(promotionStats.qualifyingQuizCompletions / 50) * 100} />
+            </div>
+
+            {hasQualified && !isMinting && !hasMinted && (
+              <Button onClick={handleMintPromotion}>
+                Mint My {promotionType} Badge
+              </Button>
+            )}
+            {hasMinted && (
+              <div className="flex flex-col items-center pt-4">
+                <Image
+                  src="/img/EduchainExpertCapybilityPromo.png"
+                  alt={`${promotionType} Badge`}
+                  width={160}
+                  height={160}
+                  className="object-contain mb-2 rounded-lg shadow-md"
+                />
+                <p className="text-green-700 font-semibold text-center">
+                  Congratulations! You have already achieved and minted this badge!
+                </p>
+                <BadgeSubmissionSection />
+              </div>
+            )}
+            {isMinting && <p>Minting Promotion NFT...</p>}
           </div>
-
-          <div>
-            <h3 className="text-lg font-semibold mb-2">Qualifying Quiz Completions (50 required)</h3>
-            <div className="bg-gray-200 rounded-full h-4 relative">
-              <div
-                className="bg-green-500 rounded-full h-4 absolute top-0 left-0"
-                style={{ width: getProgressBarWidth(promotionStats.qualifyingQuizCompletions, 50) }}
-              ></div>
-              <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-xs font-bold text-white">
-                {Math.min(promotionStats.qualifyingQuizCompletions, 50)} / 50
-              </span>
-            </div>
-          </div>
-          {hasQualified && !isMinting && !hasMinted && (
-            <button
-              onClick={handleMintPromotion}
-              className={buttonStyles}
-            >
-              Mint My {promotionType} Badge
-            </button>
-          )}
-          {hasMinted && (
-            <div className="flex flex-col items-center mt-4">
-              <Image
-                src="/img/EduchainExpertCapybilityPromo.png"
-                alt={`${promotionType} Badge`}
-                width={40}
-                height={40}
-                className="w-40 h-40 object-contain mb-2 rounded-lg shadow"
-              />
-              <p className="text-green-700 font-semibold text-center">
-                Congratulations! You have already achieved and minted this badge!
-              </p>
-
-              {/* --- THIS IS THE CHANGE --- */}
-              {/* The BadgeSubmissionSection will now appear here when hasMinted is true */}
-              <BadgeSubmissionSection />
-
-            </div>
-          )}
-          {isMinting && <p>Minting Promotion NFT...</p>}
-        </div>
-      ) : (
-        <p>No promotion statistics available.</p>
-      )}
+        ) : (
+          <p>No promotion statistics available.</p>
+        )}
+      </CardContent>
       <MintSuccessPopup
         open={showMintSuccess}
-        rarity="" // No rarity for promotion badges
+        rarity=""
         nftImageUrl={nftImageUrl}
         onGoToDashboard={() => {
           setShowMintSuccess(false);
           router.push("/user-dashboard");
         }}
       />
-    </div>
+    </Card>
   );
 }

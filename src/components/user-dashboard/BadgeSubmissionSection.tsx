@@ -4,6 +4,15 @@ import { useOCAuth } from '@opencampus/ocid-connect-js';
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function BadgeSubmissionSection() {
   const { isInitialized, authState, ocAuth } = useOCAuth();
@@ -14,9 +23,11 @@ export default function BadgeSubmissionSection() {
 
   if (!isInitialized || !authState.isAuthenticated) {
     return (
-      <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg mt-4">
-        <p className="text-sm text-yellow-800">Now it&apos;s time to make it official with an OpenCampus Badge! Please connect your OCID at the top of the dashboard to claim your Open Campus Badge.</p>
-      </div>
+      <Alert className="mt-4">
+        <AlertDescription>
+          Now it&apos;s time to make it official with an OpenCampus Badge! Please connect your OCID at the top of the dashboard to claim your Open Campus Badge.
+        </AlertDescription>
+      </Alert>
     );
   }
 
@@ -61,52 +72,55 @@ export default function BadgeSubmissionSection() {
   };
 
   return (
-    <div className="p-6 bg-gray-50 border border-gray-200 rounded-lg mt-6">
-      <h3 className="text-lg font-semibold text-gray-800 mb-2">Claim Your Open Campus Badge</h3>
-      <p className="text-gray-600 mb-4 text-sm">
-        You&apos;ve earned the on-chain NFT! Now, claim the corresponding achievement badge to display on your Open Campus profile.
-      </p>
-      
-      <div className="flex flex-col items-center gap-4">
-        {isClaimed ? (
-          // --- SUCCESS STATE ---
-          <div className="text-center">
-            <Image
-              src="/img/OCBClaimed.png"
-              alt="Open Campus Badge Claimed"
-              width={200}
-              height={50}
-            />
-          </div>
-        ) : (
-          // --- INITIAL STATE ---
-          <button
-            onClick={handleClaimBadge}
-            disabled={isSubmitting}
-            className="disabled:opacity-50 disabled:cursor-not-allowed transition-opacity hover:opacity-90"
-          >
-            <Image
-              src="/img/ClaimOCB.png"
-              alt="Claim Open Campus Badge"
-              width={200}
-              height={50}
-            />
-          </button>
-        )}
-      </div>
-
-      {submissionStatus && (
-        <p className="mt-4 text-sm text-gray-700 text-center">{submissionStatus}</p>
-      )}
-
-      {/* The link is now here, below the status message, and will only appear when claimed */}
-      {isClaimed && claimedUserOcId && (
-        <div className="text-center mt-2">
-          <Link href={`https://id.opencampus.xyz/public/credentials?username=${claimedUserOcId}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-            View Your OC Achievements Now
-          </Link>
+    <Card className="mt-6">
+      <CardHeader>
+        <CardTitle>Claim Your Open Campus Badge</CardTitle>
+        <CardDescription>
+          You&apos;ve earned the on-chain NFT! Now, claim the corresponding achievement badge to display on your Open Campus profile.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-col items-center gap-4">
+          {isClaimed ? (
+            // --- SUCCESS STATE ---
+            <div className="text-center">
+              <Image
+                src="/img/OCBClaimed.png"
+                alt="Open Campus Badge Claimed"
+                width={200}
+                height={50}
+              />
+            </div>
+          ) : (
+            // --- INITIAL STATE ---
+            <Button
+              onClick={handleClaimBadge}
+              disabled={isSubmitting}
+              variant="ghost"
+              className="p-0 h-auto"
+            >
+              <Image
+                src="/img/ClaimOCB.png"
+                alt="Claim Open Campus Badge"
+                width={200}
+                height={50}
+              />
+            </Button>
+          )}
         </div>
-      )}
-    </div>
+
+        {submissionStatus && (
+          <p className="mt-4 text-sm text-center">{submissionStatus}</p>
+        )}
+
+        {isClaimed && claimedUserOcId && (
+          <div className="text-center mt-2">
+            <Link href={`https://id.opencampus.xyz/public/credentials?username=${claimedUserOcId}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+              View Your OC Achievements Now
+            </Link>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
