@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 
+export const runtime = 'edge';
+export const region = 'iad1';
+
 const HYPERBOLIC_API_KEY = process.env.HYPERBOLIC_API_KEY;
 
 async function fetchWithRetry(url: string, options: RequestInit, retries = 2, delayMs = 500): Promise<Response> {
