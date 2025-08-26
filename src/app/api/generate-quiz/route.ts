@@ -17,7 +17,7 @@ async function fetchWithRetry(url: string, options: RequestInit, retries = 2, de
       throw new Error(`API request failed with status ${response.status}: ${errorText}`);
     }
   }
-  throw new Error("Unexpected error in fetchWithRetry");
+  throw new Error("Unexpected error in the fetchWithRetry");
 }
 
 export async function POST(req: Request) {
