@@ -1,16 +1,31 @@
 import MainLayout from '@/components/MainLayout';
 import { sectionStyles } from "@/utils/styles";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function WhyCapybility() {
   return (
     <MainLayout>
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-4xl font-bold text-gray-900 mb-8">Guide</h1>
+      <div
+        className="max-w-4xl mx-auto relative px-4 py-8"
+        style={{
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          minHeight: '100vh',
+        }}
+      >
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>
+              <span className="text-3xl font-bold text-primary">Guide</span>
+            </CardTitle>
+          </CardHeader>
+        </Card>
         <div className="prose prose-lg">
 
           {/* Section 1: How to do a quiz */}
           <div className={sectionStyles + " mb-8"}>
-            <h2 className="text-2xl font-bold mb-4">How to Do Quizzes</h2>
+            <h2 className="text-2xl font-bold mb-4 text-primary">How to Do Quizzes</h2>
             <ol className="list-decimal ml-6 mb-8">
               <li>Connect your wallet using the button at the top right.</li>
               <li>Go to the <b>User Dashboard</b> by clicking &quot;Do Quiz&quot; navigation on the navigation menu OR by clicking the &quot;User Dashboard&quot; button on the home page.</li>
@@ -29,7 +44,7 @@ export default function WhyCapybility() {
 
           {/* Section 2: How to create a quiz */}
           <div className={sectionStyles + " mb-8"}>
-            <h2 className="text-2xl font-bold mb-4">How to Create Quizzes</h2>
+            <h2 className="text-2xl font-bold mb-4 text-primary">How to Create Quizzes</h2>
             <ol className="list-decimal ml-6 mb-8">
               <li>Connect your wallet using the button at the top right.</li>
               <li>Go to the <b>Creator Dashboard</b> by clicking &quot;CREATOR DASHBOARD&quot; on the homepage or by clicking &quot;Create&quot; in the navigation menu.</li>
@@ -50,7 +65,7 @@ export default function WhyCapybility() {
 
           {/* Section 3: How to participate in the Educhain Experts Promotion */}
           <div className={sectionStyles}>
-            <h2 className="text-2xl font-bold mb-4">How to Participate in the Educhain Experts Promotion</h2>
+            <h2 className="text-2xl font-bold mb-4 text-primary">How to Participate in the Educhain Experts Promotion</h2>
             <p className="text-gray-600 mb-4">
               The Educhain Experts Promotion is designed to reward expert uses of the educhain ecosystem. To participate, follow these steps:
             </p>

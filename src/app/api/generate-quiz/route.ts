@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 
 export const runtime = 'edge';
-export const region = 'iad1';
 
 const HYPERBOLIC_API_KEY = process.env.HYPERBOLIC_API_KEY;
 

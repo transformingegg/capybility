@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+//import { CapyStatusProvider } from "../components/CapyStatusContext";
 import ClientProviders from "./ClientProviders"; // Import the new Client Component
 
 // Load fonts
@@ -35,7 +36,9 @@ export default function RootLayout({
           backgroundAttachment: 'fixed',
         }}
       >
-        <ClientProviders>{children}</ClientProviders>
+        <ClientProviders>
+          {children}
+        </ClientProviders>
       </body>
     </html>
   );
