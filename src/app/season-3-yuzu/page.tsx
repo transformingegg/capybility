@@ -1,13 +1,22 @@
 
 
-import PageLayout from "@/components/PageLayout";
+import MainLayout from "@/components/MainLayout";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import Image from "next/image";
 
 export default function Season3YuzuPage() {
   return (
-    <PageLayout backgroundImage="/img/capyback.webp">
-      <div className="max-w-2xl mx-auto px-4 py-8 relative">
+    <MainLayout>
+      <div
+        className="max-w-4xl mx-auto px-4 py-8 relative"
+        style={{
+          backgroundImage: 'url(/img/capyback.webp)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          minHeight: '100vh',
+        }}
+      >
         {/* Top Heading Card with Yuzu Coin */}
         <Card className="mb-8 relative">
           <CardHeader className="flex flex-row items-center p-6">
@@ -30,7 +39,7 @@ export default function Season3YuzuPage() {
             <p className="mb-2">
               By using <strong>Capybility</strong>, you can collect Yuzu Points that can be spent on EDULand NFTs to unlock $EDU rewards — with up to 150M EDU tokens allocated for participants.
             </p>
-            <a href="https://opencampus-xyz.medium.com/yuzu-heatwave-everything-you-need-to-know-b1775ab4e018" className="text-blue-600 underline mb-2 inline-block">Learn more →</a>
+            <a href="https://opencampus-xyz.medium.com/yuzu-heatwave-everything-you-need-to-know-b1775ab4e018" className="text-yellow-500 underline mb-2 inline-block hover:text-yellow-400">Learn more →</a>
             
           </CardContent>
         </Card>
@@ -92,9 +101,9 @@ export default function Season3YuzuPage() {
             </div>
             <br />
             <p className="mb-2">
-              Got Questions? Ask in the <a href="https://discord.gg/capybility" className="text-blue-600 underline">CAPYBILITY DISCORD</a>
+              Got Questions? Ask in the <a href="https://discord.gg/capybility" className="text-yellow-500 underline hover:text-yellow-400">CAPYBILITY DISCORD</a>
             </p>
-            <a href="/user-dashboard" className="text-green-600 underline mb-4 inline-block">Start earning now →</a>
+            <a href="/user-dashboard" className="text-yellow-500 underline mb-4 inline-block hover:text-yellow-400">Start earning now →</a>
           </CardContent>
         </Card>
 
@@ -106,24 +115,32 @@ export default function Season3YuzuPage() {
           <CardContent>
             <ul className="list-none pl-0 mb-8">
               <li className="mb-1">
-                <a href="https://yuzu.educhain.xyz/" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline font-bold">Yuzu Dashboard</a>
+                <a href="https://yuzu.educhain.xyz/" target="_blank" rel="noopener noreferrer" className="text-yellow-500 underline font-bold hover:text-yellow-400">Yuzu Dashboard</a>
               </li>
               <li className="mb-1">
-                <a href="https://dashboard.educhain.xyz/claim" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline font-bold">Claim Yuzu</a>
+                <a href="https://dashboard.educhain.xyz/claim" target="_blank" rel="noopener noreferrer" className="text-yellow-500 underline font-bold hover:text-yellow-400">Claim Yuzu</a>
               </li>
               <li className="mb-1">
-                <a href="https://educhain.xyz/ecosystem" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline font-bold">EDU Chain Ecosystem</a>
+                <a href="https://educhain.xyz/ecosystem" target="_blank" rel="noopener noreferrer" className="text-yellow-500 underline font-bold hover:text-yellow-400">EDU Chain Ecosystem</a>
               </li>
               <li>
-                <a href="https://x.com/educhain_xyz" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline font-bold">Follow @educhain_xyz</a>
+                <a href="https://x.com/educhain_xyz" target="_blank" rel="noopener noreferrer" className="text-yellow-500 underline font-bold hover:text-yellow-400">Follow @educhain_xyz</a>
               </li>
             </ul>
             <div className="absolute bottom-4 right-4">
-              <Image src="/img/Palm_tree.svg" alt="Palm Tree" width={288} height={288} />
+              <Image
+                src="/img/Palm_tree.svg"
+                alt="Palm Tree"
+                width={288}
+                height={288}
+                className="w-36 h-36 md:w-72 md:h-72 lg:w-80 lg:h-80 max-w-full max-h-full"
+                style={{ objectFit: 'contain' }}
+              />
             </div>
           </CardContent>
         </Card>
       </div>
-    </PageLayout>
+    </MainLayout>
   );
 }
+

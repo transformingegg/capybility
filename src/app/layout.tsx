@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CAPYBILIY - SHOW YOURSELF ",
+  title: "CAPYBILIY - SHOW YOU KNOW",
   description: "Using Quizzes to Showcase Your Products and Skills",
 };
 
