@@ -123,6 +123,7 @@ const MainContent = dynamic(
       const MainContentComponent = () => {
   const router = useRouter();
   const { isConnected, address } = useAccount();
+        // Remove referral tracking
   const [step, setStep] = useState(1);
   const [url, setUrl] = useState("");
   const [autoGather, setAutoGather] = useState(true);
@@ -260,6 +261,7 @@ const MainContent = dynamic(
           setLoadingMessage("Saving quiz and minting NFT...");
 
           try {
+            // Remove referral submission logic
             // 1. Save quiz
             const saveResponse = await fetch("/api/save-quiz", {
               method: "POST",
@@ -581,7 +583,7 @@ const MainContent = dynamic(
                         <CardDescription>Your quiz has been created and the NFT has been minted. Share it with the world!</CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <QuizShareSection quizId={quizId!} />
+                        <QuizShareSection quizId={quizId!} quizName={quizName} hashtags={quizTags} />
                       </CardContent>
                       <CardFooter className="flex justify-end items-center gap-4 mt-4">
                         <Button onClick={() => router.push(`/doquiz/${quizId}`)} variant="outline">

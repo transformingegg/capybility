@@ -27,6 +27,24 @@ export default function Home() {
     }
   }, [searchParams]);
 
+  // Referral tracking
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const ref = params.get('ref');
+      if (ref) {
+        console.log('[Referral] Referral link found in URL (homepage):', ref);
+        sessionStorage.setItem('referrer', ref);
+        console.log('[Referral] Wallet stored in session (homepage):', ref);
+      } else {
+        const storedRef = sessionStorage.getItem('referrer');
+        if (storedRef) {
+          console.log('[Referral] Wallet loaded from session (homepage):', storedRef);
+        }
+      }
+    }
+  }, []);
+
   return (
     <MainLayout noPadding={true}>
       <AlertDialog open={showAuthAlert} onOpenChange={setShowAuthAlert}>

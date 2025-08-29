@@ -5,15 +5,30 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Copy } from 'lucide-react';
+import { useAccount } from "wagmi";
 
 interface QuizShareSectionProps {
   quizId: string;
+  quizName?: string;
+  hashtags?: string[];
 }
 
-export default function QuizShareSection({ quizId }: QuizShareSectionProps) {
+export default function QuizShareSection({ quizId, quizName, hashtags }: QuizShareSectionProps) {
   const [copySuccess, setCopySuccess] = useState<string>('');
+  const { address } = useAccount();
   const quizUrl = `${process.env.NEXT_PUBLIC_APP_URL}/doquiz/${quizId}`;
   const imageUrl = `${process.env.NEXT_PUBLIC_APP_URL}/img/capyrep.png`;
+  const referralUrl = address ? `${quizUrl}?ref=${address}` : `${quizUrl}?ref=YOUR_WALLET_ADDRESS`;
+
+  // X share button logic
+  const formattedHashtags = hashtags && hashtags.length ? hashtags.map((tag: string) => tag.replace(/#/g, '').trim()).filter(Boolean).join(',') : '';
+  const tweetText = `I just created great quiz about ${quizName || ''}. on @capybility You can do it here.`;
+  const tweetParams = new URLSearchParams({
+    text: tweetText,
+    url: referralUrl,
+    hashtags: formattedHashtags
+  });
+  const tweetUrl = `https://x.com/intent/tweet?${tweetParams.toString()}`;
 
   const embedCode = `<a href="${quizUrl}" target="_blank" rel="noopener noreferrer"><img src="${imageUrl}" alt="Take this quiz on Capybility" style="max-width: 300px; border-radius: 8px;" /></a>`;
 
@@ -36,6 +51,20 @@ export default function QuizShareSection({ quizId }: QuizShareSectionProps) {
         </div>
       )}
 
+      {/* X Share Button */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Share on X</CardTitle>
+          <CardDescription>Let people know about your quiz on X (Twitter).</CardDescription>
+        </CardHeader>
+        <CardContent className="flex items-center justify-center">
+          <a href={tweetUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', height: '48px' }}>
+            <Image src="/img/shareOnX.png" alt="Share on X" width={96} height={48} style={{ objectFit: 'contain' }} />
+          </a>
+        </CardContent>
+      </Card>
+
+      {/* Share Link */}
       <Card>
         <CardHeader>
           <CardTitle>Share the Link</CardTitle>
@@ -48,9 +77,19 @@ export default function QuizShareSection({ quizId }: QuizShareSectionProps) {
               <Copy className="h-4 w-4" />
             </Button>
           </div>
+          <div className="flex items-center gap-2 mt-2">
+            <Input readOnly value={referralUrl} className="flex-grow font-mono text-sm" />
+            <Button size="icon" variant="outline" onClick={() => handleCopy(referralUrl, 'Referral URL')}>
+              <Copy className="h-4 w-4" />
+            </Button>
+          </div>
+          {!address && (
+            <div className="text-xs text-gray-500 mt-1">Replace <span className="font-mono">YOUR_WALLET_ADDRESS</span> with your wallet address.</div>
+          )}
         </CardContent>
       </Card>
 
+      {/* Grab an Image */}
       <Card>
         <CardHeader>
           <CardTitle>Grab an Image</CardTitle>
@@ -80,6 +119,7 @@ export default function QuizShareSection({ quizId }: QuizShareSectionProps) {
         </CardContent>
       </Card>
 
+      {/* HTML Embed Code */}
       <Card>
         <CardHeader>
           <CardTitle>HTML Embed Code</CardTitle>

@@ -10,6 +10,7 @@ import AvailableQuizzesSection from "@/components/user-dashboard/AvailableQuizze
 import PromotionSection from "@/components/user-dashboard/PromotionSection";
 import OCIDButton from "@/components/OCIDButton";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import ReferralsSection from "@/components/user-dashboard/ReferralsSection";
 
 export default function UserDashboard() {
   const router = useRouter();
@@ -56,6 +57,7 @@ export default function UserDashboard() {
           <AvailableQuizzesSection />
           <PromotionSection address={address} /> 
           <StatisticsSection address={address} />
+          <ReferralsSection />
           <KnowledgePackSection address={address} />
           <FutureFeatureSection />
         </div>

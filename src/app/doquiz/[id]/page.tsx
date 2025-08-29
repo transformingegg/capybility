@@ -34,6 +34,7 @@ interface QuizData {
   walletAddress: string;
   quizName: string;
   sourceUrl?: string;
+  hashtags?: string[];
 }
 
 interface QuizAttemptStatus {
@@ -145,8 +146,19 @@ interface QuizError {
 }
 
 export default function QuizPage({ params }: { params: Promise<{ id: string }> }) {
+    // Referral tracking: set referrer from URL param in sessionStorage
+    useEffect(() => {
+      if (typeof window === 'undefined') return;
+      const urlParams = new URLSearchParams(window.location.search);
+      const ref = urlParams.get('ref');
+      if (ref) {
+        sessionStorage.setItem('referrer', ref);
+        console.log('Referrer picked up from URL:', ref);
+      }
+    }, []);
   const resolvedParams = use(params);
   const { isConnected, address } = useAccount();
+
   const { signMessageAsync } = useSignMessage();
   const [quiz, setQuiz] = useState<QuizData | null>(null);
   const [answers, setAnswers] = useState<number[]>([]);
@@ -165,6 +177,7 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
   const [viewMode, setViewMode] = useState<'single' | 'all'>('single');
   const [[currentQuestionIndex, direction], setPage] = useState([0, 0]);
 
+ 
   const paginate = (newDirection: number) => {
     setPage([currentQuestionIndex + newDirection, newDirection]);
   };
@@ -229,12 +242,22 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
         const response = await fetch(`/api/get-quiz?id=${resolvedParams.id}`);
         const data = await response.json();
         if (data.success && data.quiz?.quiz_data?.quiz && data.quiz.status === "minted") {
+          // Parse hashtags from quiz_data.tags (array or comma-separated string)
+          let hashtags: string[] = [];
+          if (data.quiz.quiz_data?.tags) {
+            if (Array.isArray(data.quiz.quiz_data.tags)) {
+              hashtags = data.quiz.quiz_data.tags;
+            } else if (typeof data.quiz.quiz_data.tags === 'string') {
+              hashtags = data.quiz.quiz_data.tags.split(',').map((tag: string) => tag.trim()).filter(Boolean);
+            }
+          }
           setQuiz({
             id: data.quiz.id,
             quiz: data.quiz.quiz_data.quiz,
             walletAddress: data.quiz.wallet_address,
             quizName: data.quiz.quiz_name || data.quiz.quiz_data.quizName || "Untitled Quiz",
             sourceUrl: data.quiz.source_url || null,
+            hashtags,
           });
           setAnswers(new Array(data.quiz.quiz_data.quiz.length).fill(-1));
         } else {
@@ -859,6 +882,10 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
           setShowMintSuccess(false);
           router.push("/user-dashboard");
         }}
+        quizName={quiz?.quizName}
+        quizId={quiz?.id}
+        walletAddress={address}
+  hashtags={quiz?.hashtags?.length ? quiz.hashtags.join(",") : "Capybility,QuizNFT"}
       />
     </PageLayout>
   );
