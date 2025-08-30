@@ -24,6 +24,9 @@ export function NavMenu() {
         <DropdownMenuItem asChild>
           <Link href="/season-3-yuzu" className="text-[#00c7df] font-bold text-lg whitespace-nowrap">Season 3 Yuzu</Link>
         </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/dapp-directory" className="text-[#00c7df] font-bold text-lg whitespace-nowrap">DApp Directory</Link>
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )

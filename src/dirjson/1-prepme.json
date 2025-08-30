@@ -1,0 +1,45 @@
+[
+  {
+    "App_Name": "PrepMe Academy",
+    "Link_to_Main_Site": "https://prepme.academy/login?ref=geoffinsyccnhsntsi",
+    "Social_Links": [
+      {
+        "Platform": "Twitter/X",
+        "URL": "https://x.com/prepmeacademy"
+      },
+      {
+        "Platform": "Telegram",
+        "URL": "https://t.me/prepmeacademy"
+      }
+    ],
+    "App_Blurb": "PrepMe Academy is a blockchain-powered education dApp on EduChain that makes exam preparation engaging and rewarding. Designed for students aiming to conquer university entrance exams like JAMB, WAEC, IELTS, and POSTUTME, it offers a vast library of past questions filtered by exam type, year, and subject for targeted practice. Users track progress through accuracy and speed stats, receive personalized recommendations, and compete on global leaderboards. By integrating gamification, PrepMe lets users earn XP through daily quests and streaks, which can be converted into on-chain rewards. As part of the Open Campus ecosystem, it transforms studying into a learn-to-earn experience, where efforts yield digital assets like Yuzu Points and $EDU tokens. Backed by student success stories, such as passing tough exams, PrepMe combines education with Web3 incentives for confident, motivated learning.",
+    "Features": [
+      "Vast library of past exam questions, filterable by type (e.g., JAMB, WAEC), year, and subject for customized practice.",
+      "Progress tracking with detailed stats on accuracy, speed, strengths, and improvement areas.",
+      "Personalized recommendations based on performance to focus on weak spots.",
+      "Daily and weekly quests, plus study streaks for earning XP and bonus points.",
+      "Global leaderboard for weekly competitions and ranking against peers.",
+      "Blockchain-verified rewards system, converting XP to crypto and unlocking achievement badges.",
+      "Integration with EduChain for on-chain analytics and rewards like Yuzu Points."
+    ],
+    "Season_3_Yuzu_Allocation_Amount": "213,755 + badges",
+    "Ways_to_Get_Yuzu_from_DApp_Use": [
+      "Create an account and connect your wallet to start tracking on-chain activity.",
+      "Select an exam (e.g., JAMB, WAEC) and practice questions to build progress.",
+      "Complete daily and weekly quests to earn XP points.",
+      "Maintain study streaks for bonus XP.",
+      "Climb the leaderboard ranks; higher ranks yield more Yuzu Points at season end (XP converts to Yuzu).",
+      "Mint Open Campus badges for extra rewards: Ambassador (5000 pts, refer 25+ people), Community Builder (5000 pts), Quest Lord (10000 pts, complete 10 quests).",
+      "At Season 3 end, accumulated XP converts to Yuzu Points for $EDU unlocks via EDULand NFTs."
+    ],
+    "Link_to_Best_YUZU_Information_about_this_DApp": "https://www.prepme.academy/yuzu-heatwave",
+    "Extra_Important_Information_Link_1": {
+      "URL": "https://x.com/prepmeacademy/status/1961333952242716676",
+      "Link_Title": "Latest X Update"
+    },
+    "Extra_Important_Information_Link_2": {
+      "URL": "https://www.linkedin.com/posts/abosede-mayungbe_i-remember-feeling-both-excited-and-uncertain-activity-7330177206750494721-Ssan/",
+      "Link_Title": "LinkedIn Success Story"
+    }
+  }
+]
