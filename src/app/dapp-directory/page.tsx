@@ -93,6 +93,8 @@ const DappDirectoryPage = () => {
           <CardHeader className="flex flex-col items-start p-6">
             <CardTitle className="text-3xl font-bold text-primary mb-2">EDUCHAIN DApp Directory</CardTitle>
             <div className="mb-2 text-lg text-gray-700">Our aim is to create the most informative and <span className="font-bold text-primary">BEST Educhain App directory</span> and keep it up to date! Want to know how to earn <span className="font-bold text-yellow-500">Season 3 YUZU</span>? This is your place.</div>
+            <div className="mb-2 text-lg text-gray-700">Use the checkboxes to track whether or not you have investigated the DApp.</div>
+            <div className="mb-2 text-lg text-gray-700">Use the drop down arrows to access each DApps information.</div>
           </CardHeader>
         </Card>
         <div className="overflow-x-auto">
