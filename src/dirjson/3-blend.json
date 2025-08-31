@@ -1,0 +1,44 @@
+[
+  {
+    "App_Name": "Blend Protocol",
+    "Link_to_Main_Site": "https://www.blend.fan/",
+    "Social_Links": [
+      {
+        "Platform": "Twitter/X",
+        "URL": "https://x.com/Protocol_Blend
+"
+      },
+      {
+        "Platform": "Telegram",
+        "URL": "https://t.me/blendprotocolofficial"
+      }
+    ],
+    "App_Blurb": "Blend Protocol is a decentralized, non-custodial lending platform for EduFi (and BTCFi), deployed on EduChain, Mezo Network, Arbitrum, and Base. It enables users to supply assets to earn passive income or borrow in overcollateralized (perpetual) or undercollateralized (flash) modes. Built with audited, open-source smart contracts, Blend ensures transparency and security, allowing interactions via UI, APIs, or direct contracts. Supplied funds can be withdrawn on-demand or tokenized as bTokens for trading and governance. As part of the Open Campus ecosystem, Blend revolutionizes educational finance by providing accessible loans and yields, empowering students, educators, and institutions. With integrations like SailFish's stEDU and GainzSwap's dEDU, it unlocks liquidity for EDU tokens, fostering a capital-efficient EduFi economy through staking, borrowing, and community governance.",
+    "Features": [
+      "Decentralized liquidity market for supplying assets and earning passive yields.",
+      "Overcollateralized perpetual loans and undercollateralized flash loans for borrowing.",
+      "On-chain interactions via UI, APIs, or smart contracts with audited security.",
+      "Cross-chain support on Mezo Network, Arbitrum, and Base for BTCFi applications.",
+      "Community-driven governance and rewards, including Yuzu Points for on-chain activities."
+    ],
+    "Season_3_Yuzu_Allocation_Amount": "564,279 + badges",
+    "Ways_to_Get_Yuzu_from_DApp_Use": [
+      "Connect your wallet to Blend Protocol to track on-chain activity.",
+      "Supply assets (e.g., $EDU) to earn Yuzu Points based on USD value deposited (e.g., previous seasons -> $1 USD per quarter = 1 Yuzu).",
+      "Borrow stablecoins (e.g., USDT/USDC) against collateral to earn higher Yuzu Points (e.g., previous seasons -> $1 USD borrowed per quarter = 1.5 Yuzu).",
+      "Integrates well with stEDU and dEDU from other DEFI protocols that also have YUZU earning attached",
+      "Mint Open Campus badges for extra rewards: TBA",
+      "YUZU Points leaderboard tracker page" 
+    ],
+    "Link_to_Best_YUZU_Information_about_this_DApp": "https://app.blend.fan/yuzu-points",
+    "Extra_Important_Information_Link_1": {
+      "URL": "https://x.com/Protocol_Blend/status/1957850691332182122",
+      "Link_Title": "Partnership with GainzSwap"
+    },
+    "Extra_Important_Information_Link_2": {
+      "URL": "https://blend3.gitbook.io/blend-lending-protocol-for-btcfi-edufi",
+      "Link_Title": "Blend GitBook Documentation"
+    }
+  }
+]
+

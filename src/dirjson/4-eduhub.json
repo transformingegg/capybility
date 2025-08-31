@@ -1,0 +1,36 @@
+[
+  {
+    "App_Name": "EduHub",
+    "Link_to_Main_Site": "https://eduhub.dev/",
+    "Social_Links": [
+      {
+        "Platform": "Twitter/X",
+        "URL": "https://x.com/eduhub__"
+      },
+      {
+        "Platform": "Telegram",
+        "URL": "https://t.me/eduhub_tg"
+      }
+    ],
+    "App_Blurb": "EduHub is the first AI agent and vibe tooling platform for EduChain, backed by the Open Campus incubator. It empowers the community with dynamic tools to learn, create, explore, and build on-chain. Tools include EduAgent (an AI-driven assistant, simplifies interactions with EduChain by enabling users to send tokens, swap assets, bridge between chains, check balances, convert currencies, invest in opportunities, and analyze blockchain data), EduKit (A starter-kit with many libraries and frameworks support for Building dApps on EduChain) and EduBox (a no-code tool to configure and deploy your Tokens and NFTs with one click on EduChain.) . Designed for both beginners and developers, it streamlines dApp development and ecosystem navigation, fostering innovation in education finance (EduFi). EduHub bridges education and Web3, making blockchain accessible for students, educators, and builders to confidently engage in the learn-to-earn revolution.",
+    "Features": [
+      "EduAgent, an AI agent for seamless interactions with EDUCHAIN: Send tokens, swap assets, bridge chains, check balances, convert currencies, and invest.",
+      "EduKit, a Dynamic tools for learning, creating, and exploring the EduChain ecosystem.",
+      "EduBox, a no-code tool to configure and deploy your Tokens and NFTs with one click on EduChain.",
+      "Developer support for building dApps with easy integration and resources."
+    ],
+    "Season_3_Yuzu_Allocation_Amount": "2,069,940",
+    "Ways_to_Get_Yuzu_from_DApp_Use": [
+      "Purchase the EduAgent NFT off ED3 during the season. YUZU split evenly between purchasers. Cost: 100 EDU. Purchase from ED3 here https://ed3.xyz/discover/launchpad/0xADA256fB3Fc28f40692EF385c5890c4Ea242664e "
+    ],
+    "Link_to_Best_YUZU_Information_about_this_DApp": "https://www.notion.so/Earn-Yuzu-Points-with-EduHub-21f6e76e9e8580a99045fe6395aebd57?pvs=21",
+    "Extra_Important_Information_Link_1": {
+      "URL": "https://x.com/educhain_xyz/status/1960904985623089390",
+      "Link_Title": "Earn Yuzu with EduHub Announcement"
+    },
+    "Extra_Important_Information_Link_2": {
+      "URL": "https://asharibali.medium.com/",
+      "Link_Title": "Founder Asharib Ali Medium Page."
+    }
+  }
+]

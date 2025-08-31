@@ -1,0 +1,46 @@
+[
+  {
+    "App_Name": "SailFish veDEX",
+    "Link_to_Main_Site": "https://app.sailfish.finance/",
+    "Social_Links": [
+      {
+        "Platform": "Twitter/X",
+        "URL": "https://x.com/SailFishFinance"
+      },
+      {
+        "Platform": "Telegram",
+        "URL": "https://t.me/SailFishFinance"
+      }
+    ],
+    "App_Blurb": "SailFish veDEX is the leading decentralized exchange on EduChain, powering liquidity for EduFi dApps in the Open Campus ecosystem. As the first veDEX on EduChain, it distributes 100% of protocol fees to users through Vote-Escrow and (3,3) game theory mechanisms. Users can swap tokens with optimized routing and low slippage, provide liquidity to earn rewards, participate in prediction markets for EDU/USDC prices, and bridge assets from BSC and Arbitrum. With features like staking EDU to mint stEDU for passive yields and a Builder SDK for integrations, SailFish combines speed, efficiency, and community-driven incentives. It supports Yuzu Points earning through on-chain activities, transforming DeFi into a rewarding experience for traders and builders alike.",
+    "Features": [
+      "Smart Swap with V3 liquidity and optimized routing for better prices and lower slippage.",
+      "Prediction Markets",
+      "Liquidity Farming: Provide liquidity and vote on pools to earn fees, Yuzu Points, and eventually $SAIL.",
+      "EDU Bridge for seamless asset transfers from BSC and Arbitrum to EduChain.",
+      "Builder SDK: Integrate SailFish V3 trading logic into custom dApps via NPM.",
+      "Stake EDU to mint stEDU, a rebasing token sharing 40% of protocol fees with no lockups.",
+      "Purchase USDC onchain using card or bank transfer - in limited countries only atm"
+    ],
+    "Season_3_Yuzu_Allocation_Amount": "933,525 + badge allocation",
+    "Ways_to_Get_Yuzu_from_DApp_Use": [
+      "Connect your wallet to SailFish veDEX to track on-chain activity.",
+      "Trading Badge -> Perform token swaps with at least 5 pairs (must include USDC/EDU and EDU/wstEDU) totalling $1000 in volume (4,000 per badge) - max 5 available",
+      "Crypto Basket -> Provide liqudity worth at least $5000 on any pair of your choice - keep it locked until end of season (40,000 per badge) - max 50 available",
+      "The Crossover -> Bridge BSC > ARB > EDU with a total of 1000 EDU (2,000 per badge) - max 100 available",
+      "Stake stEDU - YUZU incentives at a 2:1 ratio, 2 EDU staked = 1 Yuzu - extended staking periods increase Yuzu Allocation - so stake early",
+      "Mint Open Campus badges for extra rewards: Ambassador (5000 pts, refer 25+ people), Community Builder (5000 pts), Quest Lord (10000 pts, complete 10 quests).",
+      "Social Tasks - e.g. x.com posting competitions. Keep an eye on their X and join their discord"
+    ],
+    "Link_to_Best_YUZU_Information_about_this_DApp": "https://x.com/SailFishFinance/status/1960255622294757426",
+    "Extra_Important_Information_Link_1": {
+      "URL": "https://x.com/SailFishFinance/status/1960983606597226544",
+      "Link_Title": "stEDU and wstEDU"
+    },
+    "Extra_Important_Information_Link_2": {
+      "URL": "https://sailfish-vedex.medium.com/sailfish-integrates-oc-id-your-trading-journey-just-got-more-rewarding-3df9bd3bf07b",
+      "Link_Title": "SailFish Integrates OC-ID"
+    }
+  }
+]
+
