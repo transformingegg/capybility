@@ -1,0 +1,42 @@
+[
+  {
+    "App_Name": "MoveFlow",
+    "Link_to_Main_Site": "https://moveflow.xyz/",
+    "Social_Links": [
+      {
+        "Platform": "Twitter/X",
+        "URL": "https://x.com/moveflowlabs"
+      },
+      {
+        "Platform": "Telegram",
+        "URL": "https://t.me/moveflowofficial/1"
+      }
+    ],
+    "App_Blurb": "MoveFlow is a multi-chain token distribution protocol for vesting, airdrops, payroll, and treasury operations, with a PayFi focus on EduChain (and Aptos). It streamlines on-chain payments for EduFi, enabling streaming payments for tuition and fees, BNPL (Buy Now Pay Later) for education, and efficient token management. Backed by EduChain and Open Campus, MoveFlow reduces friction in educational funding through smart contracts, offering low-fee, secure transactions. It empowers DAOs, founders, and users to automate payments and distributions, fostering a decentralized education economy.",
+    "Features": [
+      "Token vesting and airdrop distribution for efficient on-chain operations.",
+      "PayFi solutions including BNPL for education-related payments.",
+      "Streaming payments for tuition, fees, and recurring expenses in EduFi.",
+      "Smart contract automation for payroll and treasury management.",
+      "Multi-chain support including EduChain for low-fee transactions.",
+    ],
+    "Season_3_Yuzu_Allocation_Amount": "1,608,115",
+    "Ways_to_Get_Yuzu_from_DApp_Use": [
+      "Connect your wallet to MoveFlow to track on-chain activity.",
+      "Set up token vesting or airdrops to earn Yuzu based on volume.",
+      "Initiate streaming payments or BNPL for EduFi",
+      "Automate payroll or treasury operations with smart contracts",
+      "At Season 3 end, accumulated activity measured on their Yuzu Points leaderboard converts to Yuzu Points for $EDU unlocks via EDULand NFTs."
+    ],
+    "Link_to_Best_YUZU_Information_about_this_DApp": "https://app.edu.moveflow.xyz/yuzu-points",
+    "Extra_Important_Information_Link_1": {
+      "URL": "https://x.com/educhain_xyz/status/1958130886169464951",
+      "Link_Title": "MoveFlow on DoraHacks"
+    },
+    "Extra_Important_Information_Link_2": {
+      "URL": "https://app.edu.moveflow.xyz",
+      "Link_Title": "MoveFlow Protocol Documentation"
+    }
+  }
+]
+

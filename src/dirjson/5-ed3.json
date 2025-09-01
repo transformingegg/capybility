@@ -1,0 +1,49 @@
+[
+  {
+    "App_Name": "Ed3",
+    "Link_to_Main_Site": "https://ed3.xyz/",
+    "Social_Links": [
+      {
+        "Platform": "Twitter/X",
+        "URL": "https://x.com/ed3_xyz
+"
+      },
+      {
+        "Platform": "Telegram",
+        "URL": "https://t.me/Ed3_xyz"
+      },
+      {
+        "Platform": "Discord",
+        "URL": "https://discord.com/invite/MAzRF4YFjR"
+      }
+    ],
+    "App_Blurb": "Ed3.xyz is a blockchain-powered education platform on EduChain, offering a dynamic learning experience where users can own, learn, and earn. It features a marketplace for trading learning resources, a library for knowledge sharing, and diverse content across categories like audio and video. Ed3 enables users to explore interests, complete lessons, and unlock perks. Creators can impact lives by sharing content, while learners earn rewards through engagement. The platform supports digital ownership, workshops, certifications, and interactive games, fostering a community of 250K+ connected users globally, with businesses integrating Ed3 workflows for enhanced learning and earning opportunities.",
+    "Features": [
+      "Marketplace for discovering, trading, and unlocking learning resources.",
+      "Library to explore and share knowledge with peers.",
+      "Diverse content collections across categories (audio, video, etc.) and languages.",
+      "Ownership options to trade, rent, or borrow content.",
+      "Earn and redeem perks as users progress.",
+      "Interactive games and certifications.",
+      "Workshops and loans for learning support."
+    ],
+    "Season_3_Yuzu_Allocation_Amount": "948,880",
+    "Ways_to_Get_Yuzu_from_DApp_Use": [
+      "Register and complete tasks - On-Chain and Social Tasks",
+      "Create content on ED3",
+      "Explore the marketplace and library to accumulate points based on activities like Buying and Selling.",
+      "Mint NFTs on the Launchpad",
+      "https://ed3.xyz/campaign is your go to page for Points earning actions and YUZU rewards you are destined to get"
+    ],
+    "Link_to_Best_YUZU_Information_about_this_DApp": "https://ed3.xyz/campaign",
+    "Extra_Important_Information_Link_1": {
+      "URL": "https://x.com/ed3_xyz/status/1951278003394105406",
+      "Link_Title": "Yuzu Season 3 Wish List"
+    },
+    "Extra_Important_Information_Link_2": {
+      "URL": "https://x.com/ed3_xyz/status/1950575849574719791",
+      "Link_Title": "Yuzu Heatwave Allocation Announcement"
+    }
+  }
+]
+
