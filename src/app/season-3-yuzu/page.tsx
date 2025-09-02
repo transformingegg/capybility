@@ -39,7 +39,7 @@ export default function Season3YuzuPage() {
             <p className="mb-2">
               By using <strong>Capybility</strong>, you can collect Yuzu Points that can be spent on EDULand NFTs to unlock $EDU rewards — with up to 150M EDU tokens allocated for participants.
             </p>
-            <a href="https://opencampus-xyz.medium.com/yuzu-heatwave-everything-you-need-to-know-b1775ab4e018" className="text-yellow-500 underline mb-2 inline-block hover:text-yellow-400">Learn more →</a>
+            <a href="https://opencampus-xyz.medium.com/yuzu-heatwave-everything-you-need-to-know-b1775ab4e018" className="text-yellow-500 underline mb-2 inline-block hover:text-yellow-400">Learn more &rarr;</a>
             
           </CardContent>
         </Card>
@@ -51,7 +51,7 @@ export default function Season3YuzuPage() {
           </CardHeader>
           <CardContent>
             <p className="mb-4">
-              This season so far, CAPYBILITY has 575,911 Yuzu to give away in the "Main" pool, and 600,000 up for grabs for 40  "educhain expert" badge earners pool. Note: 10% of the Yuzu allocation for the main category is retained for operational support for the DApp according to the OC rules.
+              This season so far, CAPYBILITY has 575,911 Yuzu to give away in the &quot;Main&quot; pool, and 600,000 up for grabs for 40  &quot;educhain expert&quot; badge earners pool. Note: 10% of the Yuzu allocation for the main category is retained for operational support for the DApp according to the OC rules.
               That being said, here are 4 main ways to earn YUZU with <strong>Capybility</strong>:
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -59,19 +59,19 @@ export default function Season3YuzuPage() {
               <div className="border rounded-lg p-4 relative bg-white shadow">
                 <span className="absolute -top-4 -left-4 bg-primary text-white font-bold rounded-full w-8 h-8 flex items-center justify-center shadow-lg">1</span>
                 <div className="font-bold text-primary mb-2">Make Quizzes tagged with EDUCHAIN</div>
-                <div className="text-sm text-gray-700">20% of the "Main" Yuzu Pool split evenly between all quiz making users proportional to the number of quizzes made with at least one participant.</div>
+                <div className="text-sm text-gray-700">20% of the &quot;Main&quot; Yuzu Pool split evenly between all quiz making users proportional to the number of quizzes made with at least one participant.</div>
               </div>
               {/* 2 */}
               <div className="border rounded-lg p-4 relative bg-white shadow">
                 <span className="absolute -top-4 -left-4 bg-primary text-white font-bold rounded-full w-8 h-8 flex items-center justify-center shadow-lg">2</span>
                 <div className="font-bold text-primary mb-2">Do Quizzes tagged with EDUCHAIN</div>
-                <div className="text-sm text-gray-700">40% of the "Main" Yuzu Pool split based on NFT completion rarities (the more rare your completion NFTs are, and the more of them you have, the more you get).</div>
+                <div className="text-sm text-gray-700">40% of the &quot;Main&quot; Yuzu Pool split based on NFT completion rarities (the more rare your completion NFTs are, and the more of them you have, the more you get).</div>
               </div>
               {/* 3 */}
               <div className="border rounded-lg p-4 relative bg-white shadow">
                 <span className="absolute -top-4 -left-4 bg-primary text-white font-bold rounded-full w-8 h-8 flex items-center justify-center shadow-lg">3</span>
                 <div className="font-bold text-primary mb-2">Get your friends to join Capybility</div>
-                <div className="text-sm text-gray-700">40% split of the "Main" Yuzu Pool, based on the number of friends referred.They have to also do at least one quiz and mint the NFT to prove it - </div>
+                <div className="text-sm text-gray-700">40% split of the &quot;Main&quot; Yuzu Pool, based on the number of friends referred.They have to also do at least one quiz and mint the NFT to prove it - </div>
               </div>
               {/* 4 */}
               <div className="border rounded-lg p-4 relative bg-white shadow">
