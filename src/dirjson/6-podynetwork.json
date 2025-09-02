@@ -1,0 +1,47 @@
+[
+  {
+    "App_Name": "Pody Network",
+    "Link_to_Main_Site": "https://pody.network/ref?code=geoffins",
+    "Social_Links": [
+      {
+        "Platform": "Twitter/X",
+        "URL": "https://x.com/PodyNetwork"
+      },
+      {
+        "Platform": "Discord",
+        "URL": "https://discord.com/invite/TjDpNw28pt"
+      },
+      {
+        "Platform": "Telegram",
+        "URL": "hhttps://t.me/podynetwork"
+      }
+    ],
+    "App_Blurb": "Pody Network is a decentralized finance platform on EduChain, redefining student finance by building credit scores based on academic performance, classroom participation, and reputation. Incubated by Open Campus, it offers collateral-free overdrafts and financial inclusion for education, making loans accessible without traditional collateral. Users can earn rewards through active engagement, such as joining classrooms and completing tasks. As part of the Open Campus ecosystem, Pody transforms learning into a pathway for financial empowerment, integrating Web3 incentives like Yuzu Points for on-chain activities. With tamper-proof certificates and analytics, it supports educators and institutions while fostering a global community of learners who can monetize their educational efforts in a secure, transparent manner.",
+    "Features": [
+      "Tamper-proof certificates and student management analytics.",
+      "Community engagement through online classroom spaces and real-time chat.",
+      "Incubated by Open Campus for EduFi and classroom innovation.",
+      "Credit score building based on academic performance and participation.",
+      "Collateral-free overdrafts for student loans and financial support."
+    ],
+    "Season_3_Yuzu_Allocation_Amount": "793,287",
+    "Ways_to_Get_Yuzu_from_DApp_Use": [
+      "Connect your wallet, Complete KYC, Connect your OCID and participate in classrooms to earn and claim points",
+      "Mint Pody NFTs to supercharge your Yuzu Point earnings",
+      "Issue some OCA's for your classroom - they will need to be reviewed and approved for them to be valid in this",
+      "Refer friends to Pody",
+      "Share in 100,000 YUZU by Engaging in community activities via the Discord Channel to get the various OP discord roles.",
+      "Up to 100,000 Yuzu allocated to the PCT (Pody Creator Tutorial) Program  - creating tutorials using any feature of Pody"
+    ],
+    "Link_to_Best_YUZU_Information_about_this_DApp": "https://pody.network/yuzu",
+    "Extra_Important_Information_Link_1": {
+      "URL": "https://x.com/PodyNetwork/status/1889997767810142458",
+      "Link_Title": "Pody Network on EduChain"
+    },
+    "Extra_Important_Information_Link_2": {
+      "URL": "https://medium.com/@podynetwork/pody-network-monthly-review-july-and-august-2025-704df2e45ee3",
+      "Link_Title": "Pody Network Review July and August 2025"
+    }
+  }
+]
+

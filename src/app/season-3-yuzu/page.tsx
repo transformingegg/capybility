@@ -51,37 +51,38 @@ export default function Season3YuzuPage() {
           </CardHeader>
           <CardContent>
             <p className="mb-4">
-              This season, CAPYBILITY has [TBA] YUZU to give away. There are 4 main ways to earn YUZU with <strong>Capybility</strong>:
+              This season so far, CAPYBILITY has 575,911 Yuzu to give away in the "Main" pool, and 600,000 up for grabs for 40  "educhain expert" badge earners pool. Note: 10% of the Yuzu allocation for the main category is retained for operational support for the DApp according to the OC rules.
+              That being said, here are 4 main ways to earn YUZU with <strong>Capybility</strong>:
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               {/* 1 */}
               <div className="border rounded-lg p-4 relative bg-white shadow">
                 <span className="absolute -top-4 -left-4 bg-primary text-white font-bold rounded-full w-8 h-8 flex items-center justify-center shadow-lg">1</span>
                 <div className="font-bold text-primary mb-2">Make Quizzes tagged with EDUCHAIN</div>
-                <div className="text-sm text-gray-700">20% split evenly between all quiz making users proportional to the number of quizzes made with at least one participant.</div>
+                <div className="text-sm text-gray-700">20% of the "Main" Yuzu Pool split evenly between all quiz making users proportional to the number of quizzes made with at least one participant.</div>
               </div>
               {/* 2 */}
               <div className="border rounded-lg p-4 relative bg-white shadow">
                 <span className="absolute -top-4 -left-4 bg-primary text-white font-bold rounded-full w-8 h-8 flex items-center justify-center shadow-lg">2</span>
                 <div className="font-bold text-primary mb-2">Do Quizzes tagged with EDUCHAIN</div>
-                <div className="text-sm text-gray-700">40% split based on NFT completion rarities (the more rare your stack of completion NFTs and the more of them you have, the more you get).</div>
+                <div className="text-sm text-gray-700">40% of the "Main" Yuzu Pool split based on NFT completion rarities (the more rare your completion NFTs are, and the more of them you have, the more you get).</div>
               </div>
               {/* 3 */}
               <div className="border rounded-lg p-4 relative bg-white shadow">
                 <span className="absolute -top-4 -left-4 bg-primary text-white font-bold rounded-full w-8 h-8 flex items-center justify-center shadow-lg">3</span>
                 <div className="font-bold text-primary mb-2">Get your friends to join Capybility</div>
-                <div className="text-sm text-gray-700">They have to also do at least one quiz and mint an NFT - 40% split based on the number of friends referred.</div>
+                <div className="text-sm text-gray-700">40% split of the "Main" Yuzu Pool, based on the number of friends referred.They have to also do at least one quiz and mint the NFT to prove it - </div>
               </div>
               {/* 4 */}
               <div className="border rounded-lg p-4 relative bg-white shadow">
                 <span className="absolute -top-4 -left-4 bg-primary text-white font-bold rounded-full w-8 h-8 flex items-center justify-center shadow-lg">4</span>
                 <div className="font-bold text-primary mb-2">Become a CAPYBILITY EDUCHAIN EXPERT &amp; claim the Open Campus Badge</div>
-                <div className="text-sm text-gray-700">Separate Pool of YUZU for the first 40 to complete this task.</div>
+                <div className="text-sm text-gray-700">15,000 of YUZU for the first 40 to complete this task and claim the badge. Total of 600,000 Yuzu.</div>
               </div>
             </div>
             <p className="mb-2">
               The amount of YUZU for each of these earning mechanisms is given above. You can monitor your performance on the above through your creator and user dashboards. 
-              You can get more information about how to become a CAPYBILITY EDUCHAIN EXPERT below. 
+              You can get more information about how to become a CAPYBILITY EDUCHAIN EXPERT AND claim the Open Campus Badge below. 
             </p>
             <div className="w-full flex justify-center mt-8">
               <Image src="/img/Capy.svg" alt="Capy" width={256} height={256} />
@@ -96,12 +97,12 @@ export default function Season3YuzuPage() {
                  <li>Create at least 10 quizzes tagged with EDUCHAIN that have at least 10 completions</li>
                  <li>Complete at least 50 quizzes tagged with EDUCHAIN.</li>
                  <li>Mint the CAPYBILITY EDUCHAIN EXPERT promo NFT - free mint</li>
-                <li>Make it official by <strong>Claiming the Badge</strong> and getting it into your OCID reputation for good! Must have an OCID to complete this step</li> 
+                <li>Make it official by <strong>Claiming the Badge</strong> and getting it into your OCID reputation for good! Must have a linked OCID to complete this step.</li> 
                </ul>
             </div>
             <br />
             <p className="mb-2">
-              Got Questions? Ask in the <a href="https://discord.gg/capybility" className="text-yellow-500 underline hover:text-yellow-400">CAPYBILITY DISCORD</a>
+              Got Questions? Ask in the <a href="https://discord.gg/hGYKakYugz" className="text-yellow-500 underline hover:text-yellow-400">CAPYBILITY DISCORD</a>
             </p>
             <a href="/user-dashboard" className="text-yellow-500 underline mb-4 inline-block hover:text-yellow-400">Start earning now →</a>
           </CardContent>

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { list } from '@vercel/blob';
+
 import { Pool } from "pg";
 
 export async function GET(
@@ -11,11 +11,10 @@ export async function GET(
     const tokenId = rawTokenId.replace(/\.json$/, "");    // Try to fetch from Vercel Blob by listing blobs with this prefix
     console.log(`Fetching metadata for token ID: ${tokenId}`);
 
-    const { blobs } = await list({
-      prefix: `metadata/${tokenId}.json`,
-    });
-
-    if (blobs.length === 0) {
+    // Fetch the blob directly by URL
+    const blobUrl = `${process.env.BLOB_PUBLIC_URL || process.env.NEXT_PUBLIC_BLOB_PUBLIC_URL}/metadata/${tokenId}.json`;
+    const response = await fetch(blobUrl);
+    if (response.status === 404) {
       console.log(`Metadata not found in Blob for token ID: ${tokenId}, checking database...`);
       // Fallback to database
       const pool = new Pool({
@@ -35,15 +34,9 @@ export async function GET(
 
       return NextResponse.json(result.rows[0].json_data);
     }
-
-    // Fetch the actual content from the URL
-    const blobUrl = blobs[0].url;
-    const response = await fetch(blobUrl);
     if (!response.ok) {
       throw new Error(`Failed to fetch blob content: ${response.status} ${response.statusText}`);
     }
-
-    // Parse and return as JSON
     const metadata = await response.json();
     return NextResponse.json(metadata, {
       status: 200,
@@ -51,7 +44,6 @@ export async function GET(
         'Cache-Control': 'public, max-age=31536000, immutable'
       }
     });
-
   } catch (error) {
     console.error("Error in metadata endpoint:", error);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
