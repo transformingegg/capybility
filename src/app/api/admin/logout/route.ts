@@ -1,10 +1,16 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@/lib/session';
+import { NextResponse } from 'next/server';
 
-export async function POST(_request: NextRequest) {
+export async function POST() {
   try {
-    const session = await getSession();
-    session.destroy();
+    // Remove the session cookie directly
+    const { cookies } = await import('next/headers');
+    const cookieStore = await cookies();
+    cookieStore.set('session', '', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
+      expires: new Date(0), // Expire immediately
+    });
     return NextResponse.json({ success: true, message: "Logout successful." });
   } catch (error) {
     console.error('Logout error:', error);

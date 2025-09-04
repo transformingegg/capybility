@@ -40,7 +40,7 @@ export async function POST(request: Request) {
 
   const pool = new Pool({ connectionString: process.env.POSTGRES_URL });
   const provider = new ethers.JsonRpcProvider(RPC_URL);
-  const contractInterface = new ethers.Interface(contractABI as any);
+  const contractInterface = new ethers.Interface(contractABI);
 
   try {
     // 1. Fetch transaction details from the blockchain
@@ -77,7 +77,7 @@ export async function POST(request: Request) {
           tokenId = decodedLog.args.tokenId.toString();
           break;
         }
-      } catch (e) {
+      } catch {
         // Ignore logs that don't match the ABI
       }
     }

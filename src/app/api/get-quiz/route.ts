@@ -21,8 +21,9 @@ export async function GET(request: Request) {
       // The quiz_data field is already parsed as a JSON object by the pg driver
       if (quiz.quiz_data && Array.isArray(quiz.quiz_data.quiz)) {
         // Sanitize the questions to remove the correct answer
-        const sanitizedQuestions = quiz.quiz_data.quiz.map((q: any) => {
-          const { correctAnswer, ...questionWithoutAnswer } = q;
+        type QuizQuestion = { question: string; choices: string[]; correctAnswer: number };
+        const sanitizedQuestions = quiz.quiz_data.quiz.map((q: QuizQuestion) => {
+          const { /* correctAnswer, */ ...questionWithoutAnswer } = q;
           return questionWithoutAnswer;
         });
 

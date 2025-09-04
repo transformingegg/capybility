@@ -26,7 +26,7 @@ interface Quiz {
   is_flagged: boolean;
   is_featured: boolean;
   created_at: string;
-  quiz_data: any;
+  quiz_data: Record<string, unknown>;
 }
 
 type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';
@@ -51,7 +51,7 @@ const BackendDashboard = () => {
       } else {
         setAuthStatus('unauthenticated');
       }
-    } catch (err) {
+  } catch {
       setAuthStatus('unauthenticated');
       setError("Session check failed.");
     }
@@ -79,8 +79,8 @@ const BackendDashboard = () => {
       }
       const data = await response.json();
       setQuizzes(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An unknown error occurred");
+  } catch {
+  setError("An unknown error occurred");
     } finally {
       setIsLoading(false);
     }
@@ -141,14 +141,14 @@ const BackendDashboard = () => {
   };
 
   const handleLogout = async () => {
-    setError(null);
-    try {
-        await fetch('/api/logout', { method: 'POST' });
-        setAuthStatus('unauthenticated');
-        setQuizzes([]);
-    } catch (err) {
-        setError("Logout failed.");
-    }
+  setError(null);
+  try {
+    await fetch('/api/logout', { method: 'POST' });
+    setAuthStatus('unauthenticated');
+    setQuizzes([]);
+  } catch {
+    setError("Logout failed.");
+  }
   };
 
   const handleArchive = async () => {

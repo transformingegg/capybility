@@ -50,7 +50,7 @@ export async function POST(request: Request) {
 
     // On-chain verification
     const provider = new ethers.JsonRpcProvider(RPC_URL);
-    const contractInterface = new ethers.Interface(contractABI as any);
+  const contractInterface = new ethers.Interface(contractABI);
     const tx = await provider.getTransaction(txHash);
     const receipt = await provider.getTransactionReceipt(txHash);
     if (!tx || !receipt) {
@@ -69,8 +69,8 @@ export async function POST(request: Request) {
     let decodedTx = null;
     try {
       decodedTx = contractInterface.parseTransaction({ data: tx.data });
-    } catch (err) {
-      console.error("Failed to parse transaction data:", err);
+    } catch {
+      console.error("Failed to parse transaction data:");
     }
     const validFunction = decodedTx?.name === 'mint' || decodedTx?.name === 'mintWithDiscount';
     if (!validFunction || decodedTx?.args[0] !== quizId) {
@@ -86,7 +86,7 @@ export async function POST(request: Request) {
           foundTokenId = decodedLog.args.tokenId.toString();
           break;
         }
-      } catch (e) {
+      } catch {
         // Ignore logs that don't match the ABI
       }
     }
@@ -104,7 +104,7 @@ export async function POST(request: Request) {
         alreadyExists = true;
         existingUrl = headResult.url;
       }
-    } catch (e) {
+    } catch {
       // Not found, proceed to create
     }
     if (alreadyExists) {

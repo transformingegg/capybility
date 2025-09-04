@@ -1,10 +1,17 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/session';
 
-export async function GET(_request: NextRequest) {
+export async function GET() {
   try {
     const session = await getSession();
-    if (session.isAdmin) {
+    if (
+      session &&
+      typeof session === 'object' &&
+      'isAdmin' in session &&
+      session.isAdmin === true &&
+      'address' in session &&
+      typeof session.address === 'string'
+    ) {
       return NextResponse.json({ isAdmin: true, address: session.address });
     }
     return NextResponse.json({ isAdmin: false });

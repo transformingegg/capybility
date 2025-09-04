@@ -27,10 +27,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Not an admin' }, { status: 403 });
     }
 
-    const session = await getSession();
-    session.address = address;
-    session.isAdmin = true;
-    await session.save();
+
+    let session = await getSession();
+    if (!session) {
+      session = {};
+    }
+    // Assign properties with explicit type
+    const updatedSession = { ...session, address, isAdmin: true };
+    // Re-encrypt and set the cookie
+    const { cookies } = await import('next/headers');
+    const { encrypt } = await import('@/lib/session');
+    const sessionToken = await encrypt(updatedSession);
+    const cookieStore = await cookies();
+    cookieStore.set('session', sessionToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
+      expires: new Date(Date.now() + 8 * 60 * 60 * 1000),
+    });
 
     return NextResponse.json({ success: true, message: "Admin login successful." });
   } catch (error) {

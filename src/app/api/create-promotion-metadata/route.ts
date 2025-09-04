@@ -19,7 +19,7 @@ export async function POST(request: Request) {
         alreadyExists = true;
         existingUrl = headResult.url;
       }
-    } catch (e) {
+    } catch {
       // Not found, proceed to create
     }
     if (alreadyExists) {
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     let decoded = null;
     try {
       decoded = contract.interface.decodeFunctionData("mintPromotion", tx.data);
-    } catch (e) {}
+    } catch {}
     if (!decoded) {
       return NextResponse.json({ success: false, error: "Transaction data mismatch: Incorrect function or promotionType" }, { status: 400 });
     }
