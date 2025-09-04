@@ -320,7 +320,7 @@ const BackendDashboard = () => {
                       <React.Fragment key={quiz.id}>
                         <tr className={`${hasEduchainExpertTags(quiz) ? 'text-blue-600' : ''} ${quiz.is_featured ? 'bg-yellow-100' : ''}`}>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <Link href={`/doquiz?quizId=${quiz.id}`} className="hover:underline" target="_blank">
+                            <Link href={`/doquiz/${quiz.id}`} className="hover:underline" target="_blank">
                               {truncate(quiz.quiz_name, 40)}
                             </Link>
                           </td>
