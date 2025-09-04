@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import UrlForm from "../../components/UrlForm";
 import BuildQuiz from "../../components/BuildQuiz";
-import { useAccount } from "wagmi";
+import { useAccount, useSignMessage } from "wagmi";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import PageLayout from "@/components/PageLayout";
 import { ethers } from 'ethers';
@@ -123,6 +123,7 @@ const MainContent = dynamic(
       const MainContentComponent = () => {
   const router = useRouter();
   const { isConnected, address } = useAccount();
+  const { signMessageAsync } = useSignMessage();
         // Remove referral tracking
   const [step, setStep] = useState(1);
   const [url, setUrl] = useState("");
@@ -261,7 +262,12 @@ const MainContent = dynamic(
           setLoadingMessage("Saving quiz and minting NFT...");
 
           try {
-            // Remove referral submission logic
+            if (!address) throw new Error("Wallet not connected");
+
+            // Create signature for saving
+            const message = `Save quiz: ${quizName}`;
+            const signature = await signMessageAsync({ message });
+
             // 1. Save quiz
             const saveResponse = await fetch("/api/save-quiz", {
               method: "POST",
@@ -271,13 +277,15 @@ const MainContent = dynamic(
                 walletAddress: address,
                 quizName,
                 tags: quizTags,
-                sourceUrl: url
+                sourceUrl: url,
+                signature,
+                message
               }),
             });
             const saveData = await saveResponse.json();
             if (!saveData.success) throw new Error(saveData.error || "Failed to save quiz");
 
-            // 2. Get signature
+            // 2. Get signature for minting
             const signResponse = await fetch("/api/sign-quiz-creation", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -340,13 +348,18 @@ const MainContent = dynamic(
             }
 
             // 7. Create metadata
+            const txHash = typeof tx === "string"
+              ? tx
+              : (typeof tx === "object" && tx && "hash" in tx ? (tx as { hash: string }).hash : "");
             const createMetadataResponse = await fetch("/api/create-quizcreator-metadata", {
               method: "POST",
               headers: { "Content-Type": "application/json", "Accept": "application/json" },
               body: JSON.stringify({
                 tokenId,
                 quizId: saveData.quizId,
-                walletAddress: address
+                walletAddress: address,
+                txHash,
+                contractAddress: QUIZ_CREATOR_NFT_ADDRESS
               }),
             });
             const createMetadataText = await createMetadataResponse.text();

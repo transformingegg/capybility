@@ -22,7 +22,7 @@ export default function Home() {
   const [showAuthAlert, setShowAuthAlert] = useState(false);
 
   useEffect(() => {
-    if (searchParams.get('auth_required')) {
+    if (searchParams && searchParams.get('auth_required')) {
       setShowAuthAlert(true);
     }
   }, [searchParams]);

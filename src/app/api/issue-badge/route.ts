@@ -33,6 +33,37 @@ export async function POST(request: Request) {
       },
     };
 
+
+    // On-chain verification: check if holderAddress owns the Educhain Expert promotional badge
+    const PROMOTION_NFT_ADDRESS = process.env.NEXT_PUBLIC_PROMOTION_NFT_ADDRESS;
+    if (!PROMOTION_NFT_ADDRESS || !PROMOTION_NFT_ADDRESS.match(/^0x[a-fA-F0-9]{40}$/)) {
+      throw new Error("Invalid PROMOTION_NFT_ADDRESS");
+    }
+    const { ethers } = await import("ethers");
+    const provider = new ethers.JsonRpcProvider("https://rpc.edu-chain.raas.gelato.cloud/");
+    const promotionContract = new ethers.Contract(PROMOTION_NFT_ADDRESS, [
+      {
+        "inputs": [
+          { "internalType": "address", "name": "user", "type": "address" },
+          { "internalType": "string", "name": "promotionType", "type": "string" }
+        ],
+        "name": "hasMintedPromotionType",
+        "outputs": [ { "internalType": "bool", "name": "", "type": "bool" } ],
+        "stateMutability": "view",
+        "type": "function"
+      }
+    ], provider);
+    let hasMinted = false;
+    try {
+      hasMinted = await promotionContract.hasMintedPromotionType(holderAddress, "Educhain Expert");
+    } catch (err) {
+      console.error("Error checking on-chain badge ownership:", err);
+      return NextResponse.json({ error: "Failed to verify badge ownership on-chain." }, { status: 500 });
+    }
+    if (!hasMinted) {
+      return NextResponse.json({ error: "You must mint the Educhain Expert promotional badge before claiming this badge." }, { status: 403 });
+    }
+
     // --- THIS IS THE FIX ---
     // Create a unique reference ID for this specific issuance event by combining
     // the badge type and the user's wallet address.

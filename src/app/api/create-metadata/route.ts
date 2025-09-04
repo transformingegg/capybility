@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { put } from '@vercel/blob';
+import { put, head } from '@vercel/blob';
+import { ethers } from "ethers";
 //import { uploadPatternToBlob } from "@/lib/generate-pattern";
 
 // Function to randomly assign a rarity level or based on score
@@ -24,71 +25,110 @@ function assignRarity(score?: number): string {
 
 export async function POST(request: Request) {
   try {
-    const { tokenId, quizId, score, walletAddress, timestamp } = await request.json();
-    
-    if (!tokenId || !quizId || !walletAddress) {
+    const { tokenId, quizId, score, walletAddress, timestamp, txHash, contractAddress } = await request.json();
+    if (!tokenId || !quizId || !walletAddress || !txHash || !contractAddress) {
       return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
     }
-    
+
+    // Check if metadata already exists
+    const metadataPath = `metadata/${tokenId}.json`;
+    let alreadyExists = false;
+    let existingUrl = "";
+    try {
+      const headResult = await head(metadataPath);
+      if (headResult && headResult.url) {
+        alreadyExists = true;
+        existingUrl = headResult.url;
+      }
+    } catch (e) {
+      // Not found, proceed to create
+    }
+    if (alreadyExists) {
+      return NextResponse.json({ success: true, metadataUrl: existingUrl, alreadyExists: true });
+    }
+
+    // Verify mint transaction using ABI
+    const ABI = [
+      {
+        "inputs": [
+          { "internalType": "string", "name": "quizId", "type": "string" },
+          { "internalType": "bytes", "name": "signature", "type": "bytes" }
+        ],
+        "name": "mint",
+        "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+        "stateMutability": "payable",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          { "internalType": "string", "name": "quizId", "type": "string" },
+          { "internalType": "bytes", "name": "signature", "type": "bytes" }
+        ],
+        "name": "mintWithDiscount",
+        "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+        "stateMutability": "payable",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          { "internalType": "string", "name": "quizId", "type": "string" },
+          { "internalType": "bytes", "name": "signature", "type": "bytes" }
+        ],
+        "name": "mintWithToken",
+        "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      }
+    ];
+    // Use hardcoded RPC URL
+    const provider = new ethers.JsonRpcProvider("https://rpc.edu-chain.raas.gelato.cloud/");
+    const contract = new ethers.Contract(contractAddress, ABI, provider);
+    const tx = await provider.getTransaction(txHash);
+    if (!tx || !tx.data) {
+      return NextResponse.json({ success: false, error: "Transaction not found" }, { status: 400 });
+    }
+    let decoded = null;
+    for (const fn of ["mint", "mintWithDiscount", "mintWithToken"]) {
+      try {
+        decoded = contract.interface.decodeFunctionData(fn, tx.data);
+        if (decoded) {
+          break;
+        }
+      } catch (e) {}
+    }
+    if (!decoded) {
+      return NextResponse.json({ success: false, error: "Transaction data mismatch: Incorrect function or quizId" }, { status: 400 });
+    }
+    // Optionally check quizId matches
+    if (decoded.quizId !== quizId) {
+      return NextResponse.json({ success: false, error: "quizId mismatch" }, { status: 400 });
+    }
+
     // Determine rarity based on score if provided, otherwise randomly assign
     const rarity = assignRarity(score);
-    
-    // Construct the image URL based on the rarity
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"; // Fallback to localhost if not set
-    const imageUrl = `${baseUrl}/img/${rarity}V2.png`; // Construct the full image URL
-    
-    // Create metadata
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const imageUrl = `${baseUrl}/img/${rarity}V2.png`;
     const metadata = {
       name: score ? `Quiz Completion NFT - Score: ${Math.round((score || 0) * 100)}%` : "Quiz Completion NFT",
       description: "Capybility Quiz Completion - bestowed upon you by the great capy Dr. Q for completing a quiz.",
-      image: imageUrl, // This uses the static image URL based on rarity
+      image: imageUrl,
       attributes: [
-        {
-          trait_type: "Quiz ID",
-          value: quizId,
-        },
-        {
-          trait_type: "Completion Date",
-          value: timestamp || new Date().toISOString(),
-        },
-        {
-          trait_type: "Rarity",
-          value: rarity,
-        }
+        { trait_type: "Quiz ID", value: quizId },
+        { trait_type: "Completion Date", value: timestamp || new Date().toISOString() },
+        { trait_type: "Rarity", value: rarity },
       ],
     };
-    
-    // If score is provided, add it to attributes
     if (score !== undefined) {
-      metadata.attributes.push({
-        trait_type: "Score",
-        value: `${Math.round(score * 100)}%`,
-      });
+      metadata.attributes.push({ trait_type: "Score", value: `${Math.round(score * 100)}%` });
     }
-    
-    // Store metadata in Vercel Blob
     const metadataBlob = await put(
-      `metadata/${tokenId}.json`, 
+      metadataPath,
       JSON.stringify(metadata),
-      { 
-        contentType: 'application/json',
-        access: 'public' 
-      }
+      { contentType: 'application/json', access: 'public' }
     );
-    
-    console.log("Metadata stored successfully at:", metadataBlob.url);
-
-    return NextResponse.json({
-      success: true,
-      metadataUrl: metadataBlob.url,
-      rarity: rarity
-    });
-    
+    return NextResponse.json({ success: true, metadataUrl: metadataBlob.url, rarity });
   } catch (error) {
     console.error("Error creating metadata:", error);
-    return NextResponse.json({ 
-      success: false, 
-      error: "Failed to create metadata: " + (error as Error).message 
-    }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Failed to create metadata: " + (error as Error).message }, { status: 500 });
   }
 }

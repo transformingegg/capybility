@@ -5,13 +5,17 @@ import MainLayout from "@/components/MainLayout";
 import Image from "next/image";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { useRouter, useSearchParams } from "next/navigation";
+import type { ReadonlyURLSearchParams } from "next/navigation";
 import { FaXTwitter, FaTelegram, FaDiscord } from "react-icons/fa6";
 
 // Helper to format app name for URL
 const formatAppNameForUrl = (name: string) => name.replace(/\s+/g, "_").replace(/[^\w_]/g, "");
 
 // Helper to get expanded app from URL
-const getExpandedAppFromUrl = (searchParams: URLSearchParams) => {
+const getExpandedAppFromUrl = (searchParams: ReadonlyURLSearchParams | null) => {
+  if (!searchParams) {
+    return "";
+  }
   return searchParams.get("expand") || "";
 };
 

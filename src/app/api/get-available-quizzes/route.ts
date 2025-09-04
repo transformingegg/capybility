@@ -37,7 +37,7 @@ export async function GET(request: Request) {
           AND qs.wallet_address = $1
           AND qs.score = (SELECT JSONB_ARRAY_LENGTH(q.quiz_data->'quiz') FROM quizzes WHERE id = q.id)
     )
-  ORDER BY q.created_at DESC;
+  ORDER BY q.is_featured DESC, q.is_flagged ASC, q.created_at DESC;
       `,
       [address]
     );

@@ -3,9 +3,9 @@ import { Pool } from "pg";
 import { verifyMessage } from "viem";
 
 export async function POST(request: Request) {
-  const { quizId, walletAddress, answers, score, signature, message } = await request.json();
+  const { quizId, walletAddress, answers, signature, message } = await request.json();
 
-  if (!quizId || !walletAddress || !answers || score === undefined || !signature || !message) {
+  if (!quizId || !walletAddress || !answers || !signature || !message) {
     return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
   }
 
@@ -14,7 +14,7 @@ export async function POST(request: Request) {
   });
 
   try {
-    const isValid = verifyMessage({ address: walletAddress, message, signature });
+    const isValid = await verifyMessage({ address: walletAddress, message, signature });
     if (!isValid) {
       return NextResponse.json({ success: false, error: "Invalid wallet signature" }, { status: 401 });
     }
@@ -29,9 +29,6 @@ export async function POST(request: Request) {
     quizData.forEach((question: { correctAnswer: number }, index: number) => {
       if (answers[index] === question.correctAnswer) serverScore++;
     });
-    if (serverScore !== score) {
-      return NextResponse.json({ success: false, error: "Score tampering detected" }, { status: 403 });
-    }
 
     const existingSubmissions = await pool.query(
       "SELECT score, submitted_at FROM quiz_submissions WHERE quiz_id = $1 AND wallet_address = $2 AND submitted_at >= (NOW() AT TIME ZONE 'UTC' - INTERVAL '1 day')",
@@ -51,10 +48,10 @@ export async function POST(request: Request) {
 
     await pool.query(
       "INSERT INTO quiz_submissions (quiz_id, wallet_address, score, submitted_at, signature) VALUES ($1, $2, $3, NOW(), $4)",
-      [quizId, walletAddress, score, signature]
+      [quizId, walletAddress, serverScore, signature]
     );
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, score: serverScore });
   } catch (error) {
     console.error("Error submitting quiz:", error);
     return NextResponse.json({ success: false, error: "Failed to submit quiz" }, { status: 500 });

@@ -1,12 +1,20 @@
 import { NextResponse } from "next/server";
 import { Pool } from "pg";
+import { verifyMessage } from "ethers";
 
 export async function POST(request: Request) {
   try {
- 
-
-    const { quiz, walletAddress, quizName, tags, sourceUrl } = await request.json();
+    const { quiz, walletAddress, quizName, tags, sourceUrl, signature, message } = await request.json();
     console.log("Received data:", { quiz, walletAddress, quizName, tags, sourceUrl });
+
+    if (!signature || !message) {
+      return NextResponse.json({ error: "Missing signature" }, { status: 401 });
+    }
+
+    const recoveredAddress = verifyMessage(message, signature);
+    if (recoveredAddress.toLowerCase() !== walletAddress.toLowerCase()) {
+      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+    }
 
     if (!quiz || !Array.isArray(quiz) || !walletAddress) {
       return NextResponse.json({ error: "Invalid quiz or wallet address format" }, { status: 400 });

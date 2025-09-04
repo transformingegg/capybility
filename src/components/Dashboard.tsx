@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { useAccount } from "wagmi";
+import { useAccount, useSignMessage } from "wagmi";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import PageLayout from "./PageLayout";
@@ -57,6 +57,7 @@ interface Completer {
 export default function Dashboard() {
   const router = useRouter();
   const { isConnected, address } = useAccount();
+  const { signMessageAsync } = useSignMessage();
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [expandedQuizId, setExpandedQuizId] = useState<string | null>(null);
@@ -108,20 +109,32 @@ export default function Dashboard() {
   };
 
   const confirmArchive = async () => {
-    if (!showArchiveAlert) return;
-    
+    if (!showArchiveAlert || !address) return;
+
     try {
+      const message = `Archive quiz: ${showArchiveAlert}`;
+      const signature = await signMessageAsync({ message });
+
       const response = await fetch(`/api/archive-quiz`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ quizId: showArchiveAlert, archived: true })
+        body: JSON.stringify({ 
+          quizId: showArchiveAlert, 
+          archive: true,
+          address,
+          signature,
+          message
+        })
       });
 
       if (response.ok) {
-        const updatedQuizzes = quizzes.filter(quiz => quiz.id !== showArchiveAlert);
-        setQuizzes(updatedQuizzes);
+        setQuizzes(prevQuizzes => prevQuizzes.filter(quiz => quiz.id !== showArchiveAlert));
+      } else {
+        const errorData = await response.json();
+        console.error('Failed to archive quiz:', errorData.error);
+        // Optionally, show an error message to the user
       }
     } catch (error) {
       console.error('Error archiving quiz:', error);

@@ -24,12 +24,16 @@ interface Quiz {
   status?: string;
   source_url?: string;
   has_attempted_today: boolean;
+  is_featured: boolean;
+  is_flagged: boolean;
 }
 
 export default function AvailableQuizzesSection() {
   const { address } = useAccount();
   const [availableQuizzes, setAvailableQuizzes] = useState<Quiz[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const quizzesPerPage = 10;
 
   useEffect(() => {
     const fetchAvailableQuizzes = async () => {
@@ -53,6 +57,14 @@ export default function AvailableQuizzesSection() {
     fetchAvailableQuizzes();
   }, [address]);
 
+  // Pagination logic
+  const indexOfLastQuiz = currentPage * quizzesPerPage;
+  const indexOfFirstQuiz = indexOfLastQuiz - quizzesPerPage;
+  const currentQuizzes = availableQuizzes.slice(indexOfFirstQuiz, indexOfLastQuiz);
+  const totalPages = Math.ceil(availableQuizzes.length / quizzesPerPage);
+
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+
   return (
     <Card>
       <CardHeader>
@@ -62,45 +74,68 @@ export default function AvailableQuizzesSection() {
         {isLoading ? (
           <p>Loading available quizzes...</p>
         ) : availableQuizzes.length > 0 ? (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Quiz Name</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {availableQuizzes.map((quiz) => (
-                <TableRow key={quiz.id}>
-                  <TableCell>
-                    {quiz.quiz_name || quiz.quiz_data.quizName || "Untitled Quiz"}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      {quiz.has_attempted_today ? (
-                        <p className="text-red-500 text-xs self-center">Already Attempted Today</p>
-                      ) : (
-                        <>
-                          {quiz.source_url && (
-                            <a
-                              href={quiz.source_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              <Button variant="outline" size="sm">Learn</Button>
-                            </a>
-                          )}
-                          <Link href={`/doquiz/${quiz.id}`}>
-                            <Button size="sm">Do Quiz</Button>
-                          </Link>
-                        </>
-                      )}
-                    </div>
-                  </TableCell>
+          <>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Quiz Name</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {currentQuizzes.map((quiz) => (
+                  <TableRow key={quiz.id} className={quiz.is_featured ? 'bg-yellow-100' : ''}>
+                    <TableCell>
+                      {quiz.quiz_name || quiz.quiz_data.quizName || "Untitled Quiz"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        {quiz.has_attempted_today ? (
+                          <p className="text-red-500 text-xs self-center">Already Attempted Today</p>
+                        ) : (
+                          <>
+                            {quiz.source_url && (
+                              <a
+                                href={quiz.source_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                <Button variant="outline" size="sm">Learn</Button>
+                              </a>
+                            )}
+                            <Link href={`/doquiz/${quiz.id}`}>
+                              <Button size="sm">Do Quiz</Button>
+                            </Link>
+                          </>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            <div className="flex justify-center items-center space-x-2 mt-4">
+              <Button
+                onClick={() => paginate(currentPage - 1)}
+                disabled={currentPage === 1}
+                variant="outline"
+                size="sm"
+              >
+                Previous
+              </Button>
+              <span className="text-sm">
+                Page {currentPage} of {totalPages}
+              </span>
+              <Button
+                onClick={() => paginate(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                variant="outline"
+                size="sm"
+              >
+                Next
+              </Button>
+            </div>
+          </>
         ) : (
           <p>No quizzes available at the moment.</p>
         )}

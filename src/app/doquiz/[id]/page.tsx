@@ -5,6 +5,7 @@ import { use } from "react";
 import { ethers } from "ethers";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import PageLayout from "@/components/PageLayout";
+import CustomAlertDialog from "@/components/CustomAlertDialog";
 
 import MintSuccessPopup from "@/components/MintSuccessPopup";
 import { useRouter } from "next/navigation";
@@ -35,6 +36,7 @@ interface QuizData {
   quizName: string;
   sourceUrl?: string;
   hashtags?: string[];
+  is_flagged: boolean;
 }
 
 interface QuizAttemptStatus {
@@ -176,7 +178,20 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
   const [rarity, setRarity] = useState<string>(""); // Set this based on your logic
   const [viewMode, setViewMode] = useState<'single' | 'all'>('single');
   const [[currentQuestionIndex, direction], setPage] = useState([0, 0]);
+  const [isFlagged, setIsFlagged] = useState(false);
+  const [isFlagging, setIsFlagging] = useState(false);
 
+  // New state for the alert dialog
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [alertProps, setAlertProps] = useState({
+    title: "",
+    message: "",
+    confirmLabel: "OK",
+    cancelLabel: undefined as string | undefined,
+    onConfirm: () => {},
+    onCancel: undefined as (() => void) | undefined,
+    type: 'success' as 'success' | 'warning',
+  });
  
   const paginate = (newDirection: number) => {
     setPage([currentQuestionIndex + newDirection, newDirection]);
@@ -258,7 +273,9 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
             quizName: data.quiz.quiz_name || data.quiz.quiz_data.quizName || "Untitled Quiz",
             sourceUrl: data.quiz.source_url || null,
             hashtags,
+            is_flagged: data.quiz.is_flagged,
           });
+          setIsFlagged(data.quiz.is_flagged);
           setAnswers(new Array(data.quiz.quiz_data.quiz.length).fill(-1));
         } else {
           setQuiz(null);
@@ -299,13 +316,6 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
     const message = `Submit quiz ${resolvedParams.id} at ${new Date().toISOString()}`;
     const signature = await signMessageAsync({ message });
 
-    let calculatedScore = 0;
-    if (quiz?.quiz) {
-      quiz.quiz.forEach((question, index) => {
-        if (answers[index] === question.correctAnswer) calculatedScore++;
-      });
-    }
-
     try {
       const response = await fetch("/api/submit-quiz", {
         method: "POST",
@@ -314,24 +324,24 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
           quizId: resolvedParams.id,
           walletAddress: address,
           answers,
-          score: calculatedScore,
           signature,
           message,
         }),
       });
       const data = await response.json();
       if (data.success) {
-        setScore(calculatedScore);
+        setScore(data.score);
         setIsSubmitted(true);
 
         // Only proceed with mint signature if perfect score
-        if (calculatedScore === quiz?.quiz.length) {
+        if (data.score === quiz?.quiz.length) {
           const signResponse = await fetch("/api/sign-mint", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               walletAddress: address,
               quizId: resolvedParams.id,
+              contractAddress: QUIZ_NFT_ADDRESS,
             }),
           });
           const signData = await signResponse.json();
@@ -351,6 +361,84 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const confirmAndFlagQuiz = async () => {
+    if (!quiz || !address) {
+      setAlertProps({
+        title: "Wallet Not Connected",
+        message: "Please connect your wallet to flag a quiz.",
+        confirmLabel: "Close",
+        onConfirm: () => setIsAlertOpen(false),
+        cancelLabel: undefined,
+        onCancel: undefined,
+        type: 'warning',
+      });
+      setIsAlertOpen(true);
+      return;
+    }
+    setIsAlertOpen(false); // Close confirmation dialog
+    setIsFlagging(true);
+    try {
+      const message = `Flag quiz ${quiz.id} for review.`;
+      const signature = await signMessageAsync({ message });
+
+      const response = await fetch('/api/flag-quiz', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          quizId: quiz.id,
+          address,
+          message,
+          signature
+        }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setIsFlagged(true);
+        setAlertProps({
+          title: "Quiz Flagged",
+          message: "Thank you for your feedback. The quiz has been flagged for review.",
+          confirmLabel: "Close",
+          onConfirm: () => setIsAlertOpen(false),
+          cancelLabel: undefined,
+          onCancel: undefined,
+          type: 'success',
+        });
+        setIsAlertOpen(true);
+      } else {
+        throw new Error(data.error || "Failed to flag quiz.");
+      }
+    } catch (error) {
+      console.error("Error flagging quiz:", error);
+      setAlertProps({
+        title: "Error",
+        message: (error as Error).message,
+        confirmLabel: "Close",
+        onConfirm: () => setIsAlertOpen(false),
+        cancelLabel: undefined,
+        onCancel: undefined,
+        type: 'warning',
+      });
+      setIsAlertOpen(true);
+    } finally {
+      setIsFlagging(false);
+    }
+  };
+
+  const handleFlagQuiz = async () => {
+    if (!quiz || isFlagged || isFlagging) return;
+
+    setAlertProps({
+      title: "Flag Quiz for Review?",
+      message: "Are you sure you want to flag this quiz? This helps our team maintain content quality.",
+      confirmLabel: "Yes, Flag It",
+      onConfirm: confirmAndFlagQuiz,
+      cancelLabel: "Cancel",
+      onCancel: () => setIsAlertOpen(false),
+      type: 'warning',
+    });
+    setIsAlertOpen(true);
   };
 
   const handleMint = async () => {
@@ -589,6 +677,8 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
           quizId: resolvedParams.id,
           walletAddress: address,
           timestamp: mintTimestamp,
+          txHash,
+          contractAddress: QUIZ_NFT_ADDRESS,
         }),
       });
 
@@ -670,13 +760,24 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
       </Card>
 
       <div className="max-w-2xl mx-auto my-8">
-        <div className="flex items-center space-x-2 mb-4">
-          <Switch
-            id="view-mode-switch"
-            checked={viewMode === 'all'}
-            onCheckedChange={(checked) => setViewMode(checked ? 'all' : 'single')}
-          />
-          <Label htmlFor="view-mode-switch">View Whole Quiz</Label>
+        <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="view-mode-switch"
+                checked={viewMode === 'all'}
+                onCheckedChange={(checked) => setViewMode(checked ? 'all' : 'single')}
+              />
+              <Label htmlFor="view-mode-switch">View Whole Quiz</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+                <Label htmlFor="flag-quiz-switch" className={isFlagged ? "text-gray-500" : ""}>Flag for Review</Label>
+                <Switch
+                  id="flag-quiz-switch"
+                  checked={isFlagged}
+                  onCheckedChange={handleFlagQuiz}
+                  disabled={isFlagged || isFlagging}
+                />
+            </div>
         </div>
         
         <div className="space-y-6">
@@ -886,6 +987,17 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
         quizId={quiz?.id}
         walletAddress={address}
   hashtags={quiz?.hashtags?.length ? quiz.hashtags.join(",") : "Capybility,QuizNFT"}
+      />
+
+      <CustomAlertDialog
+        isOpen={isAlertOpen}
+        title={alertProps.title}
+        message={alertProps.message}
+        confirmLabel={alertProps.confirmLabel}
+        cancelLabel={alertProps.cancelLabel}
+        onConfirm={alertProps.onConfirm}
+        onCancel={alertProps.onCancel}
+        type={alertProps.type}
       />
     </PageLayout>
   );

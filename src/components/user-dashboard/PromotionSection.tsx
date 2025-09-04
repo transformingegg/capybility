@@ -243,6 +243,8 @@ export default function PromotionSection({ address }: { address: `0x${string}` |
 
       const tokenId = parsedLog.args.tokenId.toString();
 
+
+      // Send all required fields to backend for verification and duplicate protection
       const createMetadataResponse = await fetch("/api/create-promotion-metadata", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -250,6 +252,8 @@ export default function PromotionSection({ address }: { address: `0x${string}` |
           tokenId: tokenId,
           walletAddress: address,
           promotionType: promotionType,
+          txHash: txHash,
+          contractAddress: PROMOTION_NFT_ADDRESS
         }),
       });
 
