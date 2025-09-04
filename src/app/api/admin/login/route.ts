@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/session';
 import { verifyMessage } from 'ethers';
 
-const ADMIN_WALLET = process.env.NEXT_PUBLIC_ADMIN_WALLET?.toLowerCase();
+const ADMIN_WALLET = process.env.ADMIN_WALLET?.toLowerCase();
 
 export async function POST(request: NextRequest) {
   const { address, signature, message } = await request.json();
