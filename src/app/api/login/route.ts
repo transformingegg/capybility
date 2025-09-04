@@ -2,12 +2,12 @@ import { NextResponse } from 'next/server';
 import { createSession } from '@/lib/session';
 import { verifyMessage } from 'ethers';
 
-const ADMIN_WALLET_ADDRESS = process.env.NEXT_PUBLIC_ADMIN_WALLET;
+const ADMIN_WALLET_ADDRESS = process.env.ADMIN_WALLET;
 
 export async function POST(request: Request) {
   try {
     if (!ADMIN_WALLET_ADDRESS) {
-        throw new Error("NEXT_PUBLIC_ADMIN_WALLET is not set in the environment variables.");
+        throw new Error("ADMIN_WALLET is not set in the environment variables.");
     }
     const { address, signature, message } = await request.json();
 
