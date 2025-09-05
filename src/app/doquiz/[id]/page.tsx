@@ -647,6 +647,14 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
         );
       }
 
+      // Debug: log the payload for record-mint
+      console.log("record-mint payload", {
+        quizId: resolvedParams.id,
+        walletAddress: address,
+        txHash,
+        contractAddress: QUIZ_NFT_ADDRESS
+      });
+
 
       // Restore call to /api/record-mint with correct parameters
       const recordMintResponse = await fetch("/api/record-mint", {
