@@ -647,14 +647,16 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
         );
       }
 
+
+      // Restore call to /api/record-mint with correct parameters
       const recordMintResponse = await fetch("/api/record-mint", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           quizId: resolvedParams.id,
           walletAddress: address,
-          mintTimestamp,
-          tokenId
+          txHash,
+          contractAddress: QUIZ_NFT_ADDRESS
         }),
       });
 

@@ -95,9 +95,9 @@ export async function POST(request: Request) {
     // 5. Update the database
     await pool.query(
       `UPDATE quiz_submissions 
-       SET nft_minted = true, mint_timestamp = $1, token_id = $2, tx_hash = $3
-       WHERE quiz_id = $4 AND wallet_address = $5`,
-      [mintTimestamp, tokenId, txHash, quizId, walletAddress]
+       SET nft_minted = true, mint_timestamp = $1, token_id = $2
+       WHERE quiz_id = $3 AND wallet_address = $4`,
+      [mintTimestamp, tokenId, quizId, walletAddress]
     );
 
     return NextResponse.json({ success: true, message: "NFT mint recorded successfully." });
