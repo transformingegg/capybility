@@ -166,6 +166,7 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
   const [answers, setAnswers] = useState<number[]>([]);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [score, setScore] = useState<number | null>(null);
+  const [feedback, setFeedback] = useState<Array<{ question: string; userAnswer: string; questionIndex: number }>>([]);
   const [signature, setSignature] = useState<`0x${string}` | null>(null);
   const [tokenId, setTokenId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -332,6 +333,7 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
       if (data.success) {
         setScore(data.score);
         setIsSubmitted(true);
+        setFeedback(data.feedback || []);
 
         // Only proceed with mint signature if perfect score
         if (data.score === quiz?.quiz.length) {
@@ -938,6 +940,23 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
                     {isSubmitted && score !== null && (
                       <>
                         <p className="mb-4">Your score: {score} out of {quiz.quiz.length}</p>
+                        {feedback.length > 0 && (
+                          <div className="mb-4 bg-yellow-50 p-4 rounded-lg text-yellow-700">
+                            <p className="font-semibold mb-2">Review your incorrect answers:</p>
+                            <ul className="list-disc pl-5">
+                              {feedback.map((item, idx) => (
+                                <li key={idx} className="mb-2">
+                                  <span className="font-semibold">For Question {item.questionIndex + 1}:</span> <br />
+                                  <span className="italic">{item.question}</span><br />
+                                  You answered: <span className="font-bold">{item.userAnswer || "(no answer)"}</span> — this was not correct.
+                                </li>
+                              ))}
+                            </ul>
+                            {feedback.length > 0 && (
+                              <div className="mt-2">Make sure you study the information link carefully next time and select the correct answer.</div>
+                            )}
+                          </div>
+                        )}
                         {score === quiz.quiz.length ? (
                           <>
                             {signature && !isMinting && !mintError && (
@@ -955,7 +974,7 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
                         )}
                         {tokenId && (
                           <p className="mt-4">
-                            NFT minted! View it at:{" "}
+                            NFT minted! View it at: {" "}
                             <a
                               href={`/metadata/${tokenId}`}
                               target="_blank"

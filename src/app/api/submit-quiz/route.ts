@@ -26,8 +26,17 @@ export async function POST(request: Request) {
     const quizData = quizResult.rows[0].quiz_data.quiz;
 
     let serverScore = 0;
-    quizData.forEach((question: { correctAnswer: number }, index: number) => {
-      if (answers[index] === question.correctAnswer) serverScore++;
+    const feedback: Array<{ question: string; userAnswer: string; questionIndex: number }> = [];
+    quizData.forEach((question: { question: string; choices: string[]; correctAnswer: number }, index: number) => {
+      if (answers[index] === question.correctAnswer) {
+        serverScore++;
+      } else {
+        feedback.push({
+          question: question.question,
+          userAnswer: typeof answers[index] === 'number' && question.choices[answers[index]] !== undefined ? question.choices[answers[index]] : '',
+          questionIndex: index
+        });
+      }
     });
 
     const existingSubmissions = await pool.query(
@@ -51,7 +60,7 @@ export async function POST(request: Request) {
       [quizId, walletAddress, serverScore, signature]
     );
 
-    return NextResponse.json({ success: true, score: serverScore });
+    return NextResponse.json({ success: true, score: serverScore, feedback });
   } catch (error) {
     console.error("Error submitting quiz:", error);
     return NextResponse.json({ success: false, error: "Failed to submit quiz" }, { status: 500 });
