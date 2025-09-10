@@ -1,5 +1,6 @@
 import PageLayout from '@/components/PageLayout';
 import OCBadgeLookup from '@/components/OCBadgeLookup/OCBadgeLookup';
+import WalletBadgeLookup from '@/components/OCBadgeLookup/WalletBadgeLookup';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 
 export default function OCBadgeLookupPage() {
@@ -15,6 +16,7 @@ export default function OCBadgeLookupPage() {
             <OCBadgeLookup />
           </CardContent>
         </Card>
+        <WalletBadgeLookup />
       </div>
     </PageLayout>
   );
