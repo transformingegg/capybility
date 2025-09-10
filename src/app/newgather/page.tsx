@@ -25,8 +25,8 @@ export default function NewGather() {
       setTotal(data.total);
       setDone(data.done);
       setProgress(`Added: ${data.added}, Total: ${data.total}`);
-      // Fetch last block processed
-      const stateRes = await fetch('/badge-gather-state.json');
+      // Fetch last block processed from Blob Storage API
+      const stateRes = await fetch('/api/gatherbadge/state');
       if (stateRes.ok) {
         const state = await stateRes.json();
         setLastBlock(state.lastBlock ?? null);
@@ -45,8 +45,8 @@ export default function NewGather() {
       const data = await res.json();
       setTotal(data.length);
       setProgress(`Total records: ${data.length}`);
-      // Fetch last block processed
-      const stateRes = await fetch('/badge-gather-state.json');
+      // Fetch last block processed from Blob Storage API
+      const stateRes = await fetch('/api/gatherbadge/state');
       if (stateRes.ok) {
         const state = await stateRes.json();
         setLastBlock(state.lastBlock ?? null);

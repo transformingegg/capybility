@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { ethers } from 'ethers';
-import fs from 'fs/promises';
-import path from 'path';
+import { put } from '@vercel/blob';
 
 const CONTRACT_ADDRESS = '0x81aC4267630ED2FD48542A2fAD8D9f5A02BdA5D8';
 const RPC_URL = 'https://rpc.edu-chain.raas.gelato.cloud/';
@@ -17,35 +16,50 @@ const ABI = [
     "type": "event"
   }
 ];
-const DATA_PATH = path.join(process.cwd(), 'public', 'badge-gather.json');
-const STATE_PATH = path.join(process.cwd(), 'public', 'badge-gather-state.json');
+const DATA_BLOB_KEY = 'badgeGather/badge-gather.json';
+const STATE_BLOB_KEY = 'badgeGather/badge-gather-state.json';
 const BATCH_SIZE = 100;
 const BLOCK_STEP = 100000;
+const BLOB_BASE_URL = process.env.BLOB_PUBLIC_URL || process.env.NEXT_PUBLIC_BLOB_PUBLIC_URL;
 
 async function getState() {
   try {
-    const file = await fs.readFile(STATE_PATH, 'utf-8');
-    return JSON.parse(file);
+    const url = `${BLOB_BASE_URL}/${STATE_BLOB_KEY}`;
+    const res = await fetch(url);
+    if (!res.ok) return { lastBlock: 0, lastLogIndex: 0 };
+    const text = await res.text();
+    return JSON.parse(text);
   } catch {
     return { lastBlock: 0, lastLogIndex: 0 };
   }
 }
 
 async function setState(state: GathererState) {
-  await fs.writeFile(STATE_PATH, JSON.stringify(state, null, 2));
+  await put(STATE_BLOB_KEY, JSON.stringify(state, null, 2), {
+    contentType: 'application/json',
+    access: 'public',
+    allowOverwrite: true
+  });
 }
 
 async function getData() {
   try {
-    const file = await fs.readFile(DATA_PATH, 'utf-8');
-    return JSON.parse(file);
+    const url = `${BLOB_BASE_URL}/${DATA_BLOB_KEY}`;
+    const res = await fetch(url);
+    if (!res.ok) return [];
+    const text = await res.text();
+    return JSON.parse(text);
   } catch {
     return [];
   }
 }
 
 async function setData(data: unknown[]) {
-  await fs.writeFile(DATA_PATH, JSON.stringify(data, null, 2));
+  await put(DATA_BLOB_KEY, JSON.stringify(data, null, 2), {
+    contentType: 'application/json',
+    access: 'public',
+    allowOverwrite: true
+  });
 }
 
 type GathererState = { lastBlock: number; lastLogIndex: number };
