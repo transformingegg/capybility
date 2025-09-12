@@ -28,85 +28,95 @@ export async function POST(req: Request) {
     }
 
     console.log("Analyzing text for quiz generation...");
-    try {
-      const apiUrl = "https://api.hyperbolic.xyz/v1/chat/completions";
+    const apiUrl = "https://api.hyperbolic.xyz/v1/chat/completions";
+    const baseBody = {
+      messages: [
+        {
+          role: "system",
+          content: "You are an AI quiz creator that generates multiple-choice quizzes with answers to test understanding of given text.",
+        },
+        {
+          role: "user",
+          content: `Analyze the text below and create a 5-question multiple-choice quiz. Also generate a descriptive quiz name and 5 relevant tags. Return everything as a valid JSON object in the exact format shown below, with no additional text or commentary outside the JSON. Each question must have 4 choices, and \"correctAnswer\" must be the index (0-3) of the correct choice in the \"choices\" array. Example format:
+{
+\"quizName\": \"Introduction to Solar System\",
+\"tags\": [\"astronomy\", \"planets\", \"science\", \"space\", \"education\"],
+\"quiz\": [
+  {
+    \"question\": \"What is the capital of France?\",
+    \"choices\": [\"Berlin\", \"Madrid\", \"Paris\", \"Rome\"],
+    \"correctAnswer\": 2
+  },
+  {
+    \"question\": \"Which planet is known as the Red Planet?\",
+    \"choices\": [\"Earth\", \"Mars\", \"Jupiter\", \"Saturn\"],
+    \"correctAnswer\": 1
+  }
+]
+}
+The text to create the quiz from is:\n\n${text}`,
+        },
+      ],
+      max_tokens: 1024,
+      temperature: 0.1,
+      top_p: 0.9,
+      stream: false,
+    };
+
+    // Try DeepSeek-V3 first, then DeepSeek-V3-0324 if it fails
+    const models = ["deepseek-ai/DeepSeek-V3", "deepseek-ai/DeepSeek-V3-0324"];
+    let lastError = null;
+    for (const model of models) {
+      const requestBody = { ...baseBody, model };
+      console.log("Attempting model:", model);
+      console.log("Request body:", JSON.stringify(requestBody));
       const fetchOptions = {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${HYPERBOLIC_API_KEY}`,
         },
-        body: JSON.stringify({
-          model: "deepseek-ai/DeepSeek-V3",
-          messages: [
-            {
-              role: "system",
-              content: "You are an AI quiz creator that generates multiple-choice quizzes with answers to test understanding of given text.",
-            },
-            {
-              role: "user",
-              content: `Analyze the text below and create a 5-question multiple-choice quiz. Also generate a descriptive quiz name and 5 relevant tags. Return everything as a valid JSON object in the exact format shown below, with no additional text or commentary outside the JSON. Each question must have 4 choices, and "correctAnswer" must be the index (0-3) of the correct choice in the "choices" array. Example format:
-{
-"quizName": "Introduction to Solar System",
-"tags": ["astronomy", "planets", "science", "space", "education"],
-"quiz": [
-  {
-    "question": "What is the capital of France?",
-    "choices": ["Berlin", "Madrid", "Paris", "Rome"],
-    "correctAnswer": 2
-  },
-  {
-    "question": "Which planet is known as the Red Planet?",
-    "choices": ["Earth", "Mars", "Jupiter", "Saturn"],
-    "correctAnswer": 1
-  }
-]
-}
-The text to create the quiz from is:\n\n${text}`,
-            },
-          ],
-          max_tokens: 1024,
-          temperature: 0.1,
-          top_p: 0.9,
-          stream: false,
-        }),
+        body: JSON.stringify(requestBody),
       };
-
-      const response = await fetchWithRetry(apiUrl, fetchOptions, 2, 500);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("API response not OK:", response.status, errorText);
-        throw new Error(`API request failed with status ${response.status}: ${errorText}`);
-      }
-
-      const json = await response.json();
-      console.log("API response:", JSON.stringify(json, null, 2));
-
-      const content = json.choices?.[0]?.message?.content;
-      if (!content) {
-        throw new Error("API response missing 'choices' or 'message.content'");
-      }
-      
-      let quizData;
+      let response;
       try {
-        // The AI sometimes returns a JSON object enclosed in ```json ... ```, so we need to strip that.
-        const jsonString = content.replace(/```json\n?|```/g, '').trim();
-        quizData = JSON.parse(jsonString);
-      } catch {
-        console.error("Failed to parse AI response as JSON:", content);
-        throw new Error("AI returned invalid JSON format.");
+        response = await fetchWithRetry(apiUrl, fetchOptions, 2, 500);
+      } catch (err) {
+        console.error(`Fetch error for model ${model}:`, err);
+        lastError = err instanceof Error ? err : new Error(String(err));
+        continue;
       }
-
-      return NextResponse.json({ quiz: quizData });
-    } catch (error) {
-      console.error("AI analysis error:", error);
-      let errorMessage = "Failed to analyze text";
-      if (error instanceof Error) {
-        errorMessage += `: ${error.message}`;
+      if (response.ok) {
+        const json = await response.json();
+        console.log("API response for model", model, ":", JSON.stringify(json, null, 2));
+        const content = json.choices?.[0]?.message?.content;
+        if (!content) {
+          lastError = new Error("API response missing 'choices' or 'message.content'");
+          continue;
+        }
+        let quizData;
+        try {
+          // The AI sometimes returns a JSON object enclosed in ```json ... ```, so we need to strip that.
+          const jsonString = content.replace(/```json\n?|```/g, '').trim();
+          quizData = JSON.parse(jsonString);
+        } catch {
+          console.error("Failed to parse AI response as JSON for model", model, ":", content);
+          lastError = new Error("AI returned invalid JSON format.");
+          continue;
+        }
+        return NextResponse.json({ quiz: quizData });
+      } else {
+        const errorText = await response.text();
+        console.error(`API response not OK for model ${model}:`, response.status, errorText);
+        lastError = new Error(`API request failed with status ${response.status}: ${errorText}`);
       }
-      return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
+    // If we get here, both models failed
+    let errorMessage = "Failed to analyze text";
+    if (lastError instanceof Error) {
+      errorMessage += `: ${lastError.message}`;
+    }
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   } catch (error) {
     console.error("Error processing request:", error);
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
