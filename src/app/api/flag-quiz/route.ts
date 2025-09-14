@@ -23,10 +23,8 @@ export async function POST(request: Request) {
       if (typeof flagStatus !== 'boolean') {
         return NextResponse.json({ success: false, error: "Invalid 'flagStatus' provided" }, { status: 400 });
       }
-      
       // Admin is authorized to flag or unflag
       await pool.query("UPDATE quizzes SET is_flagged = $1 WHERE id = $2", [flagStatus, quizId]);
-      await pool.end();
       return NextResponse.json({ success: true, message: `Quiz ${flagStatus ? 'flagged' : 'unflagged'} by admin` });
     }
 
@@ -42,7 +40,6 @@ export async function POST(request: Request) {
 
     // User is authorized, proceed with flagging
     await pool.query("UPDATE quizzes SET is_flagged = TRUE WHERE id = $1", [quizId]);
-    
     return NextResponse.json({ success: true, message: "Quiz flagged by user" });
 
   } catch (error) {

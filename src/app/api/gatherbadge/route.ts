@@ -26,40 +26,58 @@ async function getState() {
   try {
     const url = `${BLOB_BASE_URL}/${STATE_BLOB_KEY}`;
     const res = await fetch(url);
-    if (!res.ok) return { lastBlock: 0, lastLogIndex: 0 };
+    if (!res.ok) {
+      console.error('[BadgeGatherer] Failed to fetch state blob:', res.status, res.statusText);
+      return { lastBlock: 0, lastLogIndex: 0 };
+    }
     const text = await res.text();
     return JSON.parse(text);
-  } catch {
+  } catch (e) {
+    console.error('[BadgeGatherer] Error reading state blob:', e);
     return { lastBlock: 0, lastLogIndex: 0 };
   }
 }
 
 async function setState(state: GathererState) {
-  await put(STATE_BLOB_KEY, JSON.stringify(state, null, 2), {
-    contentType: 'application/json',
-    access: 'public',
-    allowOverwrite: true
-  });
+  try {
+    await put(STATE_BLOB_KEY, JSON.stringify(state, null, 2), {
+      contentType: 'application/json',
+      access: 'public',
+      allowOverwrite: true
+    });
+  } catch (e) {
+    console.error('[BadgeGatherer] Error writing state blob:', e);
+    throw e;
+  }
 }
 
 async function getData() {
   try {
     const url = `${BLOB_BASE_URL}/${DATA_BLOB_KEY}`;
     const res = await fetch(url);
-    if (!res.ok) return [];
+    if (!res.ok) {
+      console.error('[BadgeGatherer] Failed to fetch data blob:', res.status, res.statusText);
+      return [];
+    }
     const text = await res.text();
     return JSON.parse(text);
-  } catch {
+  } catch (e) {
+    console.error('[BadgeGatherer] Error reading data blob:', e);
     return [];
   }
 }
 
 async function setData(data: unknown[]) {
-  await put(DATA_BLOB_KEY, JSON.stringify(data, null, 2), {
-    contentType: 'application/json',
-    access: 'public',
-    allowOverwrite: true
-  });
+  try {
+    await put(DATA_BLOB_KEY, JSON.stringify(data, null, 2), {
+      contentType: 'application/json',
+      access: 'public',
+      allowOverwrite: true
+    });
+  } catch (e) {
+    console.error('[BadgeGatherer] Error writing data blob:', e);
+    throw e;
+  }
 }
 
 type GathererState = { lastBlock: number; lastLogIndex: number };
@@ -96,7 +114,7 @@ export async function POST() {
     } else {
       logs = await contract.queryFilter('Transfer', fromBlock, toBlock) as ethers.EventLog[];
     }
-  const data = await getData();
+    const data = await getData();
     let lastLogIndex = state.lastLogIndex || 0;
     for (let i = 0; i < logs.length; i++) {
       if (fromBlock === state.lastBlock && i < lastLogIndex) continue;
@@ -115,12 +133,21 @@ export async function POST() {
       lastLogIndex = i + 1;
       if (added >= BATCH_SIZE) break;
     }
-    await setData(data);
-    await setState({ lastBlock: toBlock, lastLogIndex: lastLogIndex });
+    try {
+      await setData(data);
+    } catch (e) {
+      return NextResponse.json({ error: 'Error writing data blob', details: (e as Error).message }, { status: 500 });
+    }
+    try {
+      await setState({ lastBlock: toBlock, lastLogIndex: lastLogIndex });
+    } catch (e) {
+      return NextResponse.json({ error: 'Error writing state blob', details: (e as Error).message }, { status: 500 });
+    }
     total = data.length;
     if (toBlock >= latestBlock) done = true;
     return NextResponse.json({ added, total, done });
   } catch (e) {
+    console.error('[BadgeGatherer] Error in gatherer POST:', e);
     return NextResponse.json({ error: 'Error gathering badges', details: (e as Error).message }, { status: 500 });
   }
 }

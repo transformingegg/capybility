@@ -395,7 +395,13 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
           signature
         }),
       });
-      const data = await response.json();
+      let data;
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        throw new Error('Server returned an invalid response. Please try again later.');
+      }
       if (data.success) {
         setIsFlagged(true);
         setAlertProps({
