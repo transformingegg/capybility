@@ -123,16 +123,23 @@ export async function POST() {
     for (let i = 0; i < logs.length; i++) {
       if (fromBlock === state.lastBlock && i < lastLogIndex) continue;
       const log = logs[i];
-      // Only add if tokenId is not already present
       const tokenId = log.args?.tokenId?.toString();
-      if (tokenId && !data.find((d: { tokenId: string }) => d.tokenId === tokenId)) {
-        data.push({
-          from: log.args?.from,
-          to: log.args?.to,
-          tokenId,
-          blockNumber: log.blockNumber,
-        });
-        added++;
+      if (tokenId) {
+        const isDuplicate = data.find((d: { tokenId: string }) => d.tokenId === tokenId);
+        if (isDuplicate) {
+          console.log(`[BadgeGatherer] Duplicate found, skipping tokenId=${tokenId}`);
+        } else {
+          data.push({
+            from: log.args?.from,
+            to: log.args?.to,
+            tokenId,
+            blockNumber: log.blockNumber,
+          });
+          added++;
+          console.log(`[BadgeGatherer] Added new tokenId=${tokenId}`);
+        }
+      } else {
+        console.log('[BadgeGatherer] Log missing tokenId, skipping.');
       }
       lastLogIndex = i + 1;
       if (added >= BATCH_SIZE) break;
