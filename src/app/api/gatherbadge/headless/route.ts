@@ -89,16 +89,20 @@ export async function GET() {
   let state: GathererState = { lastBlock: 0, lastLogIndex: 0 };
   try {
     state = await getState();
+    console.log(`[BadgeGatherer] Starting gather: lastBlock=${state.lastBlock}, lastLogIndex=${state.lastLogIndex}`);
     const provider = new ethers.JsonRpcProvider(RPC_URL);
     const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, provider);
     const latestBlock = await provider.getBlockNumber();
     const fromBlock = state.lastBlock || 0;
     const toBlock = Math.min(fromBlock + BLOCK_STEP, latestBlock);
+    console.log(`[BadgeGatherer] Block range: fromBlock=${fromBlock}, toBlock=${toBlock}, latestBlock=${latestBlock}`);
     let logs: ethers.EventLog[] = [];
     if (fromBlock >= latestBlock) {
       done = true;
+      console.log('[BadgeGatherer] Already at latest block, nothing to do.');
     } else {
       logs = await contract.queryFilter('Transfer', fromBlock, toBlock) as ethers.EventLog[];
+      console.log(`[BadgeGatherer] Found ${logs.length} logs in range.`);
     }
     const data = await getData();
     let lastLogIndex = state.lastLogIndex || 0;
@@ -120,16 +124,21 @@ export async function GET() {
     }
     try {
       await setData(data);
+      console.log(`[BadgeGatherer] Successfully wrote data blob. Total records: ${data.length}`);
     } catch (e) {
+      console.error('[BadgeGatherer] Error writing data blob:', e);
       return NextResponse.json({ error: 'Error writing data blob', details: (e as Error).message }, { status: 500 });
     }
     try {
       await setState({ lastBlock: toBlock, lastLogIndex: lastLogIndex });
+      console.log(`[BadgeGatherer] Successfully wrote state blob: lastBlock=${toBlock}, lastLogIndex=${lastLogIndex}`);
     } catch (e) {
+      console.error('[BadgeGatherer] Error writing state blob:', e);
       return NextResponse.json({ error: 'Error writing state blob', details: (e as Error).message }, { status: 500 });
     }
     total = data.length;
     if (toBlock >= latestBlock) done = true;
+    console.log(`[BadgeGatherer] Batch complete. Added=${added}, Total=${total}, Done=${done}`);
     return NextResponse.json({ added, total, done });
   } catch (e) {
     console.error('[BadgeGatherer] Error in gatherer GET:', e);
