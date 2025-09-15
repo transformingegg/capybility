@@ -14,10 +14,15 @@ export async function GET(request: Request) {
   });
 
   try {
-    const result = await pool.query("SELECT * FROM quizzes WHERE id = $1 AND status = 'minted'", [id]);
+    const result = await pool.query("SELECT * FROM quizzes WHERE id = $1", [id]);
     if (result.rows.length > 0) {
       const quiz = result.rows[0];
-
+      if (quiz.is_archived) {
+        return NextResponse.json({ success: false, error: "Quiz has been archived" }, { status: 410 });
+      }
+      if (quiz.status !== 'minted') {
+        return NextResponse.json({ success: false, error: "Quiz not available" }, { status: 404 });
+      }
       // The quiz_data field is already parsed as a JSON object by the pg driver
       if (quiz.quiz_data && Array.isArray(quiz.quiz_data.quiz)) {
         // Sanitize the questions to remove the correct answer
@@ -26,11 +31,9 @@ export async function GET(request: Request) {
           const { /* correctAnswer, */ ...questionWithoutAnswer } = q;
           return questionWithoutAnswer;
         });
-
         // Replace the original questions with the sanitized version
         quiz.quiz_data.quiz = sanitizedQuestions;
       }
-
       return NextResponse.json({ success: true, quiz });
     } else {
       return NextResponse.json({ success: false, error: "Quiz not found" }, { status: 404 });

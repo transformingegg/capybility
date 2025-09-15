@@ -1,4 +1,5 @@
 "use client";
+
 import { useState, useEffect } from "react";
 import { useAccount, useSignMessage, useWriteContract } from "wagmi";
 import { use } from "react";
@@ -148,16 +149,17 @@ interface QuizError {
 }
 
 export default function QuizPage({ params }: { params: Promise<{ id: string }> }) {
-    // Referral tracking: set referrer from URL param in sessionStorage
-    useEffect(() => {
-      if (typeof window === 'undefined') return;
-      const urlParams = new URLSearchParams(window.location.search);
-      const ref = urlParams.get('ref');
-      if (ref) {
-        sessionStorage.setItem('referrer', ref);
-        console.log('Referrer picked up from URL:', ref);
-      }
-    }, []);
+  const [archivedMessage, setArchivedMessage] = useState<string | null>(null);
+  // Referral tracking: set referrer from URL param in sessionStorage
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const urlParams = new URLSearchParams(window.location.search);
+    const ref = urlParams.get('ref');
+    if (ref) {
+      sessionStorage.setItem('referrer', ref);
+      console.log('Referrer picked up from URL:', ref);
+    }
+  }, []);
   const resolvedParams = use(params);
   const { isConnected, address } = useAccount();
 
@@ -257,7 +259,10 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
       try {
         const response = await fetch(`/api/get-quiz?id=${resolvedParams.id}`);
         const data = await response.json();
-        if (data.success && data.quiz?.quiz_data?.quiz && data.quiz.status === "minted") {
+        if (response.status === 410 || (data.error && data.error.toLowerCase().includes('archived'))) {
+          setArchivedMessage('This quiz has been archived and is no longer available.');
+          setQuiz(null);
+        } else if (data.success && data.quiz?.quiz_data?.quiz && data.quiz.status === "minted") {
           // Parse hashtags from quiz_data.tags (array or comma-separated string)
           let hashtags: string[] = [];
           if (data.quiz.quiz_data?.tags) {
@@ -731,6 +736,20 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
     alert(error.message || "An unknown error occurred");
   };
 */
+  if (archivedMessage) {
+    return (
+      <PageLayout fullWidth>
+        <LoadingOverlay isVisible={isLoading} message={loadingMessage} />
+        <div className="max-w-2xl mx-auto my-8">
+          <Card>
+            <CardContent className="text-center p-4">
+              <span>{archivedMessage}</span>
+            </CardContent>
+          </Card>
+        </div>
+      </PageLayout>
+    );
+  }
   if (!quiz) {
     return (
       <PageLayout fullWidth>
