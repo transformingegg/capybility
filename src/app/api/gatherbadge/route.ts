@@ -1,3 +1,14 @@
+type BadgeRecord = {
+  tokenId: string;
+  to: unknown;
+  description: string;
+  awardedDate: string;
+  credentialSubjectId: string;
+  credentialSubjectImage: string;
+  credentialSubjectName: string;
+  blockNumber: number;
+  logIndex: number;
+};
 import { Pool } from 'pg';
 // Local Postgres pool for DB state
 const pool = new Pool({ connectionString: process.env.POSTGRES_URL });
@@ -16,6 +27,7 @@ async function getDbState() {
 async function setDbState(last_block: number, last_log_index: number) {
   await pool.query('UPDATE badge_gather_state SET last_block = $1, last_log_index = $2, updated_at = NOW() WHERE id = (SELECT id FROM badge_gather_state ORDER BY id DESC LIMIT 1)', [last_block, last_log_index]);
 }
+
 
 import { NextResponse } from 'next/server';
 import { ethers } from 'ethers';
@@ -38,6 +50,10 @@ const ABI = [
 //const STATE_BLOB_KEY = 'badgeGather/badge-gather-state.json';
 const BATCH_SIZE = 40;
 const BLOCK_STEP = 100000;
+
+// Provider/contract reuse for warm serverless
+const provider = new ethers.JsonRpcProvider(RPC_URL);
+const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, provider);
 //const BLOB_BASE_URL = process.env.BLOB_PUBLIC_URL || process.env.NEXT_PUBLIC_BLOB_PUBLIC_URL;
 
 
@@ -56,24 +72,18 @@ export async function POST() {
   const state: GathererState = { lastBlock: dbState.last_block, lastLogIndex: dbState.last_log_index };
   try {
     console.log(`[BadgeGatherer] Starting gather: lastBlock=${state.lastBlock}, lastLogIndex=${state.lastLogIndex}`);
-    const provider = new ethers.JsonRpcProvider(RPC_URL);
-    const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, provider);
     const latestBlock = await provider.getBlockNumber();
-  let fromBlock = Number(state.lastBlock) || 0;
-  const fromLogIndex = Number(state.lastLogIndex) || 0;
-  const toBlock = Math.min(Number(fromBlock) + BLOCK_STEP, Number(latestBlock));
-    let logs: ethers.EventLog[] = [];
+    let fromBlock = Number(state.lastBlock) || 0;
+    const fromLogIndex = Number(state.lastLogIndex) || 0;
+    const toBlock = Math.min(Number(fromBlock) + BLOCK_STEP, Number(latestBlock));
     // ethers.js does not accept 0 as a valid blockTag, use 'earliest' if fromBlock is 0
-  const fromBlockTag = fromBlock === 0 ? 'earliest' : Number(fromBlock);
-    console.log(`[BadgeGatherer] Debug: fromBlock=${fromBlock}, toBlock=${toBlock}, latestBlock=${latestBlock}`);
+    const fromBlockTag = fromBlock === 0 ? 'earliest' : Number(fromBlock);
     if (fromBlock > latestBlock) {
       done = true;
-      console.log('[BadgeGatherer] fromBlock is greater than latest block, nothing to do.');
       return NextResponse.json({ added, total, done });
     }
     if (fromBlock === latestBlock) {
       done = true;
-      console.log('[BadgeGatherer] Already at latest block, nothing to do.');
       // To avoid getting stuck at 0, increment lastBlock if still 0
       if (fromBlock === 0) {
         fromBlock = 1;
@@ -81,96 +91,91 @@ export async function POST() {
       }
       return NextResponse.json({ added, total, done });
     }
-    logs = await contract.queryFilter('Transfer', fromBlockTag, toBlock) as ethers.EventLog[];
-    console.log(`[BadgeGatherer] Found ${logs.length} logs in range.`);
-    // Shard logic: collect up to BATCH_SIZE new records, track actual end block/log
-    const shardRecords = [];
-    let addedInShard = 0;
-    let lastProcessedBlock = fromBlock;
-    let lastProcessedLog = fromLogIndex;
+    const logs: ethers.EventLog[] = await contract.queryFilter('Transfer', fromBlockTag, toBlock) as ethers.EventLog[];
+    // Only process up to BATCH_SIZE logs after fromLogIndex
+    const logsToProcess: ethers.EventLog[] = [];
     for (let i = 0; i < logs.length; i++) {
       if (fromBlock === state.lastBlock && i < fromLogIndex) continue;
-      const log = logs[i];
-      const tokenId = log.args?.tokenId?.toString();
-      if (tokenId) {
-        let metadata: Record<string, unknown> = {};
-        const metaUrl = `https://metadata.vc.opencampus.xyz/metadata/ocbadge/${tokenId}`;
-  console.log(`[BadgeGatherer] Fetching metadata for tokenId=${tokenId} at ${metaUrl}`);
-        try {
-          const metaRes = await fetch(metaUrl);
-          if (metaRes.ok) {
-            metadata = await metaRes.json();
-            if (!metadata || Object.keys(metadata).length === 0) {
-              console.log(`[BadgeGatherer] Metadata empty for tokenId=${tokenId} at ${metaUrl}`);
-            } else {
-              // console.log(`[BadgeGatherer] Metadata received for tokenId=${tokenId}:`, metadata); // Removed full metadata output
-            }
-          } else {
-            console.log(`[BadgeGatherer] Metadata fetch failed for tokenId=${tokenId} at ${metaUrl}: ${metaRes.status} ${metaRes.statusText}`);
-          }
-        } catch (err) {
-          console.log(`[BadgeGatherer] Metadata fetch error for tokenId=${tokenId} at ${metaUrl}:`, err);
-        }
-        const meta = (metadata && typeof metadata === 'object' && 'metadata' in metadata)
-          ? (metadata as Record<string, unknown>).metadata as Record<string, unknown>
-          : {};
-        const description = typeof meta?.description === 'string' ? meta.description : '';
-        const awardedDate = typeof meta?.awardedDate === 'string' ? meta.awardedDate : '';
-        let credentialSubjectId = '';
-        let credentialSubjectImage = '';
-        let credentialSubjectName = '';
-        if (meta && typeof meta.credentialSubject === 'object' && meta.credentialSubject !== null) {
-          const cs = meta.credentialSubject as Record<string, unknown>;
-          if (cs.achievement && typeof cs.achievement === 'object' && cs.achievement !== null) {
-            const ach = cs.achievement as Record<string, unknown>;
-            if (typeof ach.identifier === 'string') credentialSubjectId = ach.identifier;
-            if (typeof ach.name === 'string') credentialSubjectName = ach.name;
-          }
-          if (typeof cs.image === 'string') credentialSubjectImage = cs.image;
-        }
-        shardRecords.push({
-          tokenId,
-          to: log.args?.to,
-          description,
-          awardedDate,
-          credentialSubjectId,
-          credentialSubjectImage,
-          credentialSubjectName
-        });
-        addedInShard++;
-        lastProcessedBlock = log.blockNumber;
-        lastProcessedLog = i;
-        if (addedInShard >= BATCH_SIZE) break;
-      }
+      logsToProcess.push(logs[i]);
+      if (logsToProcess.length >= BATCH_SIZE) break;
     }
-    // Write shard file if any records
-    if (shardRecords.length > 0) {
+    // Parallel metadata fetch
+    const fetchMetaForLog = async (log: ethers.EventLog) => {
+      const tokenId = log.args?.tokenId?.toString();
+      if (!tokenId) return null;
+      let metadata: Record<string, unknown> = {};
+      const metaUrl = `https://metadata.vc.opencampus.xyz/metadata/ocbadge/${tokenId}`;
+      try {
+        const metaRes = await fetch(metaUrl);
+        if (metaRes.ok) {
+          metadata = await metaRes.json();
+        }
+      } catch {}
+      const meta = (metadata && typeof metadata === 'object' && 'metadata' in metadata)
+        ? (metadata as Record<string, unknown>).metadata as Record<string, unknown>
+        : {};
+      const description = typeof meta?.description === 'string' ? meta.description : '';
+      const awardedDate = typeof meta?.awardedDate === 'string' ? meta.awardedDate : '';
+      let credentialSubjectId = '';
+      let credentialSubjectImage = '';
+      let credentialSubjectName = '';
+      if (meta && typeof meta.credentialSubject === 'object' && meta.credentialSubject !== null) {
+        const cs = meta.credentialSubject as Record<string, unknown>;
+        if (cs.achievement && typeof cs.achievement === 'object' && cs.achievement !== null) {
+          const ach = cs.achievement as Record<string, unknown>;
+          if (typeof ach.identifier === 'string') credentialSubjectId = ach.identifier;
+          if (typeof ach.name === 'string') credentialSubjectName = ach.name;
+        }
+        if (typeof cs.image === 'string') credentialSubjectImage = cs.image;
+      }
+      return {
+        tokenId,
+        to: log.args?.to,
+        description,
+        awardedDate,
+        credentialSubjectId,
+        credentialSubjectImage,
+        credentialSubjectName,
+        blockNumber: log.blockNumber,
+        logIndex: log.index
+      };
+    };
+    const metaResults = await Promise.all(logsToProcess.map(fetchMetaForLog));
+    const shardRecords = metaResults.filter((r): r is BadgeRecord => !!r && typeof r === 'object' && typeof (r as BadgeRecord).tokenId === 'string' && typeof (r as BadgeRecord).blockNumber === 'number' && typeof (r as BadgeRecord).logIndex === 'number');
+    const addedInShard = shardRecords.length;
+    let lastProcessedBlock = fromBlock;
+    let lastProcessedLog = fromLogIndex;
+    if (addedInShard > 0) {
+      // Find last processed block/log from the last record
+      const last = shardRecords[shardRecords.length - 1];
+      lastProcessedBlock = last.blockNumber;
+      lastProcessedLog = last.logIndex;
       const shardFileName = `badgeGather/shard-${fromBlock}-${fromLogIndex}-to-${lastProcessedBlock}-${lastProcessedLog}.json`;
-      await put(shardFileName, JSON.stringify(shardRecords, null, 2), {
+      await put(shardFileName, JSON.stringify(shardRecords.map(record => {
+        // Remove blockNumber and logIndex before saving
+  const rest: Record<string, unknown> = { ...record };
+  delete rest.blockNumber;
+  delete rest.logIndex;
+  return rest;
+      }), null, 2), {
         contentType: 'application/json',
         access: 'public',
         allowOverwrite: true
       });
-      console.log(`[BadgeGatherer] Wrote shard file: ${shardFileName} with ${shardRecords.length} records.`);
-      // If we hit the batch size, advance to the last processed log (next scan starts after this event)
+      // Only update DB if records were added
       if (addedInShard >= BATCH_SIZE) {
         await setDbState(lastProcessedBlock, lastProcessedLog);
       } else {
-        // If we scanned the full range, advance to the end of the range (avoid rescans)
         await setDbState(toBlock, 0);
       }
       total = shardRecords.length;
       added = addedInShard;
     } else {
-      // No records found, advance to end of range to avoid rescans
       await setDbState(toBlock, 0);
-      console.log('[BadgeGatherer] No new records to write in this batch.');
     }
     if (toBlock >= latestBlock) done = true;
-    console.log(`[BadgeGatherer] Batch complete. Added=${added}, Total=${total}, Done=${done}`);
     return NextResponse.json({ added, total, done });
   } catch (e) {
-    console.error('[BadgeGatherer] Error in gatherer POST:', e);
     return NextResponse.json({ error: 'Error gathering badges', details: (e as Error).message }, { status: 500 });
   }
 }

@@ -1,3 +1,14 @@
+type BadgeRecord = {
+  tokenId: string;
+  to: unknown;
+  description: string;
+  awardedDate: string;
+  credentialSubjectId: string;
+  credentialSubjectImage: string;
+  credentialSubjectName: string;
+  blockNumber: number;
+  logIndex: number;
+};
 import { NextResponse } from 'next/server';
 import { ethers } from 'ethers';
 import { put } from '@vercel/blob';
@@ -21,6 +32,10 @@ const STATE_BLOB_KEY = 'badgeGather/badge-gather-state.json';
 const BATCH_SIZE = 40;
 const BLOCK_STEP = 100000;
 const BLOB_BASE_URL = process.env.BLOB_PUBLIC_URL || process.env.NEXT_PUBLIC_BLOB_PUBLIC_URL;
+
+// Provider/contract reuse for warm serverless
+const provider = new ethers.JsonRpcProvider(RPC_URL);
+const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, provider);
 
 async function getState() {
   try {
@@ -89,108 +104,90 @@ export async function GET() {
   let state: GathererState = { lastBlock: 0, lastLogIndex: 0 };
   try {
     state = await getState();
-    console.log(`[BadgeGatherer] Starting gather: lastBlock=${state.lastBlock}, lastLogIndex=${state.lastLogIndex}`);
-    const provider = new ethers.JsonRpcProvider(RPC_URL);
-    const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, provider);
     const latestBlock = await provider.getBlockNumber();
     const fromBlock = state.lastBlock || 0;
     const toBlock = Math.min(fromBlock + BLOCK_STEP, latestBlock);
-    console.log(`[BadgeGatherer] Block range: fromBlock=${fromBlock}, toBlock=${toBlock}, latestBlock=${latestBlock}`);
-    let logs: ethers.EventLog[] = [];
     if (fromBlock >= latestBlock) {
       done = true;
-      console.log('[BadgeGatherer] Already at latest block, nothing to do.');
-    } else {
-      logs = await contract.queryFilter('Transfer', fromBlock, toBlock) as ethers.EventLog[];
-      console.log(`[BadgeGatherer] Found ${logs.length} logs in range.`);
+      return NextResponse.json({ added, total, done });
+    }
+    const logs: ethers.EventLog[] = await contract.queryFilter('Transfer', fromBlock, toBlock) as ethers.EventLog[];
+    // Only process up to BATCH_SIZE logs after lastLogIndex
+    const logsToProcess: ethers.EventLog[] = [];
+    for (let i = 0; i < logs.length; i++) {
+      if (fromBlock === state.lastBlock && i < (state.lastLogIndex || 0)) continue;
+      logsToProcess.push(logs[i]);
+      if (logsToProcess.length >= BATCH_SIZE) break;
     }
     const data = await getData();
-    let lastLogIndex = state.lastLogIndex || 0;
-    for (let i = 0; i < logs.length; i++) {
-      if (fromBlock === state.lastBlock && i < lastLogIndex) continue;
-      const log = logs[i];
+  const tokenIdSet = new Set((data as BadgeRecord[]).map(d => d.tokenId));
+    // Parallel metadata fetch
+    const fetchMetaForLog = async (log: ethers.EventLog): Promise<BadgeRecord | null> => {
       const tokenId = log.args?.tokenId?.toString();
-      if (tokenId && !data.find((d: { tokenId: string }) => d.tokenId === tokenId)) {
-        // Fetch metadata for this tokenId
-  let metadata: Record<string, unknown> = {};
-        try {
-          const metaRes = await fetch(`https://metadata.vc.opencampus.xyz/metadata/ocbadge/${tokenId}`);
-          if (metaRes.ok) {
-            metadata = await metaRes.json();
-          } else {
-            console.warn(`[BadgeGatherer] Metadata fetch failed for tokenId=${tokenId}: ${metaRes.status}`);
-          }
-        } catch (err) {
-          console.warn(`[BadgeGatherer] Metadata fetch error for tokenId=${tokenId}:`, err);
-        }
-        // Extract only required fields from metadata
-        const meta = (metadata && typeof metadata === 'object' && 'metadata' in metadata)
-          ? (metadata as Record<string, unknown>).metadata as Record<string, unknown>
-          : {};
-        const description = typeof meta?.description === 'string' ? meta.description : '';
-        const awardedDate = typeof meta?.awardedDate === 'string' ? meta.awardedDate : '';
-        let credentialSubjectId = '';
-        let credentialSubjectImage = '';
-        let credentialSubjectName = '';
-        if (meta && typeof meta.credentialSubject === 'object' && meta.credentialSubject !== null) {
-          const cs = meta.credentialSubject as Record<string, unknown>;
-          if (cs.achievement && typeof cs.achievement === 'object' && cs.achievement !== null) {
-            const ach = cs.achievement as Record<string, unknown>;
-            if (typeof ach.identifier === 'string') credentialSubjectId = ach.identifier;
-            if (typeof ach.name === 'string') credentialSubjectName = ach.name;
-          }
-          if (typeof cs.image === 'string') credentialSubjectImage = cs.image;
-        }
-        data.push({
-          tokenId,
-          to: log.args?.to,
-          description,
-          awardedDate,
-          credentialSubjectId,
-          credentialSubjectImage,
-          credentialSubjectName
-        });
-        added++;
-      }
-      lastLogIndex = i + 1;
-      if (added >= BATCH_SIZE) break;
-    }
-    try {
-      await setData(data);
-      console.log(`[BadgeGatherer] Successfully wrote data blob. Total records: ${data.length}`);
-    } catch (e) {
-      console.error('[BadgeGatherer] Error writing data blob:', e);
-      return NextResponse.json({ error: 'Error writing data blob', details: (e as Error).message }, { status: 500 });
-    }
-    try {
-      const intendedState = { lastBlock: toBlock, lastLogIndex: lastLogIndex };
-      await setState(intendedState);
-      console.log(`[BadgeGatherer] Successfully wrote state blob: lastBlock=${toBlock}, lastLogIndex=${lastLogIndex}`);
-      // Verification step: fetch state again and compare
-      let verifiedState = null;
+      if (!tokenId || tokenIdSet.has(tokenId)) return null;
+      let metadata: Record<string, unknown> = {};
+      let description = '';
+      let awardedDate = '';
+      let credentialSubjectId = '';
+      let credentialSubjectImage = '';
+      let credentialSubjectName = '';
       try {
-        verifiedState = await getState();
-        if (
-          verifiedState.lastBlock !== intendedState.lastBlock ||
-          verifiedState.lastLogIndex !== intendedState.lastLogIndex
-        ) {
-          console.warn('[BadgeGatherer] State verification failed! Intended:', intendedState, 'Fetched:', verifiedState);
-        } else {
-          console.log('[BadgeGatherer] State verification succeeded.');
+        const metaRes = await fetch(`https://metadata.vc.opencampus.xyz/metadata/ocbadge/${tokenId}`);
+        if (metaRes.ok) {
+          metadata = await metaRes.json();
         }
-      } catch (verr) {
-        console.warn('[BadgeGatherer] State verification error:', verr);
+      } catch {}
+      const meta = (metadata && typeof metadata === 'object' && 'metadata' in metadata)
+        ? (metadata as Record<string, unknown>).metadata as Record<string, unknown>
+        : {};
+      if (typeof meta?.description === 'string') description = meta.description;
+      if (typeof meta?.awardedDate === 'string') awardedDate = meta.awardedDate;
+      if (meta && typeof meta.credentialSubject === 'object' && meta.credentialSubject !== null) {
+        const cs = meta.credentialSubject as Record<string, unknown>;
+        if (cs.achievement && typeof cs.achievement === 'object' && cs.achievement !== null) {
+          const ach = cs.achievement as Record<string, unknown>;
+          if (typeof ach.identifier === 'string') credentialSubjectId = ach.identifier;
+          if (typeof ach.name === 'string') credentialSubjectName = ach.name;
+        }
+        if (typeof cs.image === 'string') credentialSubjectImage = cs.image;
       }
-    } catch (e) {
-      console.error('[BadgeGatherer] Error writing state blob:', e);
-      return NextResponse.json({ error: 'Error writing state blob', details: (e as Error).message }, { status: 500 });
+      return {
+        tokenId: tokenId,
+        to: log.args?.to,
+        description: description,
+        awardedDate: awardedDate,
+        credentialSubjectId: credentialSubjectId,
+        credentialSubjectImage: credentialSubjectImage,
+        credentialSubjectName: credentialSubjectName,
+        blockNumber: log.blockNumber,
+        logIndex: log.index
+      };
+    };
+    const metaResults = await Promise.all(logsToProcess.map(fetchMetaForLog));
+  const newRecords = metaResults.filter((r): r is BadgeRecord => !!r && typeof r === 'object' && typeof (r as BadgeRecord).tokenId === 'string' && typeof (r as BadgeRecord).blockNumber === 'number' && typeof (r as BadgeRecord).logIndex === 'number');
+    added = newRecords.length;
+  const lastLogIndex = state.lastLogIndex || 0;
+    if (added > 0) {
+      // Only write if new records
+      await setData([...data, ...newRecords.map(record => {
+        // Remove blockNumber and logIndex before saving
+  const rest: Record<string, unknown> = { ...record };
+  delete rest.blockNumber;
+  delete rest.logIndex;
+  return rest;
+      })]);
+      // Only update state if records were added
+      const intendedState = { lastBlock: toBlock, lastLogIndex };
+      await setState(intendedState);
+    } else {
+      // No new records, just advance state
+      const intendedState = { lastBlock: toBlock, lastLogIndex };
+      await setState(intendedState);
     }
-    total = data.length;
+    total = (await getData()).length;
     if (toBlock >= latestBlock) done = true;
-    console.log(`[BadgeGatherer] Batch complete. Added=${added}, Total=${total}, Done=${done}`);
     return NextResponse.json({ added, total, done });
   } catch (e) {
-    console.error('[BadgeGatherer] Error in gatherer GET:', e);
     return NextResponse.json({ error: 'Error gathering badges', details: (e as Error).message }, { status: 500 });
   }
 }
