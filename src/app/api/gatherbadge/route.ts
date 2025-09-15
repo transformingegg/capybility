@@ -36,7 +36,7 @@ const ABI = [
   }
 ];
 //const STATE_BLOB_KEY = 'badgeGather/badge-gather-state.json';
-const BATCH_SIZE = 100;
+const BATCH_SIZE = 50;
 const BLOCK_STEP = 100000;
 //const BLOB_BASE_URL = process.env.BLOB_PUBLIC_URL || process.env.NEXT_PUBLIC_BLOB_PUBLIC_URL;
 
