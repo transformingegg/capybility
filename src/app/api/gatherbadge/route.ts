@@ -36,7 +36,7 @@ const ABI = [
   }
 ];
 //const STATE_BLOB_KEY = 'badgeGather/badge-gather-state.json';
-const BATCH_SIZE = 50;
+const BATCH_SIZE = 40;
 const BLOCK_STEP = 100000;
 //const BLOB_BASE_URL = process.env.BLOB_PUBLIC_URL || process.env.NEXT_PUBLIC_BLOB_PUBLIC_URL;
 
@@ -95,7 +95,7 @@ export async function POST() {
       if (tokenId) {
         let metadata: Record<string, unknown> = {};
         const metaUrl = `https://metadata.vc.opencampus.xyz/metadata/ocbadge/${tokenId}`;
-        console.log(`[BadgeGatherer] Fetching metadata for tokenId=${tokenId} at ${metaUrl}`);
+  console.log(`[BadgeGatherer] Fetching metadata for tokenId=${tokenId} at ${metaUrl}`);
         try {
           const metaRes = await fetch(metaUrl);
           if (metaRes.ok) {
@@ -103,7 +103,7 @@ export async function POST() {
             if (!metadata || Object.keys(metadata).length === 0) {
               console.log(`[BadgeGatherer] Metadata empty for tokenId=${tokenId} at ${metaUrl}`);
             } else {
-              console.log(`[BadgeGatherer] Metadata received for tokenId=${tokenId}:`, metadata);
+              // console.log(`[BadgeGatherer] Metadata received for tokenId=${tokenId}:`, metadata); // Removed full metadata output
             }
           } else {
             console.log(`[BadgeGatherer] Metadata fetch failed for tokenId=${tokenId} at ${metaUrl}: ${metaRes.status} ${metaRes.statusText}`);
