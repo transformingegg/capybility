@@ -17,14 +17,13 @@ export default function NewGather() {
     setLoading(true);
     setProgress('Gathering...');
     setAdded(null);
+    setTotal(null);
     setDone(false);
     try {
       const res = await fetch('/api/gatherbadge', { method: 'POST' });
       const data = await res.json();
       setAdded(data.added);
-      setTotal(data.total);
-      setDone(data.done);
-      setProgress(`Added: ${data.added}, Total: ${data.total}`);
+      setProgress(`Added: ${data.added}`);
       // Fetch last block processed from Blob Storage API
       const stateRes = await fetch('/api/gatherbadge/state');
       if (stateRes.ok) {
@@ -37,14 +36,23 @@ export default function NewGather() {
     setLoading(false);
   };
 
+  const [masterFileUrl, setMasterFileUrl] = useState<string | null>(null);
   const checkTotal = async () => {
     setProgress('Checking...');
+    setMasterFileUrl(null);
+    setAdded(null);
+    setTotal(null);
     try {
-      const res = await fetch('/api/gatherbadge/json');
+      // Call the masterjoin endpoint to generate and get the latest master file
+      const res = await fetch('/api/gatherbadge/masterjoin', { method: 'POST' });
       if (!res.ok) throw new Error('No data');
       const data = await res.json();
-      setTotal(data.length);
-      setProgress(`Total records: ${data.length}`);
+      setTotal(data.totalRecords);
+      setProgress(`Total records: ${data.totalRecords}`);
+      if (data.masterFile) {
+        const BLOB_BASE_URL = process.env.NEXT_PUBLIC_BLOB_PUBLIC_URL || '';
+        setMasterFileUrl(`${BLOB_BASE_URL}/${data.masterFile}`);
+      }
       // Fetch last block processed from Blob Storage API
       const stateRes = await fetch('/api/gatherbadge/state');
       if (stateRes.ok) {
@@ -77,19 +85,25 @@ export default function NewGather() {
                   {loading ? 'Gathering...' : 'Gather Next Batch'}
                 </Button>
                 <Button onClick={checkTotal} disabled={loading} variant="secondary" className="font-sans">
-                  Check Total
+                  Generate Master JSON
                 </Button>
               </div>
               <div className="mb-2 min-h-[24px] text-center font-sans">{progress}</div>
-              {added !== null && <div className="font-sans">Last batch added: {added}</div>}
-              {total !== null && <div className="font-sans">Total gathered: {total}</div>}
+              {added !== null && total === null && (
+                <div className="font-sans">Last batch added: {added}</div>
+              )}
+              {total !== null && (
+                <div className="font-sans">Total gathered: {total}</div>
+              )}
               {done && <div className="text-green-600 font-sans">No more new transfers to gather.</div>}
               {lastBlock !== null && (
                 <div className="font-sans text-sm text-gray-500 mt-2">Last block processed: {lastBlock}</div>
               )}
-              <a href="/api/gatherbadge/json" target="_blank" rel="noopener noreferrer" className="mt-4 block font-bold underline text-yellow-400">
-                View gathered JSON
-              </a>
+              {masterFileUrl && (
+                <a href={masterFileUrl} target="_blank" rel="noopener noreferrer" className="mt-4 block font-bold underline text-yellow-400">
+                  View gathered JSON
+                </a>
+              )}
             </div>
           </CardContent>
         </Card>

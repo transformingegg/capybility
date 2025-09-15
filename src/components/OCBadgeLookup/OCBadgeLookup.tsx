@@ -14,7 +14,7 @@ export default function OCBadgeLookup() {
 
   useEffect(() => {
     async function fetchOptions() {
-  const res = await fetch('/api/gatherbadge/json');
+  const res = await fetch('/api/gatherbadge/masterjson');
       const data = await res.json();
       // Get unique badge names
       const seen: Record<string, boolean> = {};
@@ -37,7 +37,7 @@ export default function OCBadgeLookup() {
     setBadgeName('');
     setSearched(false);
     try {
-      const res = await fetch('/api/gatherbadge/json');
+  const res = await fetch('/api/gatherbadge/masterjson');
       const data = await res.json();
       // Group by badge name
       const grouped: Record<string, BadgeResult[]> = {};

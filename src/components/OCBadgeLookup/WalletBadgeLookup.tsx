@@ -18,7 +18,7 @@ export default function WalletBadgeLookup() {
     setSearched(false);
     setBadges([]);
     try {
-      const res = await fetch('/api/gatherbadge/json');
+  const res = await fetch('/api/gatherbadge/masterjson');
       const data = await res.json();
       const found = (data as BadgeRow[]).filter((row) => {
         let wallet = row.to;
