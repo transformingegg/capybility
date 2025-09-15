@@ -1,3 +1,39 @@
+export async function GET() {
+  try {
+    // 1. List all shard files
+    const shardFiles = await listShardFiles();
+    if (!shardFiles.length) {
+      return new Response('No shard files found.', { status: 404 });
+    }
+    // 2. Fetch and join all records
+    type BadgeRecord = {
+      tokenId: string;
+      to: string;
+      description: string;
+      awardedDate: string;
+      credentialSubjectId: string;
+      credentialSubjectImage: string;
+      credentialSubjectName: string;
+    };
+    let allRecords: BadgeRecord[] = [];
+    for (const file of shardFiles) {
+      const records = await fetchShardFile(file.url);
+      allRecords = allRecords.concat(records);
+    }
+    // 3. Get and increment master version
+    const version = await getAndIncrementMasterVersion();
+    const masterFileName = `${MASTER_PREFIX}${version}.json`;
+    // 4. Write master file to blob storage
+    await put(masterFileName, JSON.stringify(allRecords, null, 2), {
+      contentType: 'application/json',
+      access: 'public',
+      allowOverwrite: true
+    });
+    return new Response(`Master file created: ${masterFileName} with ${allRecords.length} records.`, { status: 200 });
+  } catch (e) {
+    return new Response(`Error joining shards: ${(e as Error).message}`, { status: 500 });
+  }
+}
 import { NextResponse } from 'next/server';
 import { Pool } from 'pg';
 import { put, list } from '@vercel/blob';
