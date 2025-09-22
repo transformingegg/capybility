@@ -31,11 +31,12 @@ export async function POST(request: Request) {
       {
         "inputs": [
           { "internalType": "address", "name": "to", "type": "address" },
-          { "internalType": "string", "name": "promotionType", "type": "string" }
+          { "internalType": "string", "name": "promotionType", "type": "string" },
+          { "internalType": "bytes", "name": "signature", "type": "bytes" }
         ],
-        "name": "mintPromotion",
+        "name": "mint",
         "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
-        "stateMutability": "payable",
+        "stateMutability": "nonpayable",
         "type": "function"
       }
     ];
@@ -47,7 +48,7 @@ export async function POST(request: Request) {
     }
     let decoded = null;
     try {
-      decoded = contract.interface.decodeFunctionData("mintPromotion", tx.data);
+      decoded = contract.interface.decodeFunctionData("mint", tx.data);
     } catch {}
     if (!decoded) {
       return NextResponse.json({ success: false, error: "Transaction data mismatch: Incorrect function or promotionType" }, { status: 400 });

@@ -5,7 +5,7 @@ export async function GET() {
     if (!shardFiles.length) {
       return new Response('No shard files found.', { status: 404 });
     }
-    // 2. Fetch and join all records
+    // 2. Fetch and join all records, ensuring uniqueness
     type BadgeRecord = {
       tokenId: string;
       to: string;
@@ -15,10 +15,20 @@ export async function GET() {
       credentialSubjectImage: string;
       credentialSubjectName: string;
     };
-    let allRecords: BadgeRecord[] = [];
+    const allRecords: BadgeRecord[] = [];
+    const seenTokenIds = new Set<string>();
+
     for (const file of shardFiles) {
-      const records = await fetchShardFile(file.url);
-      allRecords = allRecords.concat(records);
+      const records: BadgeRecord[] = await fetchShardFile(file.url);
+      const uniqueRecords = records.filter(record => {
+        if (seenTokenIds.has(record.tokenId)) {
+          console.log(`[MasterJoin] Duplicate tokenId found and skipped: ${record.tokenId}`);
+          return false;
+        }
+        seenTokenIds.add(record.tokenId);
+        return true;
+      });
+      allRecords.push(...uniqueRecords);
     }
     // 3. Get and increment master version
     const version = await getAndIncrementMasterVersion();
@@ -76,7 +86,7 @@ export async function POST() {
     if (!shardFiles.length) {
       return NextResponse.json({ error: 'No shard files found.' }, { status: 404 });
     }
-    // 2. Fetch and join all records
+    // 2. Fetch and join all records, ensuring uniqueness
     type BadgeRecord = {
       tokenId: string;
       to: string;
@@ -86,10 +96,20 @@ export async function POST() {
       credentialSubjectImage: string;
       credentialSubjectName: string;
     };
-    let allRecords: BadgeRecord[] = [];
+    const allRecords: BadgeRecord[] = [];
+    const seenTokenIds = new Set<string>();
+
     for (const file of shardFiles) {
-      const records = await fetchShardFile(file.url);
-      allRecords = allRecords.concat(records);
+      const records: BadgeRecord[] = await fetchShardFile(file.url);
+      const uniqueRecords = records.filter(record => {
+        if (seenTokenIds.has(record.tokenId)) {
+          console.log(`[MasterJoin] Duplicate tokenId found and skipped: ${record.tokenId}`);
+          return false;
+        }
+        seenTokenIds.add(record.tokenId);
+        return true;
+      });
+      allRecords.push(...uniqueRecords);
     }
     // 3. Get and increment master version
     const version = await getAndIncrementMasterVersion();
