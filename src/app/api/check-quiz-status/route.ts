@@ -18,20 +18,18 @@ export async function GET(request: Request) {
   });
 
   try {
-    // Check for any successful completions
-    const completionsResult = await pool.query(
-      `SELECT qs.* FROM quiz_submissions qs
-        JOIN quizzes q ON q.id = qs.quiz_id
-        WHERE qs.quiz_id = $1
-          AND qs.wallet_address = $2
-          AND qs.score = (
-            SELECT JSONB_ARRAY_LENGTH(quiz_data->'quiz')
-            FROM quizzes
-            WHERE id = $1
-          )
-          AND q.status = 'minted'`,
+    // Find the user's most recent submission for a valid quiz (status = 'minted')
+    const submissionResult = await pool.query(
+      `SELECT qs.id, qs.score, qs.submitted_at, qs.nft_minted, q.status, JSONB_ARRAY_LENGTH(q.quiz_data->'quiz') as question_count
+       FROM quiz_submissions qs
+       JOIN quizzes q ON qs.quiz_id = q.id
+       WHERE qs.quiz_id = $1 AND qs.wallet_address = $2 AND q.status = 'minted'
+       ORDER BY qs.submitted_at DESC
+       LIMIT 1`,
       [quizId, address]
     );
+    const latestSubmission = submissionResult.rows[0];
+    const questionCount = latestSubmission?.question_count;
 
     // Check for attempts in the last 24 hours
     const attemptsResult = await pool.query(
@@ -45,14 +43,47 @@ export async function GET(request: Request) {
       [quizId, address]
     );
 
-    return NextResponse.json({
+    // Default response
+    const response = {
       success: true,
       status: {
-        hasCompletedQuiz: completionsResult.rows.length > 0,
+        hasCompletedQuiz: false,
         hasAttemptedToday: attemptsResult.rows.length > 0,
-        lastAttemptTime: attemptsResult.rows[0]?.submitted_at
+        lastAttemptTime: attemptsResult.rows[0]?.submitted_at,
+        state: 'not_attempted',
+        submissionId: undefined,
       }
-    });
+    };
+
+    // If no submission, user can take the quiz
+    if (!latestSubmission) {
+      return NextResponse.json(response);
+    }
+
+    // If perfect score
+    const isPerfectScore = latestSubmission && latestSubmission.score === questionCount;
+    if (isPerfectScore) {
+      if (latestSubmission.nft_minted) {
+        response.status.hasCompletedQuiz = true;
+        response.status.state = 'completed_and_minted';
+        return NextResponse.json(response);
+      } else {
+        response.status.state = 'pending_mint';
+        response.status.submissionId = latestSubmission.id;
+        return NextResponse.json(response);
+      }
+    }
+
+    // If not perfect score, but attempted in last 24 hours
+    if (attemptsResult.rows.length > 0) {
+      response.status.state = 'attempted_today';
+      return NextResponse.json(response);
+    }
+
+    // Otherwise, allow another attempt
+    response.status.state = 'not_attempted';
+    return NextResponse.json(response);
+
   } catch (error) {
     console.error("Error checking quiz status:", error);
     return NextResponse.json({ 

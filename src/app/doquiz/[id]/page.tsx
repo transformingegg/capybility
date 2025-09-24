@@ -41,9 +41,9 @@ interface QuizData {
 }
 
 interface QuizAttemptStatus {
-  hasCompletedQuiz: boolean;
-  hasAttemptedToday: boolean;
+  state: 'not_attempted' | 'attempted_today' | 'pending_mint' | 'completed_and_minted';
   lastAttemptTime?: string;
+  submissionId?: string;
 }
 
 const QUIZ_NFT_ADDRESS = process.env.NEXT_PUBLIC_QUIZ_COMPLETION_NFT_ADDRESS as `0x${string}`;
@@ -183,6 +183,41 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
   const [[currentQuestionIndex, direction], setPage] = useState([0, 0]);
   const [isFlagged, setIsFlagged] = useState(false);
   const [isFlagging, setIsFlagging] = useState(false);
+  const [isStatusLoading, setIsStatusLoading] = useState(true);
+  const [statusError, setStatusError] = useState<string | null>(null);
+
+  const handleResumeMint = async () => {
+    if (!quizStatus?.submissionId || !address) {
+      alert("Cannot resume mint. Submission details are missing.");
+      return;
+    }
+
+    setIsLoading(true);
+    setLoadingMessage('Preparing to mint...');
+
+    try {
+      // Get a fresh signature for the pending submission
+      const signResponse = await fetch("/api/sign-mint", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          walletAddress: address,
+          quizId: resolvedParams.id,
+          contractAddress: QUIZ_NFT_ADDRESS,
+        }),
+      });
+
+      const signData = await signResponse.json();
+      if (!signData.success) {
+        throw new Error("Failed to generate mint signature: " + signData.error);
+      }
+
+      // Set the signature, which will trigger the handleMint function via useEffect
+      setSignature(signData.signature as `0x${string}`);
+    } catch {
+      setIsLoading(false);
+    }
+  };
 
   // New state for the alert dialog
   const [isAlertOpen, setIsAlertOpen] = useState(false);
@@ -232,20 +267,24 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
 
   useEffect(() => {
     const checkQuizStatus = async () => {
-      if (!address) return;
-      
+      if (!address) {
+        setIsStatusLoading(false);
+        return;
+      }
+      setIsStatusLoading(true);
+      setStatusError(null);
       try {
         const response = await fetch(`/api/check-quiz-status?quizId=${resolvedParams.id}&address=${address}`);
         const data = await response.json();
-        
         if (data.success) {
           setQuizStatus(data.status);
         } else {
-          setError(data.error);
+          setStatusError(data.error || "Failed to check quiz status");
         }
-      } catch (error) {
-        console.error("Error checking quiz status:", error);
-        setError("Failed to check quiz status");
+      } catch {
+        setStatusError("Failed to check quiz status");
+      } finally {
+        setIsStatusLoading(false);
       }
     };
 
@@ -303,6 +342,15 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
     }
   }, [error]);
 
+  // Note: handleMint is a stable function and does not need to be in the dependency array.
+  useEffect(() => {
+    // This effect triggers the minting process once a signature is available,
+    // either from a fresh submission or from resuming a pending mint.
+    if (signature) {
+      handleMint();
+    }
+  }, [signature]);
+
   const handleAnswerChange = (questionIndex: number, choiceIndex: number) => {
     if (isSubmitted) return;
     const newAnswers = [...answers];
@@ -356,6 +404,8 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
             setSignature(signData.signature as `0x${string}`);
           } else {
             alert("Failed to generate mint signature: " + signData.error);
+            setIsLoading(false);
+            setLoadingMessage("");
           }
         }
       } else {
@@ -725,7 +775,24 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
       }
     } catch (error) {
       console.error("Error minting NFT:", error);
-      alert((error as Error).message);
+      let message = "User failed to sign minting transaction or mint transaction failed";
+      if (error && typeof error === 'object' && 'message' in error && typeof (error as Error).message === 'string') {
+        const errMsg = (error as Error).message;
+        if (errMsg.toLowerCase().includes('user denied') || errMsg.toLowerCase().includes('user rejected')) {
+          message = "User failed to sign minting transaction or mint transaction failed";
+        }
+      }
+      setShowMintSuccess(false);
+      setAlertProps({
+        title: "Minting Failed",
+        message,
+        confirmLabel: "OK",
+        cancelLabel: undefined,
+        onConfirm: () => setIsAlertOpen(false),
+        onCancel: undefined,
+        type: 'warning',
+      });
+      setIsAlertOpen(true);
     } finally {
       setIsLoading(false);
     }
@@ -777,6 +844,15 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
         <div className="max-w-2xl mx-auto py-8 text-center">
           <CardHeader>
             <CardTitle className="text-3xl font-bold text-white">{ensureQuizSuffix(quiz.quizName)}</CardTitle>
+            {quiz.hashtags && quiz.hashtags.length > 0 && (
+              <div className="flex flex-wrap justify-center pt-2">
+                {quiz.hashtags.map((tag, index) => (
+                  <span key={index} className="bg-gray-100 text-gray-800 text-xs font-medium mr-2 mb-2 px-2.5 py-0.5 rounded-full dark:bg-gray-700 dark:text-gray-300">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
           </CardHeader>
           {quiz.sourceUrl && (
             <CardContent>
@@ -818,9 +894,15 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
         </div>
         
         <div className="space-y-6">
-          {isConnected ? (
+          {isStatusLoading ? (
+            <Card>
+              <CardContent className="text-center p-4">
+                <p>Checking quiz status...</p>
+              </CardContent>
+            </Card>
+          ) : isConnected ? (
             <>
-              {!isSubmitted && !quizStatus?.hasCompletedQuiz && !quizStatus?.hasAttemptedToday ? (
+              {((!quizStatus || statusError) && !isSubmitted) || (quizStatus?.state === 'not_attempted' && !isSubmitted) ? (
                 <>
                   {viewMode === 'all' ? (
                     <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
@@ -926,7 +1008,7 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
                                 <CardTitle>Submit Your Answers</CardTitle>
                               </CardHeader>
                               <CardContent>
-                                <p className="mb-4">If you are sure of your answers, submit your quiz using the button below. Be careful though, you are only allowed one attempt per day.</p>
+                                <p className="mb-4">If you are sure of your answers, submit the quiz using the button below. Be careful though, you are only allowed one attempt per day.</p>
                                 <Button onClick={handleSubmit} className="w-full">
                                   SUBMIT QUIZ
                                 </Button>
@@ -950,17 +1032,27 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
                 <Card>
                   <CardHeader>
                     <CardTitle>
-                      {quizStatus?.hasCompletedQuiz 
+                      {quizStatus?.state === 'completed_and_minted'
                         ? "You have already completed this quiz successfully!"
-                        : quizStatus?.hasAttemptedToday
+                        : quizStatus?.state === 'attempted_today'
                         ? "You have already attempted this quiz today."
+                        : quizStatus?.state === 'pending_mint'
+                        ? "You have a pending mint for this quiz!"
                         : "Quiz Submitted!"
                       }
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {quizStatus?.hasAttemptedToday && !quizStatus.hasCompletedQuiz && (
+                    {quizStatus?.state === 'attempted_today' && (
                       <p>Try again after {new Date(quizStatus.lastAttemptTime!).toLocaleString()}</p>
+                    )}
+                    {quizStatus?.state === 'pending_mint' && !isSubmitted && (
+                      <>
+                        <p className="mb-4">You previously scored 5/5! Complete the process to mint your NFT.</p>
+                        <Button onClick={handleResumeMint} className="w-full" disabled={isLoading}>
+                          {isLoading ? 'Preparing...' : 'RESUME MINT'}
+                        </Button>
+                      </>
                     )}
                     {isSubmitted && score !== null && (
                       <>
@@ -990,7 +1082,7 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
                               </Button>
                             )}
                             {isMinting && <p>Minting NFT...</p>}
-                            {mintError && <p className="text-red-500">Minting failed: {mintError.message}</p>}
+                            {mintError && <p className="text-red-500">User failed to sign minting transaction or mint transaction failed</p>}
                           </>
                         ) : (
                           <div className="bg-yellow-50 p-4 rounded-lg text-yellow-700">
