@@ -82,12 +82,17 @@ export async function GET() {
       return NextResponse.json({ added, total, done });
     }
     const logs: ethers.EventLog[] = await contract.queryFilter('Transfer', fromBlockTag, toBlock) as ethers.EventLog[];
-    // Only process up to BATCH_SIZE logs after fromLogIndex
+    // Only process up to BATCH_SIZE logs after fromLogIndex, but we need to process more logs
+    // to account for excluded "Tier I - Capy Splash" badges
     const logsToProcess: ethers.EventLog[] = [];
+    
     for (let i = 0; i < logs.length; i++) {
       if (fromBlock === state.lastBlock && i < fromLogIndex) continue;
       logsToProcess.push(logs[i]);
-      if (logsToProcess.length >= BATCH_SIZE) break;
+      
+      // We'll check for excluded badges after metadata fetch, so for now just process more logs
+      // to ensure we get enough valid badges. We'll process up to 3x BATCH_SIZE to be safe.
+      if (logsToProcess.length >= BATCH_SIZE * 3) break;
     }
     // Parallel metadata fetch
     const fetchMetaForLog = async (log: ethers.EventLog) => {
@@ -131,7 +136,20 @@ export async function GET() {
       };
     };
     const metaResults = await Promise.all(logsToProcess.map(fetchMetaForLog));
-    const shardRecords = metaResults.filter((r): r is BadgeRecord => !!r && typeof r === 'object' && typeof (r as BadgeRecord).tokenId === 'string' && typeof (r as BadgeRecord).blockNumber === 'number' && typeof (r as BadgeRecord).logIndex === 'number');
+    
+    // Filter out null results and exclude "Tier I - Capy Splash" badges
+    const allValidRecords = metaResults.filter((r): r is BadgeRecord => 
+      !!r && 
+      typeof r === 'object' && 
+      typeof (r as BadgeRecord).tokenId === 'string' && 
+      typeof (r as BadgeRecord).blockNumber === 'number' && 
+      typeof (r as BadgeRecord).logIndex === 'number' &&
+      // Exclude "Tier I - Capy Splash" badges
+      (r as BadgeRecord).credentialSubjectName !== "Tier I – Capy Splash"
+    );
+    
+    // Limit to BATCH_SIZE valid badges to keep shard size manageable
+    const shardRecords = allValidRecords.slice(0, BATCH_SIZE);
     const addedInShard = shardRecords.length;
     let lastProcessedBlock = fromBlock;
     let lastProcessedLog = fromLogIndex;
