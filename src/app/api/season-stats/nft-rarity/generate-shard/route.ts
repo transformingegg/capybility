@@ -49,7 +49,7 @@ export async function POST() {
     const session = await getSession();
     if (!session || !session.isAdmin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const MAX_NFTS_PER_SHARD = 500; // Target shard size
+    const MAX_NFTS_PER_SHARD = 50; // Reduced for Vercel 15s timeout limit
     const MAX_CONSECUTIVE_FAILURES = 10; // Stop after this many consecutive failed tokens
 
     const provider = new ethers.JsonRpcProvider('https://rpc.edu-chain.raas.gelato.cloud/');
