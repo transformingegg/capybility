@@ -349,6 +349,7 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
     if (signature) {
       handleMint();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signature]);
 
   const handleAnswerChange = (questionIndex: number, choiceIndex: number) => {
