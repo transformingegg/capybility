@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAccount, useSignMessage } from "wagmi";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -56,6 +56,11 @@ export default function SeasonStatsPage() {
   const [loadingReferrals, setLoadingReferrals] = useState(false);
   const [loadingQuizzes, setLoadingQuizzes] = useState(false);
   const [loadingNFTs, setLoadingNFTs] = useState(false);
+
+  // Auto-generation states
+  const [autoGenerate, setAutoGenerate] = useState(false);
+  const [autoGenTimer, setAutoGenTimer] = useState<NodeJS.Timeout | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string>('Ready');
 
   // Check authentication on mount
   useEffect(() => {
@@ -173,9 +178,9 @@ export default function SeasonStatsPage() {
   const [masterCreating, setMasterCreating] = useState(false);
   const [shardProgress, setShardProgress] = useState<{ lastProcessed: number; totalSupply: number; isComplete: boolean } | null>(null);
 
-  const handleGenerateShard = async () => {
-    if (!confirm('Generate a shard of up to 50 NFTs starting from the last processed token?')) return;
+  const handleGenerateShard = useCallback(async () => {
     setShardGenerating(true);
+    setStatusMessage('Generating shard...');
     try {
       const response = await fetch('/api/season-stats/nft-rarity/generate-shard', {
         method: 'POST',
@@ -184,7 +189,7 @@ export default function SeasonStatsPage() {
       });
       const data = await response.json();
       if (response.ok) {
-        alert(`Shard created: ${data.shardFile}\nProcessed ${data.nftCount} NFTs (tokens ${data.startToken}-${data.lastTokenProcessed})\n${data.remainingTokens} tokens remaining`);
+        setStatusMessage(`Shard created: ${data.nftCount} NFTs processed (${data.startToken}-${data.lastTokenProcessed}). ${data.remainingTokens} remaining`);
         setShardProgress({
           lastProcessed: data.lastTokenProcessed,
           totalSupply: data.totalSupply,
@@ -192,31 +197,68 @@ export default function SeasonStatsPage() {
         });
       } else {
         console.error('Shard generation failed', data);
-        alert('Shard generation failed: ' + (data.error || 'unknown'));
+        setStatusMessage(`Shard generation failed: ${data.error || 'unknown error'}`);
       }
     } catch (e) {
       console.error('Error generating shard', e);
-      alert('Error generating shard');
+      setStatusMessage('Error generating shard');
     } finally {
       setShardGenerating(false);
+      if (!autoGenerate) {
+        setStatusMessage('Ready');
+      }
     }
-  };
+  }, [autoGenerate, setShardGenerating, setStatusMessage, setShardProgress]);
+
+  // Auto-generation effect
+  useEffect(() => {
+    if (autoGenerate && isAuthenticated) {
+      setStatusMessage('Auto-generation enabled - runs every 30 seconds');
+      const timer = setInterval(() => {
+        if (!shardGenerating) {
+          console.log('[Auto-Gen] Running scheduled generation...');
+          handleGenerateShard();
+        }
+      }, 30000); // 30 seconds
+
+      setAutoGenTimer(timer);
+      return () => {
+        clearInterval(timer);
+        setAutoGenTimer(null);
+      };
+    } else if (autoGenTimer) {
+      clearInterval(autoGenTimer);
+      setAutoGenTimer(null);
+      setStatusMessage('Auto-generation disabled');
+    }
+    return undefined;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoGenerate, isAuthenticated, handleGenerateShard]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (autoGenTimer) {
+        clearInterval(autoGenTimer);
+      }
+    };
+  }, [autoGenTimer]);
 
   const handleCreateMaster = async () => {
-    if (!confirm('Create a master file by aggregating all NFT shards by wallet?')) return;
     setMasterCreating(true);
+    setStatusMessage('Creating master file...');
     try {
       const response = await fetch('/api/season-stats/nft-rarity/create-master', { method: 'POST' });
       const data = await response.json();
       if (response.ok) {
-        alert(`Master created: ${data.masterFile}\n${data.totalHolders} unique holders, ${data.totalNFTs} total NFTs\nProcessed ${data.shardsProcessed} shards`);
+        setStatusMessage(`Master created: ${data.totalHolders} holders, ${data.totalNFTs} NFTs from ${data.shardsProcessed} shards`);
       } else {
         console.error('Create master failed', data);
-        alert('Create master failed: ' + (data.error || 'unknown'));
+        setStatusMessage(`Create master failed: ${data.error || 'unknown error'}`);
       }
     } catch (e) {
       console.error('Error creating master', e);
-      alert('Error creating master');
+      setStatusMessage('Error creating master');
     } finally {
       setMasterCreating(false);
     }
@@ -264,14 +306,14 @@ export default function SeasonStatsPage() {
         const sortedData = withYuzu.sort((a: NFTRarityStat, b: NFTRarityStat) => b.score - a.score);
 
         setNftRarityStats(sortedData);
-        alert(`Loaded master: ${data.masterFile}\n${data.data.length} holders loaded`);
+        setStatusMessage(`Loaded master: ${data.data.length} holders loaded`);
       } else {
         console.error('Load master failed', data);
-        alert('Load master failed: ' + (data.error || 'No master files found. Please generate shards first.'));
+        setStatusMessage(`Load master failed: ${data.error || 'No master files found'}`);
       }
     } catch (error) {
       console.error('Error loading master:', error);
-      alert('Error loading master. Please check if master files exist or generate new shards.');
+      setStatusMessage('Error loading master. Check if master files exist.');
     } finally {
       setLoadingNFTs(false);
     }
@@ -608,10 +650,41 @@ export default function SeasonStatsPage() {
                       )}
                     </tbody>
                   </table>
+                  
+                  {/* Auto-generation toggle */}
+                  <div className="flex items-center mb-4 p-3 bg-blue-50 rounded border">
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={autoGenerate}
+                        onChange={(e) => setAutoGenerate(e.target.checked)}
+                        className="mr-2"
+                      />
+                      <span className="text-sm font-medium">
+                        Auto-generate shards every 30 seconds
+                      </span>
+                    </label>
+                    {autoGenerate && (
+                      <span className="ml-4 text-xs text-blue-600">
+                        ⚡ Auto-generation active
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Status line */}
+                  <div className="mt-2 text-sm text-gray-600">
+                    Status: <span className="font-medium">{statusMessage}</span>
+                    {autoGenerate && (
+                      <div className="text-xs text-gray-500 mt-1">
+                        💡 Keep this tab active for reliable auto-generation
+                      </div>
+                    )}
+                  </div>
+                  
                   <div className="flex items-center justify-between mt-4">
                     <div className="space-x-2">
                       <Button onClick={handleGenerateShard} disabled={shardGenerating}>
-                        {shardGenerating ? 'Generating shard...' : 'Generate shard (500 NFTs)'}
+                        {shardGenerating ? 'Generating shard...' : 'Generate shard (50 NFTs)'}
                       </Button>
                       <Button onClick={handleCreateMaster} disabled={masterCreating}>
                         {masterCreating ? 'Creating master...' : 'Create master from shards'}
