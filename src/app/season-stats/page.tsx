@@ -394,10 +394,6 @@ export default function SeasonStatsPage() {
   // Check if all sections have data loaded
   const allSectionsLoaded = referralStats.length > 0 && quizCreatorStats.length > 0 && nftRarityStats.length > 0;
 
-  const truncateAddress = (address: string) => {
-    return `${address.slice(0, 6)}...${address.slice(-4)}`;
-  };
-
   if (!isAuthenticated) {
     return (
       <PageLayout>
@@ -483,7 +479,7 @@ export default function SeasonStatsPage() {
                         referralStats.map((stat, index) => (
                           <tr key={stat.referer} className={index % 2 === 0 ? "bg-gray-50" : "bg-white"}>
                             <td className="border border-gray-300 px-4 py-2 font-mono">
-                              {truncateAddress(stat.referer)}
+                              {stat.referer}
                             </td>
                             <td className="border border-gray-300 px-4 py-2">
                               {stat.referral_count}
@@ -550,7 +546,7 @@ export default function SeasonStatsPage() {
                         quizCreatorStats.map((stat, index) => (
                           <tr key={stat.wallet_address} className={index % 2 === 0 ? "bg-gray-50" : "bg-white"}>
                             <td className="border border-gray-300 px-4 py-2 font-mono">
-                              {truncateAddress(stat.wallet_address)}
+                              {stat.wallet_address}
                             </td>
                             <td className="border border-gray-300 px-4 py-2">
                               {stat.quiz_count}
@@ -622,7 +618,7 @@ export default function SeasonStatsPage() {
                         nftRarityStats.map((stat, index) => (
                           <tr key={stat.wallet_address} className={index % 2 === 0 ? "bg-gray-50" : "bg-white"}>
                             <td className="border border-gray-300 px-4 py-2 font-mono">
-                              {truncateAddress(stat.wallet_address)}
+                              {stat.wallet_address}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-center">
                               {stat.common_count}
@@ -752,7 +748,7 @@ export default function SeasonStatsPage() {
                     {combinedYuzuStats.map((stat, index) => (
                       <tr key={stat.wallet_address} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                         <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
-                          {truncateAddress(stat.wallet_address)}
+                          {stat.wallet_address}
                         </td>
                         <td className="border border-gray-300 px-4 py-2 text-center">
                           {stat.referral_yuzu.toLocaleString()}
