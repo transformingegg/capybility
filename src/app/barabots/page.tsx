@@ -1,0 +1,318 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useAccount } from "wagmi";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2, Sparkles, Package } from "lucide-react";
+import PageLayout from "@/components/PageLayout";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+
+interface BarabotNFT {
+  tokenId: string;
+  category: string;
+  state: string;
+  rarity?: string;
+}
+
+export default function BarabotsGridPage() {
+  const { address, isConnected } = useAccount();
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [barabots, setBarabots] = useState<BarabotNFT[]>([]);
+
+  useEffect(() => {
+    if (address && isConnected) {
+      fetchBarabots();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [address, isConnected]);
+
+  const fetchBarabots = async () => {
+    if (!address) return;
+
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/barabots-list?wallet=${address}`);
+      const data = await response.json();
+
+      if (response.ok) {
+        setBarabots(data.barabots || []);
+      } else {
+        console.error('Error fetching Barabots:', data.error);
+      }
+    } catch (error) {
+      console.error('Error fetching Barabots:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isConnected) {
+    return (
+      <PageLayout>
+        <div className="max-w-2xl mx-auto p-6">
+          <Card>
+            <CardContent className="p-6 text-center">
+              <h1 className="text-2xl font-bold mb-4">My Barabots</h1>
+              <p className="text-gray-600">Please connect your wallet to view your Barabots collection.</p>
+            </CardContent>
+          </Card>
+        </div>
+      </PageLayout>
+    );
+  }
+
+  if (loading) {
+    return (
+      <PageLayout>
+        <div className="max-w-6xl mx-auto p-6">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+            <p className="text-gray-600">Loading your Barabots collection...</p>
+          </div>
+        </div>
+      </PageLayout>
+    );
+  }
+
+  if (barabots.length === 0) {
+    return (
+      <PageLayout>
+        <div className="max-w-4xl mx-auto p-6">
+          {/* Hero Section for New Users */}
+          <Card className="mb-8 bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200">
+            <CardHeader>
+              <CardTitle className="text-4xl text-center flex items-center justify-center gap-2">
+                <Package className="text-blue-600" />
+                Welcome to Barabots!
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-center">
+              <p className="text-xl text-gray-600 mb-8">
+                Start your collection journey today!
+              </p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div className="bg-white p-6 rounded-lg">
+                  <div className="text-4xl mb-3">📦</div>
+                  <h3 className="font-bold text-lg mb-2">Step 1: Mint</h3>
+                  <p className="text-sm text-gray-600">Mint your crate!</p>
+                </div>
+                <div className="bg-white p-6 rounded-lg">
+                  <div className="text-4xl mb-3">🔗</div>
+                  <h3 className="font-bold text-lg mb-2">Step 2: Pair</h3>
+                  <p className="text-sm text-gray-600">Select a crate and one of your on-chain transactions</p>
+                </div>
+                <div className="bg-white p-6 rounded-lg">
+                  <div className="text-4xl mb-3">✨</div>
+                  <h3 className="font-bold text-lg mb-2">Step 3: Assemble</h3>
+                  <p className="text-sm text-gray-600">Construct your Barabot that was in your crate to reveal its rarity</p>
+                </div>
+              </div>
+
+              <Button
+                onClick={() => router.push('/barabotsmint')}
+                size="lg"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-12 py-6 text-xl"
+              >
+                <Sparkles className="mr-2 h-6 w-6" />
+                Mint Your First Barabot
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </PageLayout>
+    );
+  }
+
+  return (
+    <PageLayout>
+      <div className="max-w-7xl mx-auto p-6">
+        {/* Hero/Landing Section */}
+        <Card className="mb-8 bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200">
+          <CardHeader>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <CardTitle className="text-4xl mb-2 flex items-center gap-2">
+                  <Package className="text-blue-600" />
+                  Barabots Collection
+                </CardTitle>
+                <p className="text-gray-600 text-lg">
+                  Collect crates, pair them with your on-chain activity, and assemble them into unique Barabots!
+                </p>
+              </div>
+              <Button
+                onClick={() => router.push('/barabotsmint')}
+                size="lg"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-6 text-lg"
+              >
+                <Sparkles className="mr-2" />
+                Mint More Barabots
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+              <div className="bg-white/50 p-4 rounded-lg">
+                <h3 className="font-bold text-lg mb-1">📦 Step 1: Mint</h3>
+                <p className="text-sm text-gray-600">Mint your crate!</p>
+              </div>
+              <div className="bg-white/50 p-4 rounded-lg">
+                <h3 className="font-bold text-lg mb-1">🔗 Step 2: Pair</h3>
+                <p className="text-sm text-gray-600">Pair your crate with an on-chain transactions</p>
+              </div>
+              <div className="bg-white/50 p-4 rounded-lg">
+                <h3 className="font-bold text-lg mb-1">✨ Step 3: Assemble</h3>
+                <p className="text-sm text-gray-600">Construct your Barabot</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Collection Stats */}
+        <div className="mb-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Card>
+              <CardContent className="p-4 text-center">
+                <div className="text-3xl font-bold text-gray-600">{barabots.filter(b => b.state === 'Crate').length}</div>
+                <div className="text-sm text-gray-600">Crates</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4 text-center">
+                <div className="text-3xl font-bold text-green-600">{barabots.filter(b => b.state === 'Barabot').length}</div>
+                <div className="text-sm text-gray-600">Barabots</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4 text-center">
+                <div className="text-3xl font-bold text-blue-600">{barabots.length}</div>
+                <div className="text-sm text-gray-600">Total Owned</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4 text-center">
+                <div className="text-3xl font-bold text-purple-600">
+                  {barabots.filter(b => b.rarity).length > 0 
+                    ? Math.round((barabots.filter(b => b.state === 'Barabot').length / barabots.length) * 100) + '%'
+                    : '0%'}
+                </div>
+                <div className="text-sm text-gray-600">Assembly Rate</div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold">Your Collection</h2>
+          <p className="text-gray-600">
+            Click on any NFT to view details and pair with transactions
+          </p>
+        </div>
+
+        {/* Crates Section */}
+        {barabots.filter(b => b.state === 'Crate').length > 0 && (
+          <div className="mb-12">
+            <h2 className="text-2xl font-bold mb-4">Crates ({barabots.filter(b => b.state === 'Crate').length})</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {barabots.filter(b => b.state === 'Crate').map((barabot) => (
+                <Card
+                  key={barabot.tokenId}
+                  className="cursor-pointer hover:shadow-lg transition-shadow"
+                  onClick={() => router.push(`/barabots/${barabot.tokenId}`)}
+                >
+                  <CardContent className="p-4">
+                    <div className="aspect-square mb-4 rounded-lg overflow-hidden bg-gray-100">
+                      <img
+                        src={`/barabotsmetadata/img/${barabot.tokenId}`}
+                        alt={`Barabot #${barabot.tokenId}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg mb-1">Crate #{barabot.tokenId}</h3>
+                      <div className="flex flex-wrap gap-2">
+                        <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded">
+                          {barabot.category}
+                        </span>
+                        <span className="text-xs px-2 py-1 bg-gray-100 text-gray-800 rounded">
+                          {barabot.state}
+                        </span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Barabots Section */}
+        {barabots.filter(b => b.state === 'Barabot').length > 0 && (
+          <div className="mb-12">
+            <h2 className="text-2xl font-bold mb-4">Barabots ({barabots.filter(b => b.state === 'Barabot').length})</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {barabots.filter(b => b.state === 'Barabot').map((barabot) => (
+                <Card
+                  key={barabot.tokenId}
+                  className="cursor-pointer hover:shadow-lg transition-shadow"
+                  onClick={() => router.push(`/barabots/${barabot.tokenId}`)}
+                >
+                  <CardContent className="p-4">
+                    <div className="aspect-square mb-4 rounded-lg overflow-hidden bg-gray-100">
+                      <img
+                        src={`/barabotsmetadata/img/${barabot.tokenId}`}
+                        alt={`Barabot #${barabot.tokenId}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg mb-1">Barabot #{barabot.tokenId}</h3>
+                      <div className="flex flex-wrap gap-2">
+                        <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded">
+                          {barabot.category}
+                        </span>
+                        <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded">
+                          {barabot.state}
+                        </span>
+                        {barabot.rarity && (
+                          <span className="text-xs px-2 py-1 bg-purple-100 text-purple-800 rounded">
+                            {barabot.rarity}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Redacted Section */}
+        <div className="mb-12">
+          <h2 className="text-2xl font-bold mb-4">REDACTED</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <Card className="opacity-75">
+              <CardContent className="p-4">
+                <div className="aspect-square mb-4 rounded-lg overflow-hidden bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center relative">
+                  <div className="absolute inset-0 backdrop-blur-xl bg-black/20"></div>
+                  <div className="text-9xl text-gray-400 relative z-10 blur-sm">?</div>
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg mb-1 text-gray-500">???</h3>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="text-xs px-2 py-1 bg-gray-200 text-gray-500 rounded blur-[2px]">
+                      UNKNOWN
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </PageLayout>
+  );
+}
