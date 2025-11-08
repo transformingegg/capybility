@@ -37,12 +37,23 @@ export async function GET(
     // If no database entry, fetch from blob metadata to get category
     if (!category) {
       const metadataFilename = `${tokenId}.json`;
-      const blobUrl = `${process.env.BLOB_PUBLIC_URL || process.env.NEXT_PUBLIC_BLOB_PUBLIC_URL}/barabotsmetadata/${metadataFilename}`;
+      const blobBaseUrl = process.env.BLOB_PUBLIC_URL || process.env.NEXT_PUBLIC_BLOB_PUBLIC_URL;
+      
+      if (!blobBaseUrl) {
+        console.error('BLOB_PUBLIC_URL or NEXT_PUBLIC_BLOB_PUBLIC_URL environment variable not set');
+        return NextResponse.json({ error: "Blob storage configuration missing" }, { status: 500 });
+      }
+      
+      const blobUrl = `${blobBaseUrl}/barabotsmetadata/${metadataFilename}`;
+      console.log(`Fetching metadata from blob: ${blobUrl}`);
       
       const response = await fetch(blobUrl);
       if (response.ok) {
         const metadata = await response.json();
         category = metadata.attributes?.find((attr: { trait_type: string; value: string }) => attr.trait_type === 'Category')?.value || '';
+        console.log(`Category from blob metadata: ${category}`);
+      } else {
+        console.error(`Failed to fetch blob metadata: ${response.status} ${response.statusText}`);
       }
     }
 
@@ -56,10 +67,19 @@ export async function GET(
     if (isPaired) {
       // Get rarity from evolved metadata
       const evolvedMetadataFilename = `${tokenId}-evolved.json`;
-      const blobUrl = `${process.env.BLOB_PUBLIC_URL || process.env.NEXT_PUBLIC_BLOB_PUBLIC_URL}/barabotsmetadata/${evolvedMetadataFilename}`;
+      const blobBaseUrl = process.env.BLOB_PUBLIC_URL || process.env.NEXT_PUBLIC_BLOB_PUBLIC_URL;
+      
+      if (!blobBaseUrl) {
+        console.error('BLOB_PUBLIC_URL or NEXT_PUBLIC_BLOB_PUBLIC_URL environment variable not set');
+        return NextResponse.json({ error: "Blob storage configuration missing" }, { status: 500 });
+      }
+      
+      const blobUrl = `${blobBaseUrl}/barabotsmetadata/${evolvedMetadataFilename}`;
+      console.log(`Fetching evolved metadata from blob: ${blobUrl}`);
       
       const response = await fetch(blobUrl);
       if (!response.ok) {
+        console.error(`Failed to fetch evolved metadata: ${response.status} ${response.statusText}`);
         return NextResponse.json({ error: "Evolved metadata not found" }, { status: 404 });
       }
       
@@ -75,17 +95,22 @@ export async function GET(
     }
 
     // Read and serve the image file
-    const imageBuffer = await readFile(imagePath);
-    
-    return new NextResponse(new Uint8Array(imageBuffer), {
-      status: 200,
-      headers: {
-        'Content-Type': 'image/png',
-        'Cache-Control': 'no-cache, no-store, must-revalidate', // Don't cache to always show fresh images
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      }
-    });
+    try {
+      const imageBuffer = await readFile(imagePath);
+      
+      return new NextResponse(new Uint8Array(imageBuffer), {
+        status: 200,
+        headers: {
+          'Content-Type': 'image/png',
+          'Cache-Control': 'no-cache, no-store, must-revalidate', // Don't cache to always show fresh images
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
+    } catch (fileError) {
+      console.error(`Failed to read image file at ${imagePath}:`, fileError);
+      return NextResponse.json({ error: "Image file not found", path: imagePath }, { status: 404 });
+    }
 
   } catch (error) {
     console.error(`Error in Barabots image endpoint for token ${(await context.params).tokenId}:`, error);

@@ -164,9 +164,12 @@ export default function BarabotsMintPage() {
       
       if (tokenId) {
         try {
-          categoryForMetadata = selectedCategory === 'random-free' || selectedCategory === 'random-discount' 
-            ? ['BUILD', 'WORK', 'DEFI', 'LEARN', 'CULTURE'][Math.floor(Math.random() * 5)]
-            : selectedCategory;
+          // Determine category: random for 'random' selections or full price mints, otherwise use selected
+          if (selectedCategory === 'random-free' || selectedCategory === 'random-discount' || mintType === 'full') {
+            categoryForMetadata = ['BUILD', 'WORK', 'DEFI', 'LEARN', 'CULTURE'][Math.floor(Math.random() * 5)];
+          } else {
+            categoryForMetadata = selectedCategory;
+          }
 
           console.log('Creating metadata for tokenId:', tokenId, 'category:', categoryForMetadata);
 
