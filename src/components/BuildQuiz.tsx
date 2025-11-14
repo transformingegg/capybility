@@ -291,7 +291,7 @@ export default function BuildQuiz({ quizJson, onQuizUpdated, isSubmittable }: Bu
                     <CardContent className="space-y-4 min-h-[340px]">
                       <div className="flex items-center gap-2">
                         <input type="checkbox" id="barabots-enable" checked={isBarabotsQuiz} onChange={e => { setIsBarabotsQuiz(e.target.checked); onQuizUpdated(quiz, quizName, tags, e.target.checked, barabotsCategory, barabotsDuration); }} />
-                        <Label htmlFor="barabots-enable">Make this a Barabots Quiz</Label>
+                        <Label htmlFor="barabots-enable">Turn on Barabot crate Rewards (If greater than 10 people do your quiz, then you will receive a free mint for a barabot crate)</Label>
                       </div>
                       {isBarabotsQuiz && (
                         <>

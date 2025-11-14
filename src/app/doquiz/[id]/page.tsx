@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useAccount, useSignMessage, useWriteContract } from "wagmi";
 import { use } from "react";
 import { ethers } from "ethers";
+import Link from "next/link";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import PageLayout from "@/components/PageLayout";
 import CustomAlertDialog from "@/components/CustomAlertDialog";
@@ -883,17 +884,24 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
                   <div className="w-6 h-6 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mr-2">
                     <span className="text-white text-xs font-bold">🎁</span>
                   </div>
-                  <h3 className="text-lg font-semibold text-purple-300">Barabots Rewards Available!</h3>
+                  <h3 className="text-lg font-semibold text-purple-300">Barabots Crate Rewards Available!</h3>
                 </div>
-                <div className="text-sm text-gray-300 space-y-1">
-                  <p>• <strong>Perfect Score Required:</strong> Answer all questions correctly to be eligible for rewards</p>
-                  <p>• <strong>Whitelist Spots:</strong> Top performers may receive free or discounted Barabots NFT mints</p>
-                  <p>• <strong>Category:</strong> {quiz.barabots_category || 'Random'}</p>
+                <div className="text-sm text-gray-300 space-y-1 !text-left">
+                  <p>• <strong>Perfect Score Required:</strong> Answer all questions correctly and mint the completion NFT to be eligible for rewards.</p>
+                  <p>• <strong>If number of completers is more than than 10, Whitelist Spots are raffled:</strong> 1 free mint, one third of all participants receive a discounted mint WL</p>
+                  <p>• <strong>All crate WL for this quiz will be of category </strong> {quiz.barabots_category || 'Random'}</p>
                   {quiz.barabots_end_date && (
-                    <p>• <strong>Quiz Ends:</strong> {new Date(quiz.barabots_end_date).toLocaleDateString()}</p>
+                    <p>• <strong>To be considered for prizes, complete quiz by:</strong> {new Date(quiz.barabots_end_date).toLocaleString('en-US', { 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      timeZoneName: 'short'
+                    })}</p>
                   )}
                   <p className="text-xs text-purple-400 mt-2">
-                    Rewards are distributed automatically after the quiz ends. Keep an eye on your wallet!
+                    Rewards are distributed automatically after the quiz ends. Keep an eye on the <Link href="/barabots" className="underline text-purple-300 hover:text-purple-200">Barabots minting page</Link>!
                   </p>
                 </div>
               </div>
