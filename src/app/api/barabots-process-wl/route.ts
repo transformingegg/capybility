@@ -21,6 +21,18 @@ export async function POST(request: Request) {
   return processWL();
 }
 
+export async function GET(request: Request) {
+  // Cron job endpoint - only accepts requests from Vercel cron
+  const userAgent = request.headers.get('user-agent') || '';
+  const isVercelCron = userAgent.includes('vercel-cron');
+
+  if (!isVercelCron) {
+    return NextResponse.json({ error: 'Unauthorized - cron only' }, { status: 401 });
+  }
+
+  return processWL();
+}
+
 async function processWL() {
   const startTime = Date.now();
   console.log(`[${new Date().toISOString()}] Starting Barabots WL processing...`);
