@@ -28,12 +28,12 @@ export async function POST(request: Request) {
 
     if (type === 'evolved') {
       // Create evolved metadata (for when paired with transaction)
-      // Randomly assign rarity: 70% base, 20% rare, 8% epic, 2% legendary
+      // Randomly assign rarity: 65% common, 30% rare, 4.95% epic, 0.05% legendary
       const rand = Math.random();
       let rarity: string;
-      if (rand < 0.70) rarity = 'base';
-      else if (rand < 0.90) rarity = 'rare';
-      else if (rand < 0.98) rarity = 'epic';
+      if (rand < 0.65) rarity = 'common';
+      else if (rand < 0.95) rarity = 'rare';
+      else if (rand < 0.9995) rarity = 'epic';
       else rarity = 'legendary';
 
       const evolvedMetadata = {

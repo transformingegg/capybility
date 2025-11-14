@@ -291,7 +291,7 @@ export default function BuildQuiz({ quizJson, onQuizUpdated, isSubmittable }: Bu
                     <CardContent className="space-y-4 min-h-[340px]">
                       <div className="flex items-center gap-2">
                         <input type="checkbox" id="barabots-enable" checked={isBarabotsQuiz} onChange={e => { setIsBarabotsQuiz(e.target.checked); onQuizUpdated(quiz, quizName, tags, e.target.checked, barabotsCategory, barabotsDuration); }} />
-                        <Label htmlFor="barabots-enable">Turn on Barabot crate Rewards (If greater than 10 people do your quiz, then you will receive a free mint for a barabot crate)</Label>
+                        <Label htmlFor="barabots-enable">Turn on Barabot crate Rewards (If 10+ people complete your quiz, then you will receive a free mint for a barabot crate)</Label>
                       </div>
                       {isBarabotsQuiz && (
                         <>
@@ -317,7 +317,6 @@ export default function BuildQuiz({ quizJson, onQuizUpdated, isSubmittable }: Bu
                                 <SelectValue placeholder="Select duration" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="0.00694">10 minutes (testing)</SelectItem>
                                 <SelectItem value="3">3 days</SelectItem>
                                 <SelectItem value="5">5 days</SelectItem>
                                 <SelectItem value="7">7 days</SelectItem>
@@ -326,10 +325,10 @@ export default function BuildQuiz({ quizJson, onQuizUpdated, isSubmittable }: Bu
                           </div>
                           <div className="text-sm text-gray-600 mt-2">
                             <strong>Barabots Quiz Rules:</strong><br />
-                            - If 3+ participants complete and mint, creator gets free WL.<br />
+                            - If 10+ participants complete and mint, creator gets free WL.<br />
                             - 1/3 of completers get discount WL (random).<br />
                             - 1 completer (not in discount WL) gets free WL.<br />
-                            - If &lt;3, creator gets discount WL.<br />
+                            - If &lt;10, creator gets discount WL.<br />
                           </div>
                         </>
                       )}

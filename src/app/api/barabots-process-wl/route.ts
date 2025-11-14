@@ -116,7 +116,7 @@ async function processBarabotsQuiz(pool: Pool, quiz: BarabotsQuiz) {
 
   let wlDistributed = 0;
 
-  if (completerCount >= 3) {
+  if (completerCount >= 10) {
     // Creator gets free WL
     await pool.query(`
       INSERT INTO barabots_free_wl (wallet_address, category, added_by, notes)
