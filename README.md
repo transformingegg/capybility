@@ -33,3 +33,42 @@ Create a `.env.local` file with the following variables:
 - Take quizzes and earn verifiable credentials
 - Track quiz participation and results
 - Web3 wallet integration
+
+## Barabots WL Processing
+
+### Automated Processing Setup
+
+The Barabots WL distribution runs automatically via Vercel Cron Jobs at 2 AM UTC daily.
+
+### Security
+
+- **API Key Required**: Set `BARABOTS_PROCESS_API_KEY` environment variable
+- **Production**: Only POST requests with Bearer token authentication
+- **Development**: GET requests allowed with `?key=` parameter (disabled in production)
+
+### Manual Testing
+
+```bash
+# Development only
+curl "https://your-domain.com/api/barabots-process-wl?key=YOUR_API_KEY"
+
+# Production
+curl -X POST \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  https://your-domain.com/api/barabots-process-wl
+```
+
+### Environment Variables
+
+Add to Vercel environment variables:
+```
+BARABOTS_PROCESS_API_KEY=your-secure-random-api-key-here
+```
+
+### Monitoring
+
+Check Vercel function logs for processing results:
+- Number of quizzes processed
+- WL spots distributed
+- Processing duration
+- Any errors encountered

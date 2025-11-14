@@ -14,7 +14,8 @@ export async function POST(req: Request) {
         return NextResponse.json({ scrapedText });
       } catch (error) {
         console.error("Scraping error:", error);
-        return NextResponse.json({ error: "Failed to scrape webpage" }, { status: 500 });
+        const errorMessage = error instanceof Error ? error.message : "Unknown scraping error";
+        return NextResponse.json({ error: `Failed to scrape webpage: ${errorMessage}` }, { status: 500 });
       }
     }
 

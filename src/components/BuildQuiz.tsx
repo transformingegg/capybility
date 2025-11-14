@@ -26,11 +26,14 @@ interface QuizData {
   quizName: string;
   tags: string[];
   quiz: QuizQuestion[];
+  isBarabotsQuiz?: boolean;
+  barabotsCategory?: string;
+  barabotsDuration?: number;
 }
 
 interface BuildQuizProps {
   quizJson: string;
-  onQuizUpdated: (quiz: QuizQuestion[], quizName: string, tags: string[]) => void;
+  onQuizUpdated: (quiz: QuizQuestion[], quizName: string, tags: string[], isBarabotsQuiz: boolean, barabotsCategory: string, barabotsDuration: number) => void;
   isSubmittable: (isReady: boolean) => void;
 }
 
@@ -57,7 +60,10 @@ export default function BuildQuiz({ quizJson, onQuizUpdated, isSubmittable }: Bu
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState("");
   
-  const [buildStep, setBuildStep] = useState(0); // 0: Name, 1: Tags, 2-6: Questions, 7: Review
+  const [buildStep, setBuildStep] = useState(0); // 0: Name, 1: Tags, 2: Barabots, 3-7: Questions, 8: Review
+  const [isBarabotsQuiz, setIsBarabotsQuiz] = useState(false);
+  const [barabotsCategory, setBarabotsCategory] = useState<string>("");
+  const [barabotsDuration, setBarabotsDuration] = useState<number>(3);
   const [direction, setDirection] = useState(1);
 
   const [isAlertOpen, setIsAlertOpen] = useState(false);
@@ -65,11 +71,17 @@ export default function BuildQuiz({ quizJson, onQuizUpdated, isSubmittable }: Bu
   const [height, setHeight] = useState<number | "auto">("auto");
   const cardRef = useRef<HTMLDivElement>(null);
 
+  // Helper for question step indexing (accounts for optional Barabots step)
+  const barabotsStepPresent = tags.some(tag => tag.replace(/[^a-zA-Z]/g, '').toLowerCase().includes('educhain'));
+  const questionIndexOffset = barabotsStepPresent ? 3 : 2;
+  const questionIndex = buildStep - questionIndexOffset;
+  const maxStep = barabotsStepPresent ? 8 : 7;
+
   useEffect(() => {
     if (cardRef.current) {
       setHeight(cardRef.current.offsetHeight);
     }
-  }, [buildStep, quiz, quizName, tags]); // Re-measure on step and data changes
+  }, [buildStep, quiz, quizName, tags, isBarabotsQuiz, barabotsCategory, barabotsDuration]); // Re-measure on step and data changes, including Barabots options
 
   useEffect(() => {
     try {
@@ -77,6 +89,9 @@ export default function BuildQuiz({ quizJson, onQuizUpdated, isSubmittable }: Bu
       setQuiz(parsedData.quiz || []);
       setQuizName(parsedData.quizName || "");
       setTags(parsedData.tags || []);
+      setIsBarabotsQuiz(parsedData.isBarabotsQuiz || false);
+      setBarabotsCategory(parsedData.barabotsCategory || "");
+      setBarabotsDuration(parsedData.barabotsDuration || 3);
     } catch (e) {
       console.error("Error parsing quiz JSON:", e);
     }
@@ -84,12 +99,12 @@ export default function BuildQuiz({ quizJson, onQuizUpdated, isSubmittable }: Bu
 
   useEffect(() => {
     // A quiz is submittable only when it has 5 questions and the user is on the final review step.
-    isSubmittable(quiz.length === 5 && buildStep === 7);
-  }, [quiz.length, buildStep, isSubmittable]);
+    isSubmittable(quiz.length === 5 && buildStep === maxStep);
+  }, [quiz.length, buildStep, maxStep, isSubmittable]);
 
   const handleNext = () => {
     setDirection(1);
-    setBuildStep((prev) => Math.min(prev + 1, 7));
+    setBuildStep((prev) => Math.min(prev + 1, maxStep));
   };
 
   const handlePrev = () => {
@@ -104,35 +119,35 @@ export default function BuildQuiz({ quizJson, onQuizUpdated, isSubmittable }: Bu
 
   const handleQuizNameChange = (newName: string) => {
     setQuizName(newName);
-    onQuizUpdated(quiz, newName, tags);
+    onQuizUpdated(quiz, newName, tags, isBarabotsQuiz, barabotsCategory, barabotsDuration);
   }
 
   const handleQuestionTextChange = (qIndex: number, newText: string) => {
     const newQuiz = [...quiz];
     newQuiz[qIndex].question = newText;
     setQuiz(newQuiz);
-    onQuizUpdated(newQuiz, quizName, tags);
+    onQuizUpdated(newQuiz, quizName, tags, isBarabotsQuiz, barabotsCategory, barabotsDuration);
   };
 
   const handleChoiceTextChange = (qIndex: number, cIndex: number, newText: string) => {
     const newQuiz = [...quiz];
     newQuiz[qIndex].choices[cIndex] = newText;
     setQuiz(newQuiz);
-    onQuizUpdated(newQuiz, quizName, tags);
+    onQuizUpdated(newQuiz, quizName, tags, isBarabotsQuiz, barabotsCategory, barabotsDuration);
   };
 
   const handleCorrectAnswerChange = (qIndex: number, newCorrectAnswer: string) => {
     const newQuiz = [...quiz];
     newQuiz[qIndex].correctAnswer = parseInt(newCorrectAnswer, 10);
     setQuiz(newQuiz);
-    onQuizUpdated(newQuiz, quizName, tags);
+    onQuizUpdated(newQuiz, quizName, tags, isBarabotsQuiz, barabotsCategory, barabotsDuration);
   };
 
   const handleAddTag = () => {
     if (newTag.trim() && !tags.includes(newTag.trim())) {
       const newTags = [...tags, newTag.trim()];
       setTags(newTags);
-      onQuizUpdated(quiz, quizName, newTags);
+      onQuizUpdated(quiz, quizName, newTags, isBarabotsQuiz, barabotsCategory, barabotsDuration);
       setNewTag("");
     }
   };
@@ -140,7 +155,7 @@ export default function BuildQuiz({ quizJson, onQuizUpdated, isSubmittable }: Bu
   const handleRemoveTag = (tagToRemove: string) => {
     const newTags = tags.filter(tag => tag !== tagToRemove)
     setTags(newTags);
-    onQuizUpdated(quiz, quizName, newTags);
+    onQuizUpdated(quiz, quizName, newTags, isBarabotsQuiz, barabotsCategory, barabotsDuration);
   };
 
   const handleRemoveQuestion = (qIndex: number) => {
@@ -157,13 +172,13 @@ export default function BuildQuiz({ quizJson, onQuizUpdated, isSubmittable }: Bu
         correctAnswer: 0,
       };
       setQuiz(newQuiz);
-      onQuizUpdated(newQuiz, quizName, tags);
+      onQuizUpdated(newQuiz, quizName, tags, isBarabotsQuiz, barabotsCategory, barabotsDuration);
       setQuestionToDelete(null);
     }
     setIsAlertOpen(false);
   };
 
-  const totalSteps = 7; // Name, Tags, 5 Questions
+  const totalSteps = 8; // Name, Tags, Barabots, 5 Questions, Review
   const progress = Math.round((buildStep / totalSteps) * 100);
 
   return (
@@ -255,56 +270,129 @@ export default function BuildQuiz({ quizJson, onQuizUpdated, isSubmittable }: Bu
               </Card>
             )}
 
-            {/* Steps 2-6: Questions */}
-            {buildStep >= 2 && buildStep <= 6 && quiz[buildStep - 2] && (
+            {/* Step 2: Barabots Quiz (conditional) */}
+            {buildStep === 2 && (
+              (() => {
+                // Tag matching logic (case-insensitive, trims, matches educhain, edu chain, #educhain, etc)
+                const tagMatch = tags.some(tag => tag.replace(/[^a-zA-Z]/g, '').toLowerCase().includes('educhain'));
+                if (!tagMatch) {
+                  // If not a match, skip this step
+                  setTimeout(() => setBuildStep(questionIndexOffset), 0);
+                  return null;
+                }
+                return (
+                  <Card className="bg-slate-50 dark:bg-slate-900 border-yellow-400">
+                    <CardHeader>
+                      <CardTitle className="text-yellow-400">Barabots Quiz Options</CardTitle>
+                      <CardDescription>
+                        This quiz is eligible to be a Barabots Quiz! Enable below to offer Barabot crate whitelist rewards to participants.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4 min-h-[340px]">
+                      <div className="flex items-center gap-2">
+                        <input type="checkbox" id="barabots-enable" checked={isBarabotsQuiz} onChange={e => { setIsBarabotsQuiz(e.target.checked); onQuizUpdated(quiz, quizName, tags, e.target.checked, barabotsCategory, barabotsDuration); }} />
+                        <Label htmlFor="barabots-enable">Make this a Barabots Quiz</Label>
+                      </div>
+                      {isBarabotsQuiz && (
+                        <>
+                          <div>
+                            <Label htmlFor="barabots-category">Barabot Category</Label>
+                            <Select value={barabotsCategory} onValueChange={v => { setBarabotsCategory(v); onQuizUpdated(quiz, quizName, tags, isBarabotsQuiz, v, barabotsDuration); }}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select category" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="BUILD">BUILD</SelectItem>
+                                <SelectItem value="WORK">WORK</SelectItem>
+                                <SelectItem value="DEFI">DEFI</SelectItem>
+                                <SelectItem value="LEARN">LEARN</SelectItem>
+                                <SelectItem value="CULTURE">CULTURE</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label htmlFor="barabots-duration">Competition Duration</Label>
+                            <Select value={barabotsDuration.toString()} onValueChange={v => { const num = Number(v); setBarabotsDuration(num); onQuizUpdated(quiz, quizName, tags, isBarabotsQuiz, barabotsCategory, num); }}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select duration" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="0.00694">10 minutes (testing)</SelectItem>
+                                <SelectItem value="3">3 days</SelectItem>
+                                <SelectItem value="5">5 days</SelectItem>
+                                <SelectItem value="7">7 days</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="text-sm text-gray-600 mt-2">
+                            <strong>Barabots Quiz Rules:</strong><br />
+                            - If 3+ participants complete and mint, creator gets free WL.<br />
+                            - 1/3 of completers get discount WL (random).<br />
+                            - 1 completer (not in discount WL) gets free WL.<br />
+                            - If &lt;3, creator gets discount WL.<br />
+                          </div>
+                        </>
+                      )}
+                    </CardContent>
+                    <CardFooter className="flex justify-between p-6">
+                      <Button variant="outline" onClick={handlePrev} className="border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-black">Previous</Button>
+                      <Button onClick={handleNext} className="bg-yellow-400 hover:bg-yellow-500 text-black">Next</Button>
+                    </CardFooter>
+                  </Card>
+                );
+              })()
+            )}
+
+            {/* Steps 3-7: Questions */}
+            {buildStep >= questionIndexOffset && buildStep <= questionIndexOffset + 4 && quiz[questionIndex] && (
               <Card className="bg-slate-50 dark:bg-slate-900 border-yellow-400">
                 <CardHeader className="flex flex-row items-start justify-between">
                   <div>
-                      <CardTitle className="text-yellow-400">Question {buildStep - 1}</CardTitle>
+                      <CardTitle className="text-yellow-400">Question {questionIndex + 1}</CardTitle>
                       <CardDescription>Edit the question and choices below.</CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button variant="link" onClick={() => handleGoToStep(7)} className="text-yellow-400">Skip to Review</Button>
-                    <Button variant="destructive" size="icon" onClick={() => handleRemoveQuestion(buildStep - 2)}>
+                    <Button variant="link" onClick={() => handleGoToStep(maxStep)} className="text-yellow-400">Skip to Review</Button>
+                    <Button variant="destructive" size="icon" onClick={() => handleRemoveQuestion(questionIndex)}>
                         <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
-                    <Label htmlFor={`question-${buildStep - 2}`}>Question Text</Label>
+                    <Label htmlFor={`question-${questionIndex}`}>Question Text</Label>
                     <Input
-                      id={`question-${buildStep - 2}`}
-                      value={quiz[buildStep - 2].question}
-                      onChange={(e) => handleQuestionTextChange(buildStep - 2, e.target.value)}
+                      id={`question-${questionIndex}`}
+                      value={quiz[questionIndex].question}
+                      onChange={(e) => handleQuestionTextChange(questionIndex, e.target.value)}
                     />
                   </div>
                   <div>
                     <Label>Choices</Label>
                     <div className="space-y-2">
-                      {quiz[buildStep - 2].choices.map((choice, cIndex) => (
+                      {quiz[questionIndex].choices.map((choice, cIndex) => (
                         <div key={cIndex} className="flex items-center gap-2">
-                          <Label htmlFor={`choice-${buildStep - 2}-${cIndex}`} className="w-6 text-right">{String.fromCharCode(65 + cIndex)}.</Label>
+                          <Label htmlFor={`choice-${questionIndex}-${cIndex}`} className="w-6 text-right">{String.fromCharCode(65 + cIndex)}.</Label>
                           <Input
-                            id={`choice-${buildStep - 2}-${cIndex}`}
+                            id={`choice-${questionIndex}-${cIndex}`}
                             value={choice}
-                            onChange={(e) => handleChoiceTextChange(buildStep - 2, cIndex, e.target.value)}
+                            onChange={(e) => handleChoiceTextChange(questionIndex, cIndex, e.target.value)}
                           />
                         </div>
                       ))}
                     </div>
                   </div>
                   <div>
-                    <Label htmlFor={`correct-answer-${buildStep - 2}`}>Correct Answer</Label>
+                    <Label htmlFor={`correct-answer-${questionIndex}`}>Correct Answer</Label>
                     <Select
-                      value={quiz[buildStep - 2].correctAnswer.toString()}
-                      onValueChange={(value) => handleCorrectAnswerChange(buildStep - 2, value)}
+                      value={quiz[questionIndex].correctAnswer.toString()}
+                      onValueChange={(value) => handleCorrectAnswerChange(questionIndex, value)}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select correct answer" />
                       </SelectTrigger>
                       <SelectContent>
-                        {quiz[buildStep - 2].choices.map((_, cIndex) => (
+                        {quiz[questionIndex].choices.map((_, cIndex) => (
                           <SelectItem key={cIndex} value={cIndex.toString()}>
                             {String.fromCharCode(65 + cIndex)}
                           </SelectItem>
@@ -320,8 +408,8 @@ export default function BuildQuiz({ quizJson, onQuizUpdated, isSubmittable }: Bu
               </Card>
             )}
 
-            {/* Step 7: Final Review */}
-            {buildStep === 7 && (
+            {/* Step 8: Final Review */}
+            {buildStep === maxStep && (
               <Card className="border-yellow-400">
                 <CardHeader>
                   <CardTitle className="text-yellow-400">Final Review</CardTitle>
@@ -357,7 +445,7 @@ export default function BuildQuiz({ quizJson, onQuizUpdated, isSubmittable }: Bu
                               ))}
                             </ul>
                           </div>
-                          <Button variant="link" onClick={() => handleGoToStep(qIndex + 2)} className="text-yellow-400">Edit</Button>
+                          <Button variant="link" onClick={() => handleGoToStep(qIndex + questionIndexOffset)} className="text-yellow-400">Edit</Button>
                         </div>
                       </div>
                     ))}

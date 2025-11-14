@@ -146,6 +146,9 @@ const MainContent = dynamic(
   const [hasPermission, setHasPermission] = useState(false);
   const [isQuizSubmittable, setIsQuizSubmittable] = useState(false);
   const [scrapeError, setScrapeError] = useState<string | null>(null);
+  const [isBarabotsQuiz, setIsBarabotsQuiz] = useState(false);
+  const [barabotsCategory, setBarabotsCategory] = useState<string>("");
+  const [barabotsDuration, setBarabotsDuration] = useState<number>(3);
 
         // Add useEffect to fetch mint price when component mounts
         useEffect(() => {
@@ -279,7 +282,10 @@ const MainContent = dynamic(
                 tags: quizTags,
                 sourceUrl: url,
                 signature,
-                message
+                message,
+                isBarabotsQuiz,
+                barabotsCategory,
+                barabotsDuration
               }),
             });
             const saveData = await saveResponse.json();
@@ -402,11 +408,17 @@ const MainContent = dynamic(
         const handleQuizUpdated = (
           updatedQuiz: QuizQuestion[],
           updatedName: string,
-          updatedTags: string[]
+          updatedTags: string[],
+          isBarabotsQuiz: boolean,
+          barabotsCategory: string,
+          barabotsDuration: number
         ) => {
           setEditedQuiz(updatedQuiz);
           setQuizName(updatedName);
           setQuizTags(updatedTags);
+          setIsBarabotsQuiz(isBarabotsQuiz);
+          setBarabotsCategory(barabotsCategory);
+          setBarabotsDuration(barabotsDuration);
         };
 
         return (
@@ -533,7 +545,10 @@ const MainContent = dynamic(
                           quizJson={JSON.stringify({
                             quiz: editedQuiz,
                             quizName,
-                            tags: quizTags
+                            tags: quizTags,
+                            isBarabotsQuiz,
+                            barabotsCategory,
+                            barabotsDuration
                           })}
                           onQuizUpdated={handleQuizUpdated}
                           isSubmittable={setIsQuizSubmittable}

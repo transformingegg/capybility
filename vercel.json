@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/barabots-process-wl",
+      "schedule": "0 2 * * *"
+    }
+  ]
+}
