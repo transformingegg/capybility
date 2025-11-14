@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { Pool } from "pg";
 
-const API_KEY = process.env.BARABOTS_PROCESS_API_KEY;
+const API_KEY = process.env.BARABOTS_API_KEY;
 
 interface BarabotsQuiz {
   id: string;
