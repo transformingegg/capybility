@@ -7,6 +7,7 @@ interface BarabotsQuiz {
   id: string;
   wallet_address: string;
   barabots_category: string;
+  barabots_end_date: string;
 }
 
 export async function POST(request: Request) {
@@ -44,7 +45,7 @@ async function processWL() {
   try {
     // Find expired Barabots quizzes that haven't been processed
     const expiredQuizzes = await pool.query(`
-      SELECT id, wallet_address, barabots_category, barabots_duration_days
+      SELECT id, wallet_address, barabots_category, barabots_end_date
       FROM quizzes
       WHERE is_barabots_quiz = true
         AND barabots_processed = false
@@ -101,14 +102,14 @@ async function processWL() {
 }
 
 async function processBarabotsQuiz(pool: Pool, quiz: BarabotsQuiz) {
-  const { id: quizId, wallet_address: creatorAddress, barabots_category: category } = quiz;
+  const { id: quizId, wallet_address: creatorAddress, barabots_category: category, barabots_end_date: endDate } = quiz;
 
-  // Get perfect completers (score = 5)
+  // Get perfect completers (score = 5) who submitted BEFORE the quiz end date
   const completersResult = await pool.query(`
     SELECT wallet_address
     FROM quiz_submissions
-    WHERE quiz_id = $1 AND score = 5
-  `, [quizId]);
+    WHERE quiz_id = $1 AND score = 5 AND submitted_at <= $2
+  `, [quizId, endDate]);
 
   const completers = completersResult.rows.map(row => row.wallet_address);
   const completerCount = completers.length;
