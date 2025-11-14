@@ -38,6 +38,9 @@ interface QuizData {
   sourceUrl?: string;
   hashtags?: string[];
   is_flagged: boolean;
+  is_barabots_quiz?: boolean;
+  barabots_category?: string;
+  barabots_end_date?: string;
 }
 
 interface QuizAttemptStatus {
@@ -319,6 +322,9 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
             sourceUrl: data.quiz.source_url || null,
             hashtags,
             is_flagged: data.quiz.is_flagged,
+            is_barabots_quiz: data.quiz.is_barabots_quiz,
+            barabots_category: data.quiz.barabots_category,
+            barabots_end_date: data.quiz.barabots_end_date,
           });
           setIsFlagged(data.quiz.is_flagged);
           setAnswers(new Array(data.quiz.quiz_data.quiz.length).fill(-1));
@@ -867,6 +873,29 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
                 >
                   {quiz.sourceUrl}
                 </a>
+              </div>
+            </CardContent>
+          )}
+          {quiz.is_barabots_quiz && (
+            <CardContent>
+              <div className="bg-gradient-to-r from-purple-900/50 to-blue-900/50 border border-purple-500/30 rounded-lg p-4 mt-4">
+                <div className="flex items-center mb-2">
+                  <div className="w-6 h-6 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mr-2">
+                    <span className="text-white text-xs font-bold">🎁</span>
+                  </div>
+                  <h3 className="text-lg font-semibold text-purple-300">Barabots Rewards Available!</h3>
+                </div>
+                <div className="text-sm text-gray-300 space-y-1">
+                  <p>• <strong>Perfect Score Required:</strong> Answer all questions correctly to be eligible for rewards</p>
+                  <p>• <strong>Whitelist Spots:</strong> Top performers may receive free or discounted Barabots NFT mints</p>
+                  <p>• <strong>Category:</strong> {quiz.barabots_category || 'Random'}</p>
+                  {quiz.barabots_end_date && (
+                    <p>• <strong>Quiz Ends:</strong> {new Date(quiz.barabots_end_date).toLocaleDateString()}</p>
+                  )}
+                  <p className="text-xs text-purple-400 mt-2">
+                    Rewards are distributed automatically after the quiz ends. Keep an eye on your wallet!
+                  </p>
+                </div>
               </div>
             </CardContent>
           )}

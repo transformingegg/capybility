@@ -1,15 +1,27 @@
-import axios from "axios"
 import * as cheerio from "cheerio"
 
 export async function scrapeWebpage(url: string): Promise<string> {
   try {
     console.log("Fetching URL:", url)
-    const { data } = await axios.get(url, {
+
+    // Create AbortController for timeout
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 seconds
+
+    const response = await fetch(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
       },
-      timeout: 10000 // 10 seconds
+      signal: controller.signal
     })
+
+    clearTimeout(timeoutId)
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.text()
     console.log("Fetched data successfully")
 
     const $ = cheerio.load(data)

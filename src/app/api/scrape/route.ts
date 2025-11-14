@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { scrapeWebpage } from "@/lib/scraper";
 
-export const runtime = 'edge';
+// Temporarily use nodejs runtime to avoid edge runtime issues
+export const runtime = 'nodejs';
 
 export async function POST(req: Request) {
   try {
