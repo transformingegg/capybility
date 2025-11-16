@@ -19,6 +19,9 @@ export function NavMenu() {
       </DropdownMenuTrigger>
       <DropdownMenuContent>
         <DropdownMenuItem asChild>
+          <Link href="/barabots" className="text-[#00c7df] font-bold text-lg whitespace-nowrap">Barabots</Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
           <Link href="/why-capybility" className="text-[#00c7df] font-bold text-lg whitespace-nowrap">Guide</Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>

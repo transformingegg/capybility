@@ -97,8 +97,11 @@ export default function MainLayout({ children, noPadding = false }: { children: 
                 <Link href="/creator-dashboard" className="text-[#00c7df] hover:opacity-80 font-bold text-lg" onClick={() => setIsMobileMenuOpen(false)}>Creator Dashboard</Link>
                 <Link href="/user-dashboard" className="text-[#00c7df] hover:opacity-80 font-bold text-lg" onClick={() => setIsMobileMenuOpen(false)}>User Dashboard</Link>
                 {/* Other Dropdown Items */}
+                <Link href="/barabots" className="text-[#00c7df] hover:opacity-80 font-bold text-lg" onClick={() => setIsMobileMenuOpen(false)}>Barabots</Link>
                 <Link href="/why-capybility" className="text-[#00c7df] hover:opacity-80 font-bold text-lg" onClick={() => setIsMobileMenuOpen(false)}>Guide</Link>
                 <Link href="/season-3-yuzu" className="text-[#00c7df] hover:opacity-80 font-bold text-lg" onClick={() => setIsMobileMenuOpen(false)}>Season 3 Yuzu</Link>
+                <Link href="/OC-Badge-Lookup" className="text-[#00c7df] hover:opacity-80 font-bold text-lg" onClick={() => setIsMobileMenuOpen(false)}>OC Badge Lookup</Link>
+                <Link href="/dapp-directory" className="text-[#00c7df] hover:opacity-80 font-bold text-lg" onClick={() => setIsMobileMenuOpen(false)}>DApp Directory</Link>
               </nav>
             </div>
           </div>
