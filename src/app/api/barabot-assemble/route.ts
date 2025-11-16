@@ -1,43 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ethers } from 'ethers';
 import { Pool } from 'pg';
-import { generateBarabotsPairSignature } from '@/lib/barabots-sign';
 
 const RPC_URL = "https://rpc.edu-chain.raas.gelato.cloud/";
 const BARABOTS_CONTRACT_ADDRESS = process.env.BARABOTS_CONTRACT!;
 
 export async function POST(request: NextRequest) {
   try {
-    const { walletAddress, tokenId, transactionHash, userSignature } = await request.json();
+    const { walletAddress, tokenId, transactionHash } = await request.json();
 
-    if (!walletAddress || !tokenId || !transactionHash || !userSignature) {
+    if (!walletAddress || !tokenId || !transactionHash) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Step 1: Verify the user signed the assembly request
-    const assemblyMessage = `Assemble Barabot #${tokenId} with transaction ${transactionHash}`;
-    let recoveredAddress: string;
-    
-    try {
-      recoveredAddress = ethers.verifyMessage(assemblyMessage, userSignature);
-      
-      if (recoveredAddress.toLowerCase() !== walletAddress.toLowerCase()) {
-        return NextResponse.json({ 
-          error: 'Signature verification failed. Please sign with the correct wallet.' 
-        }, { status: 401 });
-      }
-    } catch (error) {
-      console.error('Signature verification error:', error);
-      return NextResponse.json({ 
-        error: 'Invalid signature format' 
-      }, { status: 401 });
-    }
-
-    // Step 2: Verify ownership of the NFT on-chain
+    // Step 1: Verify ownership of the NFT on-chain
     const ownsToken = await verifyNFTOwnership(walletAddress, tokenId);
     if (!ownsToken) {
-      return NextResponse.json({ 
-        error: 'You do not own this Barabot' 
+      return NextResponse.json({
+        error: 'You do not own this Barabot'
       }, { status: 403 });
     }
 
@@ -46,10 +26,20 @@ export async function POST(request: NextRequest) {
     });
 
     try {
-      // Step 3: Verify the transaction exists and belongs to the user
-      const txData = await verifyTransaction(walletAddress, transactionHash);
-      if (!txData) {
-        return NextResponse.json({ error: 'Invalid transaction or not owned by wallet' }, { status: 400 });
+      // Step 2: Verify the assembly transaction (user paid assembly fee)
+      const assemblyTx = await verifyAssemblyTransaction(walletAddress, tokenId, transactionHash);
+      if (!assemblyTx) {
+        return NextResponse.json({
+          error: 'Invalid assembly transaction. Please ensure you paid the exact assembly fee to the contract.'
+        }, { status: 400 });
+      }
+
+      // Step 3: Verify the token is now assembled on-chain
+      const isAssembled = await verifyTokenAssembled(tokenId);
+      if (!isAssembled) {
+        return NextResponse.json({
+          error: 'Token assembly not confirmed on-chain. Please wait for transaction confirmation.'
+        }, { status: 400 });
       }
 
       // Step 4: Get NFT category from metadata
@@ -58,40 +48,23 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Could not determine NFT category' }, { status: 400 });
       }
 
-      // Step 5: Verify transaction contract matches NFT category
-      const contractCategory = await getContractCategory(txData.contractAddress, pool);
-      if (!contractCategory) {
-        return NextResponse.json({
-          error: 'This contract has not been categorized yet. Please contact an admin to categorize this contract.'
-        }, { status: 400 });
-      }
-
-      if (contractCategory !== nftCategory) {
-        return NextResponse.json({
-          error: `Transaction contract category (${contractCategory}) does not match NFT category (${nftCategory})`
-        }, { status: 400 });
-      }
-
-      // Step 6: Check if this pairing already exists
+      // Step 5: Check if this pairing already exists (prevent duplicate processing)
       const existingPairing = await pool.query(`
         SELECT * FROM barabots_metadata_updates
-        WHERE token_id = $1 AND transaction_hash = $2
-      `, [tokenId, transactionHash]);
+        WHERE token_id = $1
+      `, [tokenId]);
 
       if (existingPairing.rows.length > 0) {
-        return NextResponse.json({ error: 'This transaction is already paired with this NFT' }, { status: 400 });
+        return NextResponse.json({ error: 'This Barabot has already been assembled' }, { status: 400 });
       }
 
-      // Step 7: Generate backend signature for the pairing
-      const backendSignature = await generateBarabotsPairSignature(walletAddress, tokenId, transactionHash);
-
-      // Step 8: Store the pairing in database
+      // Step 6: Store the assembly in database (no signature needed)
       await pool.query(`
-        INSERT INTO barabots_metadata_updates (token_id, wallet_address, transaction_hash, contract_address, category, signature, paired_at)
-        VALUES ($1, $2, $3, $4, $5, $6, NOW())
-      `, [tokenId, walletAddress.toLowerCase(), transactionHash, txData.contractAddress, nftCategory, backendSignature]);
+        INSERT INTO barabots_metadata_updates (token_id, wallet_address, assembly_transaction_hash, contract_address, category, paired_at)
+        VALUES ($1, $2, $3, $4, $5, NOW())
+      `, [tokenId, walletAddress.toLowerCase(), transactionHash, BARABOTS_CONTRACT_ADDRESS, nftCategory]);
 
-      // Step 9: Create the evolved metadata
+      // Step 7: Create the evolved metadata
       let newImageUrl = '';
       try {
         const metadataResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/create-barabots-metadata`, {
@@ -115,7 +88,7 @@ export async function POST(request: NextRequest) {
         newImageUrl = `/barabotsmetadata/img/${tokenId}`;
       }
 
-      // Step 10: Fetch the newly created metadata to get rarity
+      // Step 8: Fetch the newly created metadata to get rarity
       let rarity = 'Barabot';
       try {
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
@@ -135,7 +108,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         message: 'Barabot assembled successfully!',
-        signature: backendSignature,
         newImageUrl,
         rarity
       });
@@ -168,9 +140,9 @@ async function verifyNFTOwnership(walletAddress: string, tokenId: string): Promi
   }
 }
 
-async function verifyTransaction(walletAddress: string, transactionHash: string): Promise<{contractAddress: string} | null> {
+async function verifyAssemblyTransaction(walletAddress: string, tokenId: string, transactionHash: string): Promise<boolean> {
   try {
-    console.log('Verifying transaction:', transactionHash, 'for wallet:', walletAddress);
+    console.log('Verifying assembly transaction:', transactionHash, 'for wallet:', walletAddress, 'tokenId:', tokenId);
     
     // Try Blockscout API first
     try {
@@ -179,20 +151,48 @@ async function verifyTransaction(walletAddress: string, transactionHash: string)
       
       if (response.ok) {
         const txData = await response.json();
-        console.log('Transaction data from Blockscout:', txData);
+        console.log('Assembly transaction data from Blockscout:', txData);
         
         const txFrom = txData.from?.hash?.toLowerCase();
         const txTo = txData.to?.hash?.toLowerCase();
+        const txValue = txData.value; // This is in wei as string
         
+        // Verify transaction basics
         if (txFrom !== walletAddress.toLowerCase()) {
-          console.log('Transaction sender does not match wallet. From:', txFrom, 'Expected:', walletAddress.toLowerCase());
-          return null;
+          console.log('Transaction sender does not match wallet');
+          return false;
         }
         
-        console.log('Contract address:', txTo);
-        return {
-          contractAddress: txTo || ''
-        };
+        if (txTo !== BARABOTS_CONTRACT_ADDRESS.toLowerCase()) {
+          console.log('Transaction not sent to Barabots contract');
+          return false;
+        }
+        
+        // Get the assembly price from contract
+        const provider = new ethers.JsonRpcProvider(RPC_URL);
+        const contract = new ethers.Contract(
+          BARABOTS_CONTRACT_ADDRESS,
+          ["function getAssemblyPrice() view returns (uint256)"],
+          provider
+        );
+        
+        const assemblyPrice = await contract.getAssemblyPrice();
+        console.log('Required assembly price:', assemblyPrice.toString(), 'Transaction value:', txValue);
+        
+        // Verify exact payment amount
+        if (txValue !== assemblyPrice.toString()) {
+          console.log('Transaction value does not match assembly price');
+          return false;
+        }
+        
+        // Check transaction status
+        if (txData.status !== 'ok') {
+          console.log('Transaction failed');
+          return false;
+        }
+        
+        console.log('Assembly transaction verified successfully');
+        return true;
       }
     } catch (blockscoutError) {
       console.log('Blockscout lookup failed, trying RPC:', blockscoutError);
@@ -201,30 +201,73 @@ async function verifyTransaction(walletAddress: string, transactionHash: string)
     // Fallback to RPC provider
     const provider = new ethers.JsonRpcProvider(RPC_URL);
     const tx = await provider.getTransaction(transactionHash);
+    const txReceipt = await provider.getTransactionReceipt(transactionHash);
 
-    console.log('Transaction data from RPC:', tx);
+    console.log('Assembly transaction data from RPC:', tx);
+    console.log('Transaction receipt:', txReceipt);
 
-    if (!tx) {
-      console.log('Transaction not found in RPC');
-      return null;
+    if (!tx || !txReceipt) {
+      console.log('Transaction or receipt not found');
+      return false;
     }
 
-    console.log('Transaction from:', tx.from, 'Expected:', walletAddress);
-
+    // Verify transaction basics
     if (tx.from.toLowerCase() !== walletAddress.toLowerCase()) {
       console.log('Transaction sender does not match wallet');
-      return null;
+      return false;
+    }
+    
+    if (tx.to?.toLowerCase() !== BARABOTS_CONTRACT_ADDRESS.toLowerCase()) {
+      console.log('Transaction not sent to Barabots contract');
+      return false;
+    }
+    
+    // Get the assembly price from contract
+    const contract = new ethers.Contract(
+      BARABOTS_CONTRACT_ADDRESS,
+      ["function getAssemblyPrice() view returns (uint256)"],
+      provider
+    );
+    
+    const assemblyPrice = await contract.getAssemblyPrice();
+    console.log('Required assembly price:', assemblyPrice.toString(), 'Transaction value:', tx.value.toString());
+    
+    // Verify exact payment amount
+    if (tx.value.toString() !== assemblyPrice.toString()) {
+      console.log('Transaction value does not match assembly price');
+      return false;
+    }
+    
+    // Check transaction was successful
+    if (txReceipt.status !== 1) {
+      console.log('Transaction failed');
+      return false;
     }
 
-    const contractAddress = tx.to?.toLowerCase() || '';
-    console.log('Contract address:', contractAddress);
-
-    return {
-      contractAddress: contractAddress
-    };
+    console.log('Assembly transaction verified successfully via RPC');
+    return true;
   } catch (error) {
-    console.error('Error verifying transaction:', error);
-    return null;
+    console.error('Error verifying assembly transaction:', error);
+    return false;
+  }
+}
+
+async function verifyTokenAssembled(tokenId: string): Promise<boolean> {
+  try {
+    const provider = new ethers.JsonRpcProvider(RPC_URL);
+    const contract = new ethers.Contract(
+      BARABOTS_CONTRACT_ADDRESS,
+      ["function isAssembled(uint256 tokenId) view returns (bool)"],
+      provider
+    );
+
+    const assembled = await contract.isAssembled(tokenId);
+    console.log('Token', tokenId, 'assembled status:', assembled);
+    
+    return assembled;
+  } catch (error) {
+    console.error('Error checking assembly status:', error);
+    return false;
   }
 }
 
@@ -248,20 +291,6 @@ async function getNFTCategory(tokenId: string): Promise<string | null> {
     return null;
   } catch (error) {
     console.error('Error getting NFT category:', error);
-    return null;
-  }
-}
-
-async function getContractCategory(contractAddress: string, pool: Pool): Promise<string | null> {
-  try {
-    const result = await pool.query(`
-      SELECT category FROM barabots_contract_categories
-      WHERE contract_address = $1
-    `, [contractAddress.toLowerCase()]);
-
-    return result.rows.length > 0 ? result.rows[0].category : null;
-  } catch (error) {
-    console.error('Error getting contract category:', error);
     return null;
   }
 }
