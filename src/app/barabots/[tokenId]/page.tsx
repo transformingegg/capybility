@@ -153,7 +153,7 @@ export default function BarabotViewPage({ params }: BarabotViewPageProps) {
         body: JSON.stringify({
           walletAddress: address,
           tokenId: tokenId,
-          assemblyTransactionHash: txHash
+          transactionHash: txHash
         })
       });
 
