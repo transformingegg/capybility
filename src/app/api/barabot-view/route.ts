@@ -101,8 +101,9 @@ async function getRecentTransactions(walletAddress: string, nftCategory: string 
     const processedTransactions = await Promise.all(
       recentTransactions.map(async (tx: { hash: string; timestamp: string; from: { hash: string }; to?: { hash?: string; name?: string }; value: string }) => {
         const contractAddress = tx.to?.hash?.toLowerCase();
-        
+
         if (!contractAddress) {
+          console.log(`[BarabotView] Transaction ${tx.hash}: No contract address`);
           return {
             hash: tx.hash,
             timestamp: tx.timestamp,
@@ -153,6 +154,9 @@ async function getRecentTransactions(walletAddress: string, nftCategory: string 
         `, [tx.hash]);
         const used = usedCheck.rows.length > 0;
 
+        // Troubleshooting log for each transaction
+        console.log(`[BarabotView] Transaction ${tx.hash}: Contract ${contractAddress}, Category ${category}, Selectable ${selectable}, Used ${used}`);
+
         return {
           hash: tx.hash,
           timestamp: tx.timestamp,
@@ -160,9 +164,9 @@ async function getRecentTransactions(walletAddress: string, nftCategory: string 
           to: contractAddress,
           value: tx.value,
           contractAddress: contractAddress,
-          category: null, // No longer used for payment-based assembly
+          category: category,
           notes: tx.to?.name || 'Unknown Contract',
-          selectable: selectable && !used, // Selectable if exactly 1 EDU and not used
+          selectable: selectable && !used,
           used: used
         };
       })
