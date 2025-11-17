@@ -43,7 +43,7 @@ export default function BarabotViewPage({ params }: BarabotViewPageProps) {
 
   // Read assembly price from contract
   const { data: assemblyPrice } = useReadContract({
-    address: process.env.BARABOTS_CONTRACT as `0x${string}`,
+    address: process.env.NEXT_PUBLIC_BARABOTS_CONTRACT as `0x${string}`,
     abi: BARABOTS_ABI,
     functionName: 'getAssemblyPrice',
   });
@@ -122,7 +122,7 @@ export default function BarabotViewPage({ params }: BarabotViewPageProps) {
     try {
       // Debug: Log transaction details before sending
       console.log('AssembleBarabot Transaction:', {
-        address: process.env.BARABOTS_CONTRACT,
+        address: process.env.NEXT_PUBLIC_BARABOTS_CONTRACT,
         abi: BARABOTS_ABI,
         functionName: 'assembleBarabot',
         args: [BigInt(tokenId)],
@@ -130,7 +130,7 @@ export default function BarabotViewPage({ params }: BarabotViewPageProps) {
       });
       // Call the contract's assembleBarabot function
       writeContract({
-        address: process.env.BARABOTS_CONTRACT as `0x${string}`,
+        address: process.env.NEXT_PUBLIC_BARABOTS_CONTRACT as `0x${string}`,
         abi: BARABOTS_ABI,
         functionName: 'assembleBarabot',
         args: [BigInt(tokenId)],
