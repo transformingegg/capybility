@@ -65,7 +65,6 @@ export async function GET(request: NextRequest) {
         console.error('Error fetching metadata:', error);
       }
 
-      // Get recent transactions from EDU Chain, filtered by category
       const transactions = await getRecentTransactions(walletAddress, category, pool);
 
       return NextResponse.json({
@@ -125,14 +124,16 @@ async function getRecentTransactions(walletAddress: string, nftCategory: string 
         `, [contractAddress]);
 
         let category: string | null = null;
-        let notes: string | null = null;
         let selectable = false;
+
+        // For payment-based assembly, transaction must be exactly 1 EDU AND match category
+        const eduValue = parseFloat(tx.value) / 1e18;
+        const isCorrectPayment = eduValue === 1;
 
         if (categoryResult.rows.length > 0) {
           category = categoryResult.rows[0].category;
-          notes = categoryResult.rows[0].notes;
-          // Selectable if category matches NFT category and is not 'unknown'
-          selectable = category !== 'unknown' && (!nftCategory || category === nftCategory);
+          // Selectable if payment is exactly 1 EDU AND category matches NFT category and is not 'unknown'
+          selectable = isCorrectPayment && category !== 'unknown' && (!nftCategory || category === nftCategory);
         } else {
           // Contract not in database - add it as unassigned (NULL) with contract name from Blockscout
           try {
@@ -143,8 +144,7 @@ async function getRecentTransactions(walletAddress: string, nftCategory: string 
               ON CONFLICT (contract_address) DO NOTHING
             `, [contractAddress, null, contractName]);
             category = null;
-            notes = contractName;
-            selectable = false;
+            selectable = false; // Unknown contracts are not selectable even with correct payment
           } catch (insertError) {
             console.error('Error inserting unassigned contract:', insertError);
           }
@@ -164,23 +164,23 @@ async function getRecentTransactions(walletAddress: string, nftCategory: string 
           to: contractAddress,
           value: tx.value,
           contractAddress: contractAddress,
-          category: category,
-          notes: notes,
-          selectable: selectable && !used, // Not selectable if already used
+          category: null, // No longer used for payment-based assembly
+          notes: tx.to?.name || 'Unknown Contract',
+          selectable: selectable && !used, // Selectable if exactly 1 EDU and not used
           used: used
         };
       })
     );
 
-    // Filter to only return transactions that match the NFT category or have no category assigned
-    // This ensures the list only shows relevant transactions for pairing
+    // Filter to only return transactions that match the NFT category and have correct payment amount
+    // This ensures the list only shows relevant transactions for payment-based assembly
     const filteredTransactions = processedTransactions.filter(tx => {
-      // If NFT has no category yet, show all transactions (shouldn't happen but safe)
-      if (!nftCategory) return true;
-      
-      // Show transactions that match the category or are unassigned (NULL)
+      // If NFT has no category yet, show all selectable transactions (shouldn't happen but safe)
+      if (!nftCategory) return tx.selectable;
+
+      // Show transactions that match the category and have correct payment
       // Exclude 'unknown' category as those have been reviewed and explicitly marked as not categorizable
-      return tx.category === nftCategory || tx.category === null;
+      return tx.category === nftCategory && tx.selectable;
     });
 
     return filteredTransactions;
