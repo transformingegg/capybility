@@ -226,7 +226,7 @@ const BarabotsWhitelistPage = () => {
               />
               <p className="text-xs text-gray-500 mt-2">
                 Format: wallet_address,category<br />
-                Valid categories: build, work, defi, learn, culture, random<br />
+                Valid categories: build, work, defi, learn, culture OR random<br />
                 Use &quot;random&quot; for random category assignment
               </p>
             </div>
