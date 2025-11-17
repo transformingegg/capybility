@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
 
       // Step 6: Store the assembly in database (no signature needed)
       await pool.query(`
-        INSERT INTO barabots_metadata_updates (token_id, wallet_address, assembly_transaction_hash, contract_address, category, paired_at)
+        INSERT INTO barabots_metadata_updates (token_id, wallet_address, transaction_hash, contract_address, category, paired_at)
         VALUES ($1, $2, $3, $4, $5, NOW())
       `, [tokenId, walletAddress.toLowerCase(), transactionHash, BARABOTS_CONTRACT_ADDRESS, nftCategory]);
 
