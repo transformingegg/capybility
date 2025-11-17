@@ -325,7 +325,7 @@ export default function BarabotViewPage({ params }: BarabotViewPageProps) {
               <CardContent>
                 {!isEvolved && (
                   <p className="text-sm text-gray-600 mb-3">
-                    Select from your recent on-chain actions below. Choose a transaction to assemble your Barabot. Assembly requires payment of {(assemblyPrice ? Number(assemblyPrice) / 1e18 : 1).toFixed(2)} EDU.
+                    Select from your recent on-chain actions below. Choose a transaction to assemble your Barabot. Yellow "UNCATEGORIZED" transactions may appear for contracts that haven't been classified yet. Assembly requires payment of {(assemblyPrice ? Number(assemblyPrice) / 1e18 : 1).toFixed(2)} EDU.
                   </p>
                 )}
                 {nftData.transactions.length > 0 ? (
@@ -354,17 +354,17 @@ export default function BarabotViewPage({ params }: BarabotViewPageProps) {
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2 flex-1">
                                 {/* Category badge with USED status */}
-                                {tx.category && (
-                                  <span className={`text-xs px-2 py-1 rounded font-semibold ${
-                                    tx.category === 'unknown'
+                                <span className={`text-xs px-2 py-1 rounded font-semibold ${
+                                  !tx.category
+                                    ? 'bg-yellow-100 text-yellow-800'
+                                    : tx.category === 'unknown'
                                       ? 'bg-gray-200 text-gray-600'
                                       : tx.used
                                         ? 'bg-red-100 text-red-800'
                                         : 'bg-blue-100 text-blue-800'
-                                  }`}>
-                                    {tx.category.toUpperCase()}{tx.used ? ' - USED' : ''}
-                                  </span>
-                                )}
+                                }`}>
+                                  {(!tx.category ? 'UNCATEGORIZED' : tx.category.toUpperCase())}{tx.used ? ' - USED' : ''}
+                                </span>
                                 {/* Truncated transaction hash */}
                                 <div className="text-sm font-mono text-gray-700">
                                   {tx.hash.slice(0, 8)}...{tx.hash.slice(-6)}
