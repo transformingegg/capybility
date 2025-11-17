@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from "wagmi";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, ExternalLink, ArrowLeft } from "lucide-react";
@@ -40,6 +40,13 @@ interface BarabotViewPageProps {
 export default function BarabotViewPage({ params }: BarabotViewPageProps) {
   const { address, isConnected } = useAccount();
   const router = useRouter();
+
+  // Read assembly price from contract
+  const { data: assemblyPrice } = useReadContract({
+    address: process.env.NEXT_PUBLIC_BARABOTS_CONTRACT as `0x${string}`,
+    abi: BARABOTS_ABI,
+    functionName: 'getAssemblyPrice',
+  });
   const [tokenId, setTokenId] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [nftData, setNftData] = useState<{
@@ -119,6 +126,7 @@ export default function BarabotViewPage({ params }: BarabotViewPageProps) {
         abi: BARABOTS_ABI,
         functionName: 'assembleBarabot',
         args: [BigInt(tokenId)],
+        value: assemblyPrice as bigint, // Pay assembly price from contract
       });
     } catch (error) {
       console.error('Error calling assembleBarabot:', error);
@@ -312,12 +320,12 @@ export default function BarabotViewPage({ params }: BarabotViewPageProps) {
             {/* Recent Transactions */}
             <Card>
               <CardHeader>
-                <CardTitle>Select Payment Transaction</CardTitle>
+                <CardTitle>Select a Category-Matching Transaction</CardTitle>
               </CardHeader>
               <CardContent>
                 {!isEvolved && (
                   <p className="text-sm text-gray-600 mb-3">
-                    Select from your recent on-chain actions below. Choose a transaction where you paid exactly 1 EDU to a contract that matches your crate's category to assemble your Barabot.
+                    Select from your recent on-chain actions below. Choose a transaction that matches your crate's category to assemble your Barabot. Assembly requires payment of {(assemblyPrice ? Number(assemblyPrice) / 1e18 : 1).toFixed(2)} EDU.
                   </p>
                 )}
                 {nftData.transactions.length > 0 ? (
@@ -345,27 +353,18 @@ export default function BarabotViewPage({ params }: BarabotViewPageProps) {
                           >
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2 flex-1">
-                                {/* EDU Amount and Category badges */}
-                                <div className="flex gap-1">
+                                {/* Category badge with USED status */}
+                                {tx.category && (
                                   <span className={`text-xs px-2 py-1 rounded font-semibold ${
-                                    parseFloat(tx.value) / 1e18 === 1
-                                      ? 'bg-green-100 text-green-800'
-                                      : 'bg-gray-200 text-gray-600'
+                                    tx.category === 'unknown'
+                                      ? 'bg-gray-200 text-gray-600'
+                                      : tx.used
+                                        ? 'bg-red-100 text-red-800'
+                                        : 'bg-blue-100 text-blue-800'
                                   }`}>
-                                    {(parseFloat(tx.value) / 1e18).toFixed(2)} EDU
+                                    {tx.category.toUpperCase()}{tx.used ? ' - USED' : ''}
                                   </span>
-                                  {tx.category && (
-                                    <span className={`text-xs px-2 py-1 rounded font-semibold ${
-                                      tx.category === 'unknown'
-                                        ? 'bg-gray-200 text-gray-600'
-                                        : tx.used
-                                          ? 'bg-red-100 text-red-800'
-                                          : 'bg-blue-100 text-blue-800'
-                                    }`}>
-                                      {tx.category.toUpperCase()}{tx.used ? ' - USED' : ''}
-                                    </span>
-                                  )}
-                                </div>
+                                )}
                                 {/* Truncated transaction hash */}
                                 <div className="text-sm font-mono text-gray-700">
                                   {tx.hash.slice(0, 8)}...{tx.hash.slice(-6)}
@@ -440,7 +439,7 @@ export default function BarabotViewPage({ params }: BarabotViewPageProps) {
                             {isConfirming ? 'Confirming Assembly...' : 'Assembling...'}
                           </>
                         ) : (
-                          'Pay 1 EDU to Assemble'
+                          `Pay ${(assemblyPrice ? Number(assemblyPrice) / 1e18 : 1).toFixed(2)} EDU to Assemble`
                         )}
                       </Button>
                     )}

@@ -126,14 +126,10 @@ async function getRecentTransactions(walletAddress: string, nftCategory: string 
         let category: string | null = null;
         let selectable = false;
 
-        // For payment-based assembly, transaction must be exactly 1 EDU AND match category
-        const eduValue = parseFloat(tx.value) / 1e18;
-        const isCorrectPayment = eduValue === 1;
-
         if (categoryResult.rows.length > 0) {
           category = categoryResult.rows[0].category;
-          // Selectable if payment is exactly 1 EDU AND category matches NFT category and is not 'unknown'
-          selectable = isCorrectPayment && category !== 'unknown' && (!nftCategory || category === nftCategory);
+          // Selectable if category matches NFT category and is not 'unknown'
+          selectable = category !== 'unknown' && (!nftCategory || category === nftCategory);
         } else {
           // Contract not in database - add it as unassigned (NULL) with contract name from Blockscout
           try {
@@ -144,7 +140,7 @@ async function getRecentTransactions(walletAddress: string, nftCategory: string 
               ON CONFLICT (contract_address) DO NOTHING
             `, [contractAddress, null, contractName]);
             category = null;
-            selectable = false; // Unknown contracts are not selectable even with correct payment
+            selectable = false;
           } catch (insertError) {
             console.error('Error inserting unassigned contract:', insertError);
           }
@@ -172,15 +168,15 @@ async function getRecentTransactions(walletAddress: string, nftCategory: string 
       })
     );
 
-    // Filter to only return transactions that match the NFT category and have correct payment amount
-    // This ensures the list only shows relevant transactions for payment-based assembly
+    // Filter to only return transactions that match the NFT category or have no category assigned
+    // This ensures the list only shows relevant transactions for pairing
     const filteredTransactions = processedTransactions.filter(tx => {
-      // If NFT has no category yet, show all selectable transactions (shouldn't happen but safe)
-      if (!nftCategory) return tx.selectable;
+      // If NFT has no category yet, show all transactions (shouldn't happen but safe)
+      if (!nftCategory) return true;
 
-      // Show transactions that match the category and have correct payment
+      // Show transactions that match the category or are unassigned (NULL)
       // Exclude 'unknown' category as those have been reviewed and explicitly marked as not categorizable
-      return tx.category === nftCategory && tx.selectable;
+      return tx.category === nftCategory || tx.category === null;
     });
 
     return filteredTransactions;
