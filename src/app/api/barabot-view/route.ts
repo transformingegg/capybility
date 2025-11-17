@@ -168,15 +168,14 @@ async function getRecentTransactions(walletAddress: string, nftCategory: string 
       })
     );
 
-    // Filter to only return transactions that match the NFT category or have no category assigned
+    // Filter to only return transactions that match the NFT category
     // This ensures the list only shows relevant transactions for pairing
     const filteredTransactions = processedTransactions.filter(tx => {
       // If NFT has no category yet, show all transactions (shouldn't happen but safe)
       if (!nftCategory) return true;
 
-      // Show transactions that match the category or are unassigned (NULL)
-      // Exclude 'unknown' category as those have been reviewed and explicitly marked as not categorizable
-      return tx.category === nftCategory || tx.category === null;
+      // Only show transactions that exactly match the category
+      return tx.category === nftCategory;
     });
 
     return filteredTransactions;

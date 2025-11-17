@@ -320,12 +320,12 @@ export default function BarabotViewPage({ params }: BarabotViewPageProps) {
             {/* Recent Transactions */}
             <Card>
               <CardHeader>
-                <CardTitle>Select a Category-Matching Transaction</CardTitle>
+                <CardTitle>Select Transaction</CardTitle>
               </CardHeader>
               <CardContent>
                 {!isEvolved && (
                   <p className="text-sm text-gray-600 mb-3">
-                    Select from your recent on-chain actions below. Choose a transaction that matches your crate's category to assemble your Barabot. Assembly requires payment of {(assemblyPrice ? Number(assemblyPrice) / 1e18 : 1).toFixed(2)} EDU.
+                    Select from your recent on-chain actions below. Choose a transaction to assemble your Barabot. Assembly requires payment of {(assemblyPrice ? Number(assemblyPrice) / 1e18 : 1).toFixed(2)} EDU.
                   </p>
                 )}
                 {nftData.transactions.length > 0 ? (
