@@ -104,20 +104,24 @@ export default function BarabotsMintPage() {
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
       const barabotsContract = new ethers.Contract(data.contractAddress, [
-        mintType === 'free' ? "function mintFree(bytes signature) returns (uint256)" :
-        mintType === 'discount' ? "function mintDiscount(bytes signature) payable returns (uint256)" :
+        "function getMintPrice() view returns (uint256)",
+        "function getDiscountPrice() view returns (uint256)",
+        "function mintFree(bytes signature) returns (uint256)",
+        "function mintDiscount(bytes signature) payable returns (uint256)",
         "function mintFullPrice() payable returns (uint256)"
       ], signer);
 
-      // Execute mint transaction
+      // Fetch correct price from contract
       let tx;
       try {
         if (mintType === 'free') {
           tx = await barabotsContract.mintFree(data.signature);
         } else if (mintType === 'discount') {
-          tx = await barabotsContract.mintDiscount(data.signature, { value: ethers.parseEther("0.005") });
+          const discountPrice = await barabotsContract.getDiscountPrice();
+          tx = await barabotsContract.mintDiscount(data.signature, { value: discountPrice });
         } else {
-          tx = await barabotsContract.mintFullPrice({ value: ethers.parseEther("0.01") });
+          const mintPrice = await barabotsContract.getMintPrice();
+          tx = await barabotsContract.mintFullPrice({ value: mintPrice });
         }
       } catch (txError) {
         console.error('Transaction error:', txError);
