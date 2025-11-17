@@ -120,6 +120,14 @@ export default function BarabotViewPage({ params }: BarabotViewPageProps) {
     setAssemblyStatus('assembling');
 
     try {
+      // Debug: Log transaction details before sending
+      console.log('AssembleBarabot Transaction:', {
+        address: process.env.BARABOTS_CONTRACT,
+        abi: BARABOTS_ABI,
+        functionName: 'assembleBarabot',
+        args: [BigInt(tokenId)],
+        value: assemblyPrice
+      });
       // Call the contract's assembleBarabot function
       writeContract({
         address: process.env.BARABOTS_CONTRACT as `0x${string}`,
