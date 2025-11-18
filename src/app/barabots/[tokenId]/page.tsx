@@ -250,7 +250,7 @@ export default function BarabotViewPage({ params }: BarabotViewPageProps) {
           Back to Collection
         </Button>
 
-        <div className="grid lg:grid-cols-2 gap-8">
+        <div className={isEvolved ? "grid lg:grid-cols-1 gap-8" : "grid lg:grid-cols-2 gap-8"}>
           {/* NFT Display */}
           <div>
             <Card>
@@ -292,8 +292,9 @@ export default function BarabotViewPage({ params }: BarabotViewPageProps) {
             </Card>
           </div>
 
-          {/* Transaction Pairing & History */}
-          <div className="space-y-6">
+          {/* Transaction Pairing & History - Only for non-assembled Barabots */}
+          {!isEvolved && (
+            <div className="space-y-6">
             {!isEvolved && (
               <Card>
                 <CardHeader>
@@ -460,6 +461,7 @@ export default function BarabotViewPage({ params }: BarabotViewPageProps) {
               </CardContent>
             </Card>
           </div>
+          )}
         </div>
       </div>
 
