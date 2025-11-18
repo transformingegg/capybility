@@ -33,7 +33,7 @@ export async function POST(request: Request) {
       let rarity: string;
       if (rand < 0.65) rarity = 'base';
       else if (rand < 0.95) rarity = 'rare';
-      else if (rand < 0.9995) rarity = 'epic';
+      else if (rand < 0.996) rarity = 'epic';
       else rarity = 'legendary';
 
       const evolvedMetadata = {

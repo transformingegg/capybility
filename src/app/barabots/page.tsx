@@ -7,6 +7,7 @@ import { Loader2, Sparkles, Package } from "lucide-react";
 import PageLayout from "@/components/PageLayout";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
 
 interface BarabotNFT {
   tokenId: string;
@@ -111,14 +112,25 @@ export default function BarabotsGridPage() {
                 </div>
               </div>
 
-              <Button
-                onClick={() => router.push('/barabotsmint')}
-                size="lg"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-12 py-6 text-xl"
-              >
-                <Sparkles className="mr-2 h-6 w-6" />
-                Mint Your First Barabot
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button
+                  onClick={() => router.push('/barabotsmint')}
+                  size="lg"
+                  className="w-full sm:w-auto"
+                >
+                  <Sparkles className="mr-2 h-6 w-6" />
+                  Mint Your First Barabot
+                </Button>
+                <Button
+                  onClick={() => router.push('/barabots-learn')}
+                  size="lg"
+                  variant="outline"
+                  className="w-full sm:w-auto"
+                >
+                  <Package className="mr-2 h-6 w-6" />
+                  Learn about Barabots
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -142,14 +154,25 @@ export default function BarabotsGridPage() {
                   Collect crates, pair them with your on-chain activity, and assemble them into unique Barabots!
                 </p>
               </div>
-              <Button
-                onClick={() => router.push('/barabotsmint')}
-                size="lg"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-6 text-lg"
-              >
-                <Sparkles className="mr-2" />
-                Mint More Barabots
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Button
+                  onClick={() => router.push('/barabotsmint')}
+                  size="lg"
+                  className="w-full sm:w-auto"
+                >
+                  <Sparkles className="mr-2" />
+                  Mint More Barabots
+                </Button>
+                <Button
+                  onClick={() => router.push('/barabots-learn')}
+                  size="lg"
+                  variant="outline"
+                  className="w-full sm:w-auto"
+                >
+                  <Package className="mr-2" />
+                  Learn about Barabots
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -224,10 +247,11 @@ export default function BarabotsGridPage() {
                 >
                   <CardContent className="p-4">
                     <div className="aspect-square mb-4 rounded-lg overflow-hidden bg-gray-100">
-                      <img
+                      <Image
                         src={`/barabotsmetadata/img/${barabot.tokenId}`}
                         alt={`Barabot #${barabot.tokenId}`}
-                        className="w-full h-full object-cover"
+                        fill
+                        className="object-cover"
                       />
                     </div>
                     <div>
@@ -261,10 +285,11 @@ export default function BarabotsGridPage() {
                 >
                   <CardContent className="p-4">
                     <div className="aspect-square mb-4 rounded-lg overflow-hidden bg-gray-100">
-                      <img
+                      <Image
                         src={`/barabotsmetadata/img/${barabot.tokenId}`}
                         alt={`Barabot #${barabot.tokenId}`}
-                        className="w-full h-full object-cover"
+                        fill
+                        className="object-cover"
                       />
                     </div>
                     <div>

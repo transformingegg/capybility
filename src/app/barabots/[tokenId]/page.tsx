@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from "wagmi";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Loader2, ExternalLink, ArrowLeft } from "lucide-react";
 import PageLayout from "@/components/PageLayout";
 import { useRouter } from "next/navigation";
 import AssemblySuccessPopup from "@/components/AssemblySuccessPopup";
+import Image from "next/image";
 import { BARABOTS_ABI } from "../../../lib/barabots-abi";
 
 interface NFTMetadata {
@@ -74,21 +75,7 @@ export default function BarabotViewPage({ params }: BarabotViewPageProps) {
     params.then((p) => setTokenId(p.tokenId));
   }, [params]);
 
-  useEffect(() => {
-    if (address && isConnected && tokenId) {
-      fetchNFTData();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [address, isConnected, tokenId]);
-
-  // Handle successful assembly transaction
-  useEffect(() => {
-    if (isConfirmed && hash && pairing) {
-      handleAssemblySuccess(hash);
-    }
-  }, [isConfirmed, hash, pairing]);
-
-  const fetchNFTData = async () => {
+  const fetchNFTData = useCallback(async () => {
     if (!address || !tokenId) return;
 
     setLoading(true);
@@ -107,44 +94,16 @@ export default function BarabotViewPage({ params }: BarabotViewPageProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [address, tokenId]);
 
-  const handlePairTransaction = async () => {
-    if (!address || !tokenId || !pairingTransaction) {
-      alert('Please select a transaction');
-      return;
+  useEffect(() => {
+    if (address && isConnected && tokenId) {
+      fetchNFTData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [address, isConnected, tokenId]);
 
-    setPairing(true);
-    setShowAssemblyPopup(true);
-    setAssemblyStatus('assembling');
-
-    try {
-      // Debug: Log transaction details before sending
-      console.log('AssembleBarabot Transaction:', {
-        address: process.env.NEXT_PUBLIC_BARABOTS_CONTRACT,
-        abi: BARABOTS_ABI,
-        functionName: 'assembleBarabot',
-        args: [BigInt(tokenId)],
-        value: assemblyPrice
-      });
-      // Call the contract's assembleBarabot function
-      writeContract({
-        address: process.env.NEXT_PUBLIC_BARABOTS_CONTRACT as `0x${string}`,
-        abi: BARABOTS_ABI,
-        functionName: 'assembleBarabot',
-        args: [BigInt(tokenId)],
-        value: assemblyPrice as bigint, // Pay assembly price from contract
-      });
-    } catch (error) {
-      console.error('Error calling assembleBarabot:', error);
-      setPairing(false);
-      setShowAssemblyPopup(false);
-      alert('Failed to initiate assembly transaction');
-    }
-  };
-
-  const handleAssemblySuccess = async (txHash: string) => {
+  const handleAssemblySuccess = useCallback(async (txHash: string) => {
     try {
       // Call the assembly API with the payment transaction hash
       const response = await fetch('/api/barabot-assemble', {
@@ -185,6 +144,48 @@ export default function BarabotViewPage({ params }: BarabotViewPageProps) {
       alert('Failed to complete assembly');
     } finally {
       setPairing(false);
+    }
+  }, [address, tokenId, fetchNFTData]);
+
+  // Handle successful assembly transaction
+  useEffect(() => {
+    if (isConfirmed && hash && pairing) {
+      handleAssemblySuccess(hash);
+    }
+  }, [isConfirmed, hash, pairing, handleAssemblySuccess]);
+
+  const handlePairTransaction = async () => {
+    if (!address || !tokenId || !pairingTransaction) {
+      alert('Please select a transaction');
+      return;
+    }
+
+    setPairing(true);
+    setShowAssemblyPopup(true);
+    setAssemblyStatus('assembling');
+
+    try {
+      // Debug: Log transaction details before sending
+      console.log('AssembleBarabot Transaction:', {
+        address: process.env.NEXT_PUBLIC_BARABOTS_CONTRACT,
+        abi: BARABOTS_ABI,
+        functionName: 'assembleBarabot',
+        args: [BigInt(tokenId)],
+        value: assemblyPrice
+      });
+      // Call the contract's assembleBarabot function
+      writeContract({
+        address: process.env.NEXT_PUBLIC_BARABOTS_CONTRACT as `0x${string}`,
+        abi: BARABOTS_ABI,
+        functionName: 'assembleBarabot',
+        args: [BigInt(tokenId)],
+        value: assemblyPrice as bigint, // Pay assembly price from contract
+      });
+    } catch (error) {
+      console.error('Error calling assembleBarabot:', error);
+      setPairing(false);
+      setShowAssemblyPopup(false);
+      alert('Failed to initiate assembly transaction');
     }
   };
 
@@ -259,10 +260,12 @@ export default function BarabotViewPage({ params }: BarabotViewPageProps) {
               </CardHeader>
               <CardContent>
                 <div className="mb-6">
-                  <img
+                  <Image
                     src={`/barabotsmetadata/img/${nftData.tokenId}?t=${Date.now()}`}
                     alt={nftData.metadata?.name || `Barabot #${nftData.tokenId}`}
-                    className="w-full rounded-lg shadow-lg"
+                    width={400}
+                    height={400}
+                    className="w-full h-auto rounded-lg shadow-lg"
                   />
                 </div>
 
@@ -334,7 +337,7 @@ export default function BarabotViewPage({ params }: BarabotViewPageProps) {
               <CardContent>
                 {!isEvolved && (
                   <p className="text-sm text-gray-600 mb-3">
-                    Select from your recent on-chain actions below. Choose a transaction to assemble your Barabot. Yellow "UNCATEGORIZED" transactions may appear for contracts that haven't been classified yet. Assembly requires payment of {(assemblyPrice ? Number(assemblyPrice) / 1e18 : 1).toFixed(2)} EDU.
+                    Select from your recent on-chain actions below. Choose a transaction to assemble your Barabot. Yellow &#34;UNCATEGORIZED&#34; transactions may appear for contracts that haven&#39;t been classified yet. Assembly requires payment of {(assemblyPrice ? Number(assemblyPrice) / 1e18 : 1).toFixed(2)} EDU.
                   </p>
                 )}
                 {nftData.transactions.length > 0 ? (

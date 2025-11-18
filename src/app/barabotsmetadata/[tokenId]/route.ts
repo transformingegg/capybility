@@ -49,7 +49,8 @@ export async function GET(
     return NextResponse.json(metadata, {
       status: 200,
       headers: {
-        'Cache-Control': 'public, max-age=300' // Cache for 5 minutes to allow dynamic updates
+        'Cache-Control': 'public, max-age=300', // Cache for 5 minutes to allow dynamic updates
+        'x-vercel-cache-tags': `barabots-metadata,barabots-metadata-${tokenId}`
       }
     });
 

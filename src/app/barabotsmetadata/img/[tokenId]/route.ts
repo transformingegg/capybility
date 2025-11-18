@@ -104,7 +104,8 @@ export async function GET(
           'Content-Type': 'image/png',
           'Cache-Control': 'no-cache, no-store, must-revalidate', // Don't cache to always show fresh images
           'Pragma': 'no-cache',
-          'Expires': '0'
+          'Expires': '0',
+          'x-vercel-cache-tags': `barabots-images,barabots-image-${tokenId}`
         }
       });
     } catch (fileError) {
