@@ -246,12 +246,13 @@ export default function BarabotsGridPage() {
                   onClick={() => router.push(`/barabots/${barabot.tokenId}`)}
                 >
                   <CardContent className="p-4">
-                    <div className="aspect-square mb-4 rounded-lg overflow-hidden bg-gray-100">
+                    <div className="mb-4 rounded-lg overflow-hidden bg-gray-100">
                       <Image
                         src={`/barabotsmetadata/img/${barabot.tokenId}`}
                         alt={`Barabot #${barabot.tokenId}`}
-                        fill
-                        className="object-cover"
+                        width={300}
+                        height={300}
+                        className="w-full h-auto object-cover"
                       />
                     </div>
                     <div>
@@ -284,12 +285,13 @@ export default function BarabotsGridPage() {
                   onClick={() => router.push(`/barabots/${barabot.tokenId}`)}
                 >
                   <CardContent className="p-4">
-                    <div className="aspect-square mb-4 rounded-lg overflow-hidden bg-gray-100">
+                    <div className="mb-4 rounded-lg overflow-hidden bg-gray-100">
                       <Image
                         src={`/barabotsmetadata/img/${barabot.tokenId}`}
                         alt={`Barabot #${barabot.tokenId}`}
-                        fill
-                        className="object-cover"
+                        width={300}
+                        height={300}
+                        className="w-full h-auto object-cover"
                       />
                     </div>
                     <div>
