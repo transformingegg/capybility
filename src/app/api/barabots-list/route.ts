@@ -37,8 +37,8 @@ export async function GET(request: NextRequest) {
           const tokenId = await barabotsContract.tokenOfOwnerByIndex(walletAddress, i);
           ownedTokens.push(tokenId);
         } catch (error) {
-          console.error(`Error getting token at index ${i}:`, error);
-          break;
+          console.log(`Skipping index ${i} - likely burned token or enumeration gap:`, error instanceof Error ? error.message : String(error));
+          // Continue to next index - some contracts have gaps in enumeration
         }
       }
 
