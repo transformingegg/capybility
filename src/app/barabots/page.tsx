@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAccount } from "wagmi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Sparkles, Package } from "lucide-react";
+import { Loader2, Sparkles, Package, RefreshCw } from "lucide-react";
 import PageLayout from "@/components/PageLayout";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,8 @@ export default function BarabotsGridPage() {
   const [loading, setLoading] = useState(true);
   const [barabots, setBarabots] = useState<BarabotNFT[]>([]);
 
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+
   useEffect(() => {
     if (address && isConnected) {
       fetchBarabots();
@@ -29,16 +31,49 @@ export default function BarabotsGridPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [address, isConnected]);
 
-  const fetchBarabots = async () => {
+  // Force refresh on component mount (page load) to ensure ownership is up-to-date
+  useEffect(() => {
+    if (address && isConnected) {
+      fetchBarabots(true); // Force refresh with cache busting
+    }
+  }, []); // Empty dependency array - runs only on mount
+
+  // Add focus event listener to refresh data when user returns to tab
+  useEffect(() => {
+    const handleFocus = () => {
+      if (address && isConnected && !loading) {
+        fetchBarabots();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [address, isConnected, loading]);
+
+  // Auto-refresh every 30 seconds to catch ownership changes
+  useEffect(() => {
+    if (!address || !isConnected) return;
+
+    const interval = setInterval(() => {
+      fetchBarabots();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [address, isConnected]);
+
+  const fetchBarabots = async (forceRefresh = false) => {
     if (!address) return;
 
     setLoading(true);
     try {
-      const response = await fetch(`/api/barabots-list?wallet=${address}`);
+      // Add cache-busting parameter
+      const cacheBust = forceRefresh ? `&t=${Date.now()}` : '';
+      const response = await fetch(`/api/barabots-list?wallet=${address}${cacheBust}`);
       const data = await response.json();
 
       if (response.ok) {
         setBarabots(data.barabots || []);
+        setLastRefresh(new Date());
       } else {
         console.error('Error fetching Barabots:', data.error);
       }
@@ -156,6 +191,16 @@ export default function BarabotsGridPage() {
               </div>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button
+                  onClick={() => fetchBarabots(true)}
+                  size="lg"
+                  variant="outline"
+                  className="w-full sm:w-auto"
+                  disabled={loading}
+                >
+                  <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                  Refresh Collection
+                </Button>
+                <Button
                   onClick={() => router.push('/barabotsmint')}
                   size="lg"
                   className="w-full sm:w-auto"
@@ -195,7 +240,7 @@ export default function BarabotsGridPage() {
 
         {/* Collection Stats */}
         <div className="mb-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <Card>
               <CardContent className="p-4 text-center">
                 <div className="text-3xl font-bold text-gray-600">{barabots.filter(b => b.state === 'Crate').length}</div>
@@ -224,6 +269,20 @@ export default function BarabotsGridPage() {
                 <div className="text-sm text-gray-600">Assembly Rate</div>
               </CardContent>
             </Card>
+            <Card>
+              <CardContent className="p-4 text-center">
+                <Button
+                  onClick={() => fetchBarabots(true)}
+                  variant="outline"
+                  size="sm"
+                  disabled={loading}
+                  className="w-full"
+                >
+                  <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                </Button>
+                <div className="text-xs text-gray-600 mt-1">Refresh</div>
+              </CardContent>
+            </Card>
           </div>
         </div>
 
@@ -232,6 +291,11 @@ export default function BarabotsGridPage() {
           <p className="text-gray-600">
             Click on any NFT to view details and pair with transactions
           </p>
+          {lastRefresh && (
+            <p className="text-sm text-gray-500 mt-2">
+              Last updated: {lastRefresh.toLocaleTimeString()}
+            </p>
+          )}
         </div>
 
         {/* Crates Section */}

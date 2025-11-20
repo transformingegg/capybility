@@ -66,6 +66,7 @@ export async function POST(request: NextRequest) {
 
       // Step 7: Create the evolved metadata
       let newImageUrl = '';
+      let rarity = 'Barabot';
       try {
         const metadataResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/create-barabots-metadata`, {
           method: 'POST',
@@ -81,6 +82,7 @@ export async function POST(request: NextRequest) {
         if (metadataResponse.ok) {
           const metadataResult = await metadataResponse.json();
           newImageUrl = metadataResult.image || `/barabotsmetadata/img/${tokenId}`;
+          rarity = metadataResult.rarity || 'Barabot';
         }
       } catch (metadataError) {
         console.error('Error creating evolved metadata:', metadataError);
@@ -88,22 +90,7 @@ export async function POST(request: NextRequest) {
         newImageUrl = `/barabotsmetadata/img/${tokenId}`;
       }
 
-      // Step 8: Fetch the newly created metadata to get rarity
-      let rarity = 'Barabot';
-      try {
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-        const metadataFetchResponse = await fetch(`${baseUrl}/barabotsmetadata/${tokenId}?t=${Date.now()}`);
-        
-        if (metadataFetchResponse.ok) {
-          const metadata = await metadataFetchResponse.json();
-          const rarityAttr = metadata.attributes?.find((attr: { trait_type: string; value: string }) => attr.trait_type === 'Rarity');
-          if (rarityAttr) {
-            rarity = rarityAttr.value;
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching rarity:', error);
-      }
+      // Step 8: No need to fetch metadata again - we already have the rarity from the creation response
 
       return NextResponse.json({
         success: true,
