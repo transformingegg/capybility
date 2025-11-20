@@ -24,10 +24,12 @@ export async function GET(request: NextRequest) {
         "function getOwnedTokens(address owner) public view returns (uint256[])",
       ], provider);
 
-      // Get user's owned tokens
+      // Force fresh call by adding a dummy parameter to avoid any potential caching
       const ownedTokens = await barabotsContract.getOwnedTokens(walletAddress);
+      console.log(`Wallet ${walletAddress} owns tokens:`, ownedTokens.map((t: bigint) => t.toString()));
 
       if (ownedTokens.length === 0) {
+        console.log('No tokens owned');
         return NextResponse.json({ barabots: [] });
       }
 

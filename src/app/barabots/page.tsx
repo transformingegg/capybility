@@ -64,6 +64,7 @@ export default function BarabotsGridPage() {
   const fetchBarabots = async (forceRefresh = false) => {
     if (!address) return;
 
+    console.log('Fetching barabots for address:', address, 'forceRefresh:', forceRefresh);
     setLoading(true);
     try {
       // Add cache-busting parameter
@@ -71,6 +72,7 @@ export default function BarabotsGridPage() {
       const response = await fetch(`/api/barabots-list?wallet=${address}${cacheBust}`);
       const data = await response.json();
 
+      console.log('API response:', data);
       if (response.ok) {
         setBarabots(data.barabots || []);
         setLastRefresh(new Date());
@@ -190,16 +192,6 @@ export default function BarabotsGridPage() {
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row gap-4">
-                <Button
-                  onClick={() => fetchBarabots(true)}
-                  size="lg"
-                  variant="outline"
-                  className="w-full sm:w-auto"
-                  disabled={loading}
-                >
-                  <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-                  Refresh Collection
-                </Button>
                 <Button
                   onClick={() => router.push('/barabotsmint')}
                   size="lg"
