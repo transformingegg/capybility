@@ -21,15 +21,49 @@ export async function GET(request: NextRequest) {
     try {
       const provider = new ethers.JsonRpcProvider(RPC_URL);
       const barabotsContract = new ethers.Contract(BARABOTS_CONTRACT_ADDRESS, [
-        "function getOwnedTokens(address owner) public view returns (uint256[])",
+        "function balanceOf(address owner) public view returns (uint256)",
+        "function tokenOfOwnerByIndex(address owner, uint256 index) public view returns (uint256)",
+        "function ownerOf(uint256 tokenId) public view returns (address)"
       ], provider);
 
-      // Force fresh call by adding a dummy parameter to avoid any potential caching
-      const ownedTokens = await barabotsContract.getOwnedTokens(walletAddress);
-      console.log(`Wallet ${walletAddress} owns tokens:`, ownedTokens.map((t: bigint) => t.toString()));
+      // Get balance first
+      const balance = await barabotsContract.balanceOf(walletAddress);
+      console.log(`Wallet ${walletAddress} balance:`, balance.toString());
 
-      if (ownedTokens.length === 0) {
-        console.log('No tokens owned');
+      // Get all owned tokens using tokenOfOwnerByIndex
+      const ownedTokens: bigint[] = [];
+      for (let i = 0; i < Number(balance); i++) {
+        try {
+          const tokenId = await barabotsContract.tokenOfOwnerByIndex(walletAddress, i);
+          ownedTokens.push(tokenId);
+        } catch (error) {
+          console.error(`Error getting token at index ${i}:`, error);
+          break;
+        }
+      }
+
+      console.log(`Wallet ${walletAddress} owns tokens via enumeration:`, ownedTokens.map((t: bigint) => t.toString()));
+
+      // Double-check ownership by calling ownerOf for each token
+      const verifiedTokens: bigint[] = [];
+      for (const tokenId of ownedTokens) {
+        try {
+          const owner = await barabotsContract.ownerOf(tokenId);
+          if (owner.toLowerCase() === walletAddress.toLowerCase()) {
+            verifiedTokens.push(tokenId);
+          } else {
+            console.log(`Token ${tokenId} is actually owned by ${owner}, not ${walletAddress}`);
+          }
+        } catch (error) {
+          console.error(`Error checking ownership of token ${tokenId}:`, error);
+        }
+      }
+
+      console.log(`Verified owned tokens:`, verifiedTokens.map((t: bigint) => t.toString()));
+      const finalTokens = verifiedTokens;
+
+      if (finalTokens.length === 0) {
+        console.log('No verified tokens owned');
         return NextResponse.json({ barabots: [] });
       }
 
@@ -37,7 +71,7 @@ export async function GET(request: NextRequest) {
 
       // Fetch metadata for all owned tokens
       const barabots = await Promise.all(
-        ownedTokens.map(async (tokenId: bigint) => {
+        finalTokens.map(async (tokenId: bigint) => {
           try {
             const metadataResponse = await fetch(`${baseUrl}/barabotsmetadata/${tokenId}`);
             
