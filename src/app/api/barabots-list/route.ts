@@ -21,30 +21,15 @@ export async function GET(request: NextRequest) {
     try {
       const provider = new ethers.JsonRpcProvider(RPC_URL);
       const barabotsContract = new ethers.Contract(BARABOTS_CONTRACT_ADDRESS, [
-        "function balanceOf(address owner) public view returns (uint256)",
-        "function tokenOfOwnerByIndex(address owner, uint256 index) public view returns (uint256)",
+        "function getOwnedTokens(address owner) public view returns (uint256[])",
         "function ownerOf(uint256 tokenId) public view returns (address)"
       ], provider);
 
-      // Get balance first
-      const balance = await barabotsContract.balanceOf(walletAddress);
-      console.log(`Wallet ${walletAddress} balance:`, balance.toString());
+      // Get tokens from the contract's owned tokens mapping
+      const ownedTokens = await barabotsContract.getOwnedTokens(walletAddress);
+      console.log(`Wallet ${walletAddress} tokens from getOwnedTokens:`, ownedTokens.map((t: bigint) => t.toString()));
 
-      // Get all owned tokens using tokenOfOwnerByIndex
-      const ownedTokens: bigint[] = [];
-      for (let i = 0; i < Number(balance); i++) {
-        try {
-          const tokenId = await barabotsContract.tokenOfOwnerByIndex(walletAddress, i);
-          ownedTokens.push(tokenId);
-        } catch (error) {
-          console.log(`Skipping index ${i} - likely burned token or enumeration gap:`, error instanceof Error ? error.message : String(error));
-          // Continue to next index - some contracts have gaps in enumeration
-        }
-      }
-
-      console.log(`Wallet ${walletAddress} owns tokens via enumeration:`, ownedTokens.map((t: bigint) => t.toString()));
-
-      // Double-check ownership by calling ownerOf for each token
+      // Verify ownership by checking ownerOf for each token (handles transfers/burns)
       const verifiedTokens: bigint[] = [];
       for (const tokenId of ownedTokens) {
         try {
@@ -52,10 +37,10 @@ export async function GET(request: NextRequest) {
           if (owner.toLowerCase() === walletAddress.toLowerCase()) {
             verifiedTokens.push(tokenId);
           } else {
-            console.log(`Token ${tokenId} is actually owned by ${owner}, not ${walletAddress}`);
+            console.log(`Token ${tokenId} is no longer owned by ${walletAddress} (owned by ${owner})`);
           }
         } catch (error) {
-          console.error(`Error checking ownership of token ${tokenId}:`, error);
+          console.log(`Token ${tokenId} no longer exists or error checking ownership:`, error instanceof Error ? error.message : String(error));
         }
       }
 

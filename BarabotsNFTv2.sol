@@ -6,7 +6,6 @@ import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.9.3/contr
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.9.3/contracts/security/ReentrancyGuard.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.9.3/contracts/security/Pausable.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.9.3/contracts/utils/Counters.sol";
-import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.9.3/contracts/token/ERC20/IERC20.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.9.3/contracts/utils/cryptography/ECDSA.sol";
 
 contract BarabotsNFTv2 is ERC721, AccessControl, ReentrancyGuard, Pausable {
@@ -16,9 +15,6 @@ contract BarabotsNFTv2 is ERC721, AccessControl, ReentrancyGuard, Pausable {
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant SIGNER_ROLE = keccak256("SIGNER_ROLE");
 
-    IERC20 public paymentToken;
-    uint256 public fullMintPrice;      // Full price in payment tokens
-    uint256 public discountMintPrice;  // Discounted price in payment tokens
     uint256 public nativeFullMintPrice;    // Full price in native token (EDU)
     uint256 public nativeDiscountMintPrice; // Discounted price in native token (EDU)
     uint256 public assemblyPrice;      // Assembly price in native token (EDU)
@@ -43,31 +39,22 @@ contract BarabotsNFTv2 is ERC721, AccessControl, ReentrancyGuard, Pausable {
     event BarabotAssembled(address indexed user, uint256 indexed tokenId, uint256 price);
     event MetadataUpdated(uint256 indexed tokenId, string newTokenURI);
     event BarabotBurned(uint256 indexed tokenId, address indexed owner);
-    event MintPriceUpdated(uint256 newFullPrice, uint256 newDiscountPrice);
     event NativeMintPriceUpdated(uint256 newNativeFullPrice, uint256 newNativeDiscountPrice);
     event AssemblyPriceUpdated(uint256 newAssemblyPrice);
     event BaseURIChanged(string newBaseURI);
     event SignerUpdated(address newSigner);
-    event PaymentTokenUpdated(address newPaymentToken);
-    event FundsWithdrawn(address to, uint256 amount);
     event NativeFundsWithdrawn(address to, uint256 amount);
 
     constructor(
         string memory name,
         string memory symbol,
         string memory baseURI,
-        address paymentTokenAddress,
-        uint256 initialFullMintPrice,
-        uint256 initialDiscountMintPrice,
         uint256 initialNativeFullMintPrice,
         uint256 initialNativeDiscountMintPrice,
         uint256 initialAssemblyPrice,
         address signer
     ) ERC721(name, symbol) {
         _baseTokenURI = baseURI;
-        paymentToken = IERC20(paymentTokenAddress);
-        fullMintPrice = initialFullMintPrice;
-        discountMintPrice = initialDiscountMintPrice;
         nativeFullMintPrice = initialNativeFullMintPrice;
         nativeDiscountMintPrice = initialNativeDiscountMintPrice;
         assemblyPrice = initialAssemblyPrice;
@@ -94,7 +81,9 @@ contract BarabotsNFTv2 is ERC721, AccessControl, ReentrancyGuard, Pausable {
         ));
         bytes32 ethSignedMessageHash = messageHash.toEthSignedMessageHash();
 
-        address recoveredSigner = ethSignedMessageHash.recover(signature);
+        (address recoveredSigner, ECDSA.RecoverError error) = ethSignedMessageHash.tryRecover(signature);
+        require(error == ECDSA.RecoverError.NoError, "Invalid signature format");
+        require(recoveredSigner != address(0), "Invalid signature");
         require(hasRole(SIGNER_ROLE, recoveredSigner), "Invalid signature");
 
         _usedSignatures[signature] = true;
@@ -125,7 +114,9 @@ contract BarabotsNFTv2 is ERC721, AccessControl, ReentrancyGuard, Pausable {
         ));
         bytes32 ethSignedMessageHash = messageHash.toEthSignedMessageHash();
 
-        address recoveredSigner = ethSignedMessageHash.recover(signature);
+        (address recoveredSigner, ECDSA.RecoverError error) = ethSignedMessageHash.tryRecover(signature);
+        require(error == ECDSA.RecoverError.NoError, "Invalid signature format");
+        require(recoveredSigner != address(0), "Invalid signature");
         require(hasRole(SIGNER_ROLE, recoveredSigner), "Invalid signature");
 
         _usedSignatures[signature] = true;
@@ -208,24 +199,27 @@ contract BarabotsNFTv2 is ERC721, AccessControl, ReentrancyGuard, Pausable {
     }
 
     /**
-     * @dev Override transferFrom to respect pausing
+     * @dev Override _beforeTokenTransfer to update owned tokens mapping
      */
-    function transferFrom(address from, address to, uint256 tokenId) public override whenNotPaused {
-        super.transferFrom(from, to, tokenId);
-    }
+    function _beforeTokenTransfer(address from, address to, uint256 tokenId, uint256 batchSize) internal override {
+        super._beforeTokenTransfer(from, to, tokenId, batchSize);
 
-    /**
-     * @dev Override safeTransferFrom to respect pausing
-     */
-    function safeTransferFrom(address from, address to, uint256 tokenId) public override whenNotPaused {
-        super.safeTransferFrom(from, to, tokenId);
-    }
+        // Remove token from sender's owned tokens (unless minting)
+        if (from != address(0)) {
+            uint256[] storage fromTokens = _ownedTokens[from];
+            for (uint256 i = 0; i < fromTokens.length; i++) {
+                if (fromTokens[i] == tokenId) {
+                    fromTokens[i] = fromTokens[fromTokens.length - 1];
+                    fromTokens.pop();
+                    break;
+                }
+            }
+        }
 
-    /**
-     * @dev Override safeTransferFrom with data to respect pausing
-     */
-    function safeTransferFrom(address from, address to, uint256 tokenId, bytes memory data) public override whenNotPaused {
-        super.safeTransferFrom(from, to, tokenId, data);
+        // Add token to receiver's owned tokens (unless burning)
+        if (to != address(0)) {
+            _ownedTokens[to].push(tokenId);
+        }
     }
 
     // Dynamic metadata management
@@ -250,13 +244,6 @@ contract BarabotsNFTv2 is ERC721, AccessControl, ReentrancyGuard, Pausable {
     }
 
     // Admin functions
-    function setMintPrices(uint256 newFullPrice, uint256 newDiscountPrice) public {
-        require(hasRole(ADMIN_ROLE, msg.sender), "Only admin can set prices");
-        fullMintPrice = newFullPrice;
-        discountMintPrice = newDiscountPrice;
-        emit MintPriceUpdated(newFullPrice, newDiscountPrice);
-    }
-
     function setNativeMintPrices(uint256 newNativeFullPrice, uint256 newNativeDiscountPrice) public {
         require(hasRole(ADMIN_ROLE, msg.sender), "Only admin can set prices");
         nativeFullMintPrice = newNativeFullPrice;
@@ -276,12 +263,6 @@ contract BarabotsNFTv2 is ERC721, AccessControl, ReentrancyGuard, Pausable {
         emit BaseURIChanged(newBaseURI);
     }
 
-    function setPaymentToken(address newPaymentToken) public {
-        require(hasRole(ADMIN_ROLE, msg.sender), "Only admin can set payment token");
-        paymentToken = IERC20(newPaymentToken);
-        emit PaymentTokenUpdated(newPaymentToken);
-    }
-
     function setSigner(address newSigner) public {
         require(hasRole(ADMIN_ROLE, msg.sender), "Only admin can set signer");
         _grantRole(SIGNER_ROLE, newSigner);
@@ -296,12 +277,6 @@ contract BarabotsNFTv2 is ERC721, AccessControl, ReentrancyGuard, Pausable {
     function unpause() public {
         require(hasRole(ADMIN_ROLE, msg.sender), "Only admin can unpause");
         _unpause();
-    }
-
-    function withdrawFunds(address to, uint256 amount) public {
-        require(hasRole(ADMIN_ROLE, msg.sender), "Only admin can withdraw");
-        require(paymentToken.transfer(to, amount), "Transfer failed");
-        emit FundsWithdrawn(to, amount);
     }
 
     function withdrawNativeFunds(address payable to, uint256 amount) public {
