@@ -181,14 +181,13 @@ export default function BarabotsGridPage() {
         {/* Hero/Landing Section */}
         <Card className="mb-8 bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200">
           <CardHeader>
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex flex-col gap-4">
               <div>
-                <CardTitle className="text-4xl mb-2 flex items-center gap-2">
-                  <Package className="text-blue-600" />
-                  Barabots Collection
+                <CardTitle className="text-4xl mb-2">
+                  BaraBots
                 </CardTitle>
                 <p className="text-gray-600 text-lg">
-                  Collect crates, pair them with your on-chain activity, and assemble them into unique Barabots!
+                  Get Crates, pair them with your EDUCHAIN activity to assemble them into BaraBots, Collect the rarest set you can!
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row gap-4">
@@ -198,7 +197,7 @@ export default function BarabotsGridPage() {
                   className="w-full sm:w-auto"
                 >
                   <Sparkles className="mr-2" />
-                  Mint More Barabots
+                  Mint More Crates
                 </Button>
                 <Button
                   onClick={() => router.push('/barabots-learn')}
@@ -212,19 +211,31 @@ export default function BarabotsGridPage() {
               </div>
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
-              <div className="bg-white/50 p-4 rounded-lg">
-                <h3 className="font-bold text-lg mb-1">📦 Step 1: Mint</h3>
-                <p className="text-sm text-gray-600">Mint your crate!</p>
+          <CardContent className="relative z-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
+              <div className="space-y-4">
+                <div className="bg-white p-4 rounded-lg">
+                  <h3 className="font-bold text-lg mb-1">📦 Step 1: Mint</h3>
+                  <p className="text-sm text-gray-600">Mint your crate!</p>
+                  <p className="text-sm text-gray-600">Click 'Mint more Crates' above to get more Crates. You can get free and discounted mints by doing or creating quizzes.</p>
+                </div>
+                <div className="bg-white p-4 rounded-lg">
+                  <h3 className="font-bold text-lg mb-1">✨ Step 2: Assemble</h3>
+                  <p className="text-sm text-gray-600">Construct your Barabot by Pairing them with your EDUCHAIN transactions</p>
+                  <p className="text-sm text-gray-600">Click on a crate below to go to the Assembly tool.</p>
+                </div>
               </div>
-              <div className="bg-white/50 p-4 rounded-lg">
-                <h3 className="font-bold text-lg mb-1">🔗 Step 2: Pair</h3>
-                <p className="text-sm text-gray-600">Pair your crate with an on-chain transactions</p>
-              </div>
-              <div className="bg-white/50 p-4 rounded-lg">
-                <h3 className="font-bold text-lg mb-1">✨ Step 3: Assemble</h3>
-                <p className="text-sm text-gray-600">Construct your Barabot</p>
+              <div className="flex items-start justify-center">
+                <div className="w-full max-w-xs">
+                  <Image
+                    src="/img/BIGBOT.png"
+                    alt="BaraBot Mascot"
+                    width={400}
+                    height={400}
+                    className="w-full h-auto object-contain opacity-80"
+                    unoptimized
+                  />
+                </div>
               </div>
             </div>
           </CardContent>
@@ -373,28 +384,6 @@ export default function BarabotsGridPage() {
           </div>
         )}
 
-        {/* Redacted Section */}
-        <div className="mb-12">
-          <h2 className="text-2xl font-bold mb-4">REDACTED</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            <Card className="opacity-75">
-              <CardContent className="p-4">
-                <div className="aspect-square mb-4 rounded-lg overflow-hidden bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center relative">
-                  <div className="absolute inset-0 backdrop-blur-xl bg-black/20"></div>
-                  <div className="text-9xl text-gray-400 relative z-10 blur-sm">?</div>
-                </div>
-                <div>
-                  <h3 className="font-bold text-lg mb-1 text-gray-500">???</h3>
-                  <div className="flex flex-wrap gap-2">
-                    <span className="text-xs px-2 py-1 bg-gray-200 text-gray-500 rounded blur-[2px]">
-                      UNKNOWN
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
       </div>
     </PageLayout>
   );

@@ -37,8 +37,8 @@ export async function POST(request: Request) {
       else rarity = 'legendary';
 
       const evolvedMetadata = {
-        name: `Barabot #${tokenId} - ${category.toUpperCase()} ${rarity.charAt(0).toUpperCase() + rarity.slice(1)}`,
-        description: `An evolved Barabot from representing ${category.toUpperCase()} Dapps of the ecosystem.`,
+        name: `Assembled ${category.toUpperCase()} BaraBot`,
+        description: `An Assembled BaraBot representing a ${category.toUpperCase()} transaction on EDUCHAIN.`,
         image: `${baseUrl}/barabotsmetadata/img/barabot-${categoryLower}-${rarity}.png`,
         attributes: [
           { trait_type: "Category", value: category.toUpperCase() },
@@ -64,8 +64,8 @@ export async function POST(request: Request) {
 
     // Create crate metadata (initial state) - default
     const crateMetadata = {
-      name: `Crate #${tokenId}`,
-      description: `A mysterious Barabot crate from the ${category.toUpperCase()} category...`,
+      name: `${category.toUpperCase()} BaraBots Crate`,
+      description: `A BaraBot crate. Visit https://capybility.xyz/barabots/ to assemble what is inside!`,
       image: `${baseUrl}/barabotsmetadata/img/crate-${categoryLower}.png`,
       attributes: [
         { trait_type: "Category", value: category.toUpperCase() },
