@@ -28,14 +28,32 @@ export async function GET(request: NextRequest) {
       // Get tokens from the contract's owned tokens mapping
       const ownedTokens = await barabotsContract.getOwnedTokens(walletAddress);
       console.log(`Wallet ${walletAddress} tokens from getOwnedTokens:`, ownedTokens.map((t: bigint) => t.toString()));
+      
+      // Check for duplicates in raw contract response
+      const rawTokenStrings = ownedTokens.map((t: bigint) => t.toString());
+      const uniqueRawTokens = [...new Set(rawTokenStrings)];
+      if (rawTokenStrings.length !== uniqueRawTokens.length) {
+        console.warn(`Contract returned duplicate tokens! Raw: ${rawTokenStrings.join(',')}, Unique: ${uniqueRawTokens.join(',')}`);
+      }
 
       // Verify ownership by checking ownerOf for each token (handles transfers/burns)
       const verifiedTokens: bigint[] = [];
+      const seenTokens = new Set<string>(); // Track seen token IDs to prevent duplicates
+      
       for (const tokenId of ownedTokens) {
+        const tokenIdStr = tokenId.toString();
+        
+        // Skip if we've already processed this token
+        if (seenTokens.has(tokenIdStr)) {
+          console.log(`Skipping duplicate token ${tokenIdStr}`);
+          continue;
+        }
+        
         try {
           const owner = await barabotsContract.ownerOf(tokenId);
           if (owner.toLowerCase() === walletAddress.toLowerCase()) {
             verifiedTokens.push(tokenId);
+            seenTokens.add(tokenIdStr);
           } else {
             console.log(`Token ${tokenId} is no longer owned by ${walletAddress} (owned by ${owner})`);
           }

@@ -6,32 +6,36 @@ import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.9.3/contr
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.9.3/contracts/security/ReentrancyGuard.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.9.3/contracts/security/Pausable.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.9.3/contracts/utils/Counters.sol";
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.9.3/contracts/utils/Strings.sol"; // needed for tokenURI
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.9.3/contracts/utils/cryptography/ECDSA.sol";
 
 contract BarabotsNFTv2 is ERC721, AccessControl, ReentrancyGuard, Pausable {
     using Counters for Counters.Counter;
     using ECDSA for bytes32;
+    using Strings for uint256;
 
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant SIGNER_ROLE = keccak256("SIGNER_ROLE");
 
-    uint256 public nativeFullMintPrice;    // Full price in native token (EDU)
-    uint256 public nativeDiscountMintPrice; // Discounted price in native token (EDU)
-    uint256 public assemblyPrice;      // Assembly price in native token (EDU)
+    uint256 public nativeFullMintPrice;
+    uint256 public nativeDiscountMintPrice;
+    uint256 public assemblyPrice;
 
     Counters.Counter private _tokenIdCounter;
     string private _baseTokenURI;
 
-    // Metadata management - allows dynamic metadata changes
+    // Metadata
     mapping(uint256 => string) private _customTokenURIs;
     mapping(uint256 => bool) private _hasCustomURI;
 
-    // Minting tracking
+    // Minting security
     mapping(bytes => bool) private _usedSignatures;
     mapping(address => uint256) private _nonces;
+
+    // On-chain enumeration (kept exactly as you wanted)
     mapping(address => uint256[]) private _ownedTokens;
 
-    // Assembly tracking
+    // Assembly
     mapping(uint256 => bool) private _assembledTokens;
 
     // Events
@@ -64,60 +68,43 @@ contract BarabotsNFTv2 is ERC721, AccessControl, ReentrancyGuard, Pausable {
         _grantRole(SIGNER_ROLE, signer);
     }
 
-    // Minting functions
+    // ========== MINTING ==========
 
-    /**
-     * @dev Free mint for whitelisted users
-     * @param signature Server signature authorizing free mint
-     */
     function mintFree(bytes memory signature) public nonReentrant whenNotPaused returns (uint256) {
         require(!_usedSignatures[signature], "Signature already used");
 
         bytes32 messageHash = keccak256(abi.encodePacked(
-            msg.sender,
-            "FREE_MINT",
-            _nonces[msg.sender],
-            address(this)
+            "\x19Ethereum Signed Message:\n32",
+            keccak256(abi.encode(msg.sender, "FREE_MINT", _nonces[msg.sender], block.chainid, address(this)))
         ));
-        bytes32 ethSignedMessageHash = messageHash.toEthSignedMessageHash();
 
-        (address recoveredSigner, ECDSA.RecoverError error) = ethSignedMessageHash.tryRecover(signature);
-        require(error == ECDSA.RecoverError.NoError, "Invalid signature format");
-        require(recoveredSigner != address(0), "Invalid signature");
-        require(hasRole(SIGNER_ROLE, recoveredSigner), "Invalid signature");
+        (address recoveredSigner, ECDSA.RecoverError error) = messageHash.tryRecover(signature);
+        require(error == ECDSA.RecoverError.NoError && recoveredSigner != address(0), "Invalid signature");
+        require(hasRole(SIGNER_ROLE, recoveredSigner), "Unauthorized signer");
 
         _usedSignatures[signature] = true;
         _nonces[msg.sender]++;
 
         uint256 tokenId = _tokenIdCounter.current();
         _tokenIdCounter.increment();
-        _safeMint(msg.sender, tokenId);
-        _ownedTokens[msg.sender].push(tokenId);
+        _safeMint(msg.sender, tokenId); // _beforeTokenTransfer will add to _ownedTokens
 
-        emit BarabotMinted(msg.sender, tokenId, 0, 0); // 0 = free mint
+        emit BarabotMinted(msg.sender, tokenId, 0, 0);
         return tokenId;
     }
 
-    /**
-     * @dev Discounted mint for whitelisted users (pays with native EDU)
-     * @param signature Server signature authorizing discount mint
-     */
     function mintDiscount(bytes memory signature) public payable nonReentrant whenNotPaused returns (uint256) {
         require(!_usedSignatures[signature], "Signature already used");
-        require(msg.value == nativeDiscountMintPrice, "Incorrect payment amount");
+        require(msg.value == nativeDiscountMintPrice, "Incorrect payment");
 
         bytes32 messageHash = keccak256(abi.encodePacked(
-            msg.sender,
-            "DISCOUNT_MINT",
-            _nonces[msg.sender],
-            address(this)
+            "\x19Ethereum Signed Message:\n32",
+            keccak256(abi.encode(msg.sender, "DISCOUNT_MINT", _nonces[msg.sender], block.chainid, address(this)))
         ));
-        bytes32 ethSignedMessageHash = messageHash.toEthSignedMessageHash();
 
-        (address recoveredSigner, ECDSA.RecoverError error) = ethSignedMessageHash.tryRecover(signature);
-        require(error == ECDSA.RecoverError.NoError, "Invalid signature format");
-        require(recoveredSigner != address(0), "Invalid signature");
-        require(hasRole(SIGNER_ROLE, recoveredSigner), "Invalid signature");
+        (address recoveredSigner, ECDSA.RecoverError error) = messageHash.tryRecover(signature);
+        require(error == ECDSA.RecoverError.NoError && recoveredSigner != address(0), "Invalid signature");
+        require(hasRole(SIGNER_ROLE, recoveredSigner), "Unauthorized signer");
 
         _usedSignatures[signature] = true;
         _nonces[msg.sender]++;
@@ -125,111 +112,88 @@ contract BarabotsNFTv2 is ERC721, AccessControl, ReentrancyGuard, Pausable {
         uint256 tokenId = _tokenIdCounter.current();
         _tokenIdCounter.increment();
         _safeMint(msg.sender, tokenId);
-        _ownedTokens[msg.sender].push(tokenId);
 
-        emit BarabotMinted(msg.sender, tokenId, 1, nativeDiscountMintPrice); // 1 = discount mint
+        emit BarabotMinted(msg.sender, tokenId, 1, nativeDiscountMintPrice);
         return tokenId;
     }
 
-    /**
-     * @dev Full price mint for anyone (pays with native EDU)
-     */
     function mintFullPrice() public payable nonReentrant whenNotPaused returns (uint256) {
-        require(msg.value == nativeFullMintPrice, "Incorrect payment amount");
+        require(msg.value == nativeFullMintPrice, "Incorrect payment");
 
         uint256 tokenId = _tokenIdCounter.current();
         _tokenIdCounter.increment();
         _safeMint(msg.sender, tokenId);
-        _ownedTokens[msg.sender].push(tokenId);
 
-        emit BarabotMinted(msg.sender, tokenId, 2, nativeFullMintPrice); // 2 = full price mint
+        emit BarabotMinted(msg.sender, tokenId, 2, nativeFullMintPrice);
         return tokenId;
     }
 
-    /**
-     * @dev Assemble Barabot by paying assembly fee (pays with native EDU)
-     * @param tokenId The token ID to assemble
-     */
+    // ========== ASSEMBLY & BURN ==========
+
     function assembleBarabot(uint256 tokenId) public payable nonReentrant whenNotPaused {
-        require(ownerOf(tokenId) == msg.sender, "Not token owner");
-        require(!_assembledTokens[tokenId], "Token already assembled");
-        require(msg.value == assemblyPrice, "Incorrect assembly payment amount");
+        require(ownerOf(tokenId) == msg.sender, "Not owner");
+        require(!_assembledTokens[tokenId], "Already assembled");
+        require(msg.value == assemblyPrice, "Incorrect payment");
 
         _assembledTokens[tokenId] = true;
-
         emit BarabotAssembled(msg.sender, tokenId, assemblyPrice);
     }
 
-    /**
-     * @dev Burn function to destroy tokens (up to 5 at once)
-     * @param tokenIds Array of token IDs to burn
-     */
     function burn(uint256[] memory tokenIds) public whenNotPaused {
-        require(tokenIds.length > 0 && tokenIds.length <= 5, "Can burn 1-5 tokens at once");
+        require(tokenIds.length > 0 && tokenIds.length <= 5, "1-5 tokens");
 
         for (uint256 i = 0; i < tokenIds.length; i++) {
             uint256 tokenId = tokenIds[i];
-            require(ownerOf(tokenId) == msg.sender, "Not token owner");
+            require(ownerOf(tokenId) == msg.sender, "Not owner");
 
-            _burn(tokenId);
+            _burn(tokenId); // _beforeTokenTransfer will remove from _ownedTokens
 
-            // Remove from owned tokens array
-            uint256[] storage owned = _ownedTokens[msg.sender];
-            for (uint256 j = 0; j < owned.length; j++) {
-                if (owned[j] == tokenId) {
-                    owned[j] = owned[owned.length - 1];
-                    owned.pop();
-                    break;
-                }
-            }
-
-            // Clear custom URI if set
             if (_hasCustomURI[tokenId]) {
                 delete _customTokenURIs[tokenId];
                 delete _hasCustomURI[tokenId];
             }
-
-            // Clear assembly status if set
-            if (_assembledTokens[tokenId]) {
-                delete _assembledTokens[tokenId];
-            }
+            delete _assembledTokens[tokenId];
 
             emit BarabotBurned(tokenId, msg.sender);
         }
     }
 
-    /**
-     * @dev Override _beforeTokenTransfer to update owned tokens mapping
-     */
-    function _beforeTokenTransfer(address from, address to, uint256 tokenId, uint256 batchSize) internal override {
+    // ========== CORE HOOK (keeps _ownedTokens perfect) ==========
+
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 tokenId,
+        uint256 batchSize
+    ) internal override whenNotPaused {
         super._beforeTokenTransfer(from, to, tokenId, batchSize);
 
-        // Remove token from sender's owned tokens (unless minting)
+        // Remove from old owner (skip on mint)
         if (from != address(0)) {
-            uint256[] storage fromTokens = _ownedTokens[from];
-            for (uint256 i = 0; i < fromTokens.length; i++) {
-                if (fromTokens[i] == tokenId) {
-                    fromTokens[i] = fromTokens[fromTokens.length - 1];
-                    fromTokens.pop();
+            uint256[] storage oldOwnerTokens = _ownedTokens[from];
+            for (uint256 i = 0; i < oldOwnerTokens.length; i++) {
+                if (oldOwnerTokens[i] == tokenId) {
+                    oldOwnerTokens[i] = oldOwnerTokens[oldOwnerTokens.length - 1];
+                    oldOwnerTokens.pop();
                     break;
                 }
             }
         }
 
-        // Add token to receiver's owned tokens (unless burning)
+        // Add to new owner (skip on burn)
         if (to != address(0)) {
             _ownedTokens[to].push(tokenId);
         }
     }
 
-    // Dynamic metadata management
+    // ========== METADATA ==========
+
     function setCustomTokenURI(uint256 tokenId, string memory newTokenURI) public {
-        require(hasRole(ADMIN_ROLE, msg.sender), "Only admin can update metadata");
+        require(hasRole(ADMIN_ROLE, msg.sender), "Only admin");
         require(_exists(tokenId), "Token does not exist");
 
         _customTokenURIs[tokenId] = newTokenURI;
         _hasCustomURI[tokenId] = true;
-
         emit MetadataUpdated(tokenId, newTokenURI);
     }
 
@@ -239,73 +203,53 @@ contract BarabotsNFTv2 is ERC721, AccessControl, ReentrancyGuard, Pausable {
         if (_hasCustomURI[tokenId]) {
             return _customTokenURIs[tokenId];
         }
-
-        return string(abi.encodePacked(_baseTokenURI, Strings.toString(tokenId), ".json"));
+        return string(abi.encodePacked(_baseTokenURI, tokenId.toString(), ".json"));
     }
 
-    // Admin functions
-    function setNativeMintPrices(uint256 newNativeFullPrice, uint256 newNativeDiscountPrice) public {
-        require(hasRole(ADMIN_ROLE, msg.sender), "Only admin can set prices");
-        nativeFullMintPrice = newNativeFullPrice;
-        nativeDiscountMintPrice = newNativeDiscountPrice;
-        emit NativeMintPriceUpdated(newNativeFullPrice, newNativeDiscountPrice);
+    // ========== ADMIN ==========
+
+    function setNativeMintPrices(uint256 newFull, uint256 newDiscount) public {
+        require(hasRole(ADMIN_ROLE, msg.sender), "Only admin");
+        nativeFullMintPrice = newFull;
+        nativeDiscountMintPrice = newDiscount;
+        emit NativeMintPriceUpdated(newFull, newDiscount);
     }
 
-    function setAssemblyPrice(uint256 newAssemblyPrice) public {
-        require(hasRole(ADMIN_ROLE, msg.sender), "Only admin can set assembly price");
-        assemblyPrice = newAssemblyPrice;
-        emit AssemblyPriceUpdated(newAssemblyPrice);
+    function setAssemblyPrice(uint256 newPrice) public {
+        require(hasRole(ADMIN_ROLE, msg.sender), "Only admin");
+        assemblyPrice = newPrice;
+        emit AssemblyPriceUpdated(newPrice);
     }
 
-    function setBaseURI(string memory newBaseURI) public {
-        require(hasRole(ADMIN_ROLE, msg.sender), "Only admin can set base URI");
-        _baseTokenURI = newBaseURI;
-        emit BaseURIChanged(newBaseURI);
+    function setBaseURI(string memory newURI) public {
+        require(hasRole(ADMIN_ROLE, msg.sender), "Only admin");
+        _baseTokenURI = newURI;
+        emit BaseURIChanged(newURI);
     }
 
     function setSigner(address newSigner) public {
-        require(hasRole(ADMIN_ROLE, msg.sender), "Only admin can set signer");
+        require(hasRole(ADMIN_ROLE, msg.sender), "Only admin");
         _grantRole(SIGNER_ROLE, newSigner);
         emit SignerUpdated(newSigner);
     }
 
-    function pause() public {
-        require(hasRole(ADMIN_ROLE, msg.sender), "Only admin can pause");
-        _pause();
-    }
-
-    function unpause() public {
-        require(hasRole(ADMIN_ROLE, msg.sender), "Only admin can unpause");
-        _unpause();
-    }
-
     function withdrawNativeFunds(address payable to, uint256 amount) public {
-        require(hasRole(ADMIN_ROLE, msg.sender), "Only admin can withdraw");
-        (bool success,) = to.call{value: amount}("");
-        require(success, "Native transfer failed");
+        require(hasRole(ADMIN_ROLE, msg.sender), "Only admin");
+        (bool success, ) = to.call{value: amount}("");
+        require(success, "Transfer failed");
         emit NativeFundsWithdrawn(to, amount);
     }
 
-    // View functions
-    function getNonce(address user) public view returns (uint256) {
-        return _nonces[user];
-    }
+    function pause() public { require(hasRole(ADMIN_ROLE, msg.sender)); _pause(); }
+    function unpause() public { require(hasRole(ADMIN_ROLE, msg.sender)); _unpause(); }
 
-    function getOwnedTokens(address owner) public view returns (uint256[] memory) {
-        return _ownedTokens[owner];
-    }
+    // ========== VIEWS ==========
 
-    function isAssembled(uint256 tokenId) public view returns (bool) {
-        return _assembledTokens[tokenId];
-    }
-
-    function getAssemblyPrice() public view returns (uint256) {
-        return assemblyPrice;
-    }
-
-    function totalSupply() public view returns (uint256) {
-        return _tokenIdCounter.current();
-    }
+    function getNonce(address user) public view returns (uint256) { return _nonces[user]; }
+    function getOwnedTokens(address owner) public view returns (uint256[] memory) { return _ownedTokens[owner]; }
+    function isAssembled(uint256 tokenId) public view returns (bool) { return _assembledTokens[tokenId]; }
+    function getAssemblyPrice() public view returns (uint256) { return assemblyPrice; }
+    function totalSupply() public view returns (uint256) { return _tokenIdCounter.current(); }
 
     function supportsInterface(bytes4 interfaceId) public view override(ERC721, AccessControl) returns (bool) {
         return super.supportsInterface(interfaceId);

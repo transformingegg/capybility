@@ -58,7 +58,25 @@ export async function GET(
     }
 
     if (!category) {
-      return NextResponse.json({ error: "Category not found for token" }, { status: 404 });
+      console.warn(`No category found for token ${tokenId}, using default crate image`);
+      // Default to a generic crate image if category is unknown
+      const imagePath = join(process.cwd(), 'public', 'barabotsmetadata', 'img', 'crate-build.png'); // Default fallback
+      
+      try {
+        const imageBuffer = await readFile(imagePath);
+        return new NextResponse(new Uint8Array(imageBuffer), {
+          status: 200,
+          headers: {
+            'Content-Type': 'image/png',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          }
+        });
+      } catch (fallbackError) {
+        console.error(`Fallback image also failed:`, fallbackError);
+        return NextResponse.json({ error: "No category found and fallback image failed" }, { status: 404 });
+      }
     }
 
     const categoryLower = category.toLowerCase();

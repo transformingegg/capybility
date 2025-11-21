@@ -193,6 +193,7 @@ export default function BarabotsMintPage() {
           
           if (!metadataResponse.ok) {
             console.error('Metadata creation failed:', metadataResult.error);
+            // Don't fail the mint if metadata creation fails - the image route can handle missing metadata
           }
         } catch (metadataError) {
           console.error('Error creating metadata:', metadataError);

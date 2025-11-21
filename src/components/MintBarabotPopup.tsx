@@ -26,15 +26,24 @@ const MintBarabotPopup: React.FC<MintBarabotPopupProps> = ({
   const [imageLoaded, setImageLoaded] = useState(false);
 
   useEffect(() => {
-    if (status === 'success' && tokenId) {
-      // Pre-load the crate image
+    if (status === 'success' && tokenId && category) {
+      // Pre-load the crate image using the correct path: /barabotsmetadata/img/{tokenId}
+      // This will be served by the API route which determines the correct image
       const img = new window.Image();
       img.onload = () => {
         setTimeout(() => setImageLoaded(true), 500); // Small delay for dramatic effect
       };
+      img.onerror = () => {
+        console.warn(`Failed to load crate image for token ${tokenId}, proceeding anyway`);
+        // Still show success even if image fails to load
+        setTimeout(() => setImageLoaded(true), 500);
+      };
       img.src = `/barabotsmetadata/img/${tokenId}`;
+    } else if (status === 'success') {
+      // If we don't have tokenId/category, still proceed after a delay
+      setTimeout(() => setImageLoaded(true), 1000);
     }
-  }, [status, tokenId]);
+  }, [status, tokenId, category]);
 
   if (!open) return null;
 
